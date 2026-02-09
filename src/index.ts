@@ -28,6 +28,12 @@ export {
   COMMAND_FAILED,
   UNSUPPORTED_PLATFORM,
   PERMISSION_DENIED,
+  INSECURE_URL,
+  DOWNLOAD_FAILED,
+  CHECKSUM_MISSING,
+  CHECKSUM_FETCH_FAILED,
+  CHECKSUM_PARSE_FAILED,
+  EXTRACT_FAILED,
 } from './errors.js';
 export type { ErrorCode } from './errors.js';
 
@@ -61,3 +67,10 @@ export type { CheckUpdateOptions } from './checker/index.js';
 
 // Cache
 export type { CacheEntry } from './checker/cache.js';
+
+// Applier
+export { applyNativeUpdate } from './applier/native.js';
+export type { ApplyOptions } from './applier/types.js';
+export { verifyChecksum, computeSha256 } from './applier/verify.js';
+export type { ChecksumInfo } from './applier/verify.js';
+export { atomicReplace } from './platform/replace.js';

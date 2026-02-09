@@ -52,6 +52,24 @@ export const UNSUPPORTED_PLATFORM = 'UNSUPPORTED_PLATFORM' as const;
 /** Insufficient file system permissions */
 export const PERMISSION_DENIED = 'PERMISSION_DENIED' as const;
 
+/** HTTP URL rejected; HTTPS is required */
+export const INSECURE_URL = 'INSECURE_URL' as const;
+
+/** HTTP error response or empty response body during download */
+export const DOWNLOAD_FAILED = 'DOWNLOAD_FAILED' as const;
+
+/** No checksum provided and skipChecksum is false */
+export const CHECKSUM_MISSING = 'CHECKSUM_MISSING' as const;
+
+/** Failed to download checksum file from URL */
+export const CHECKSUM_FETCH_FAILED = 'CHECKSUM_FETCH_FAILED' as const;
+
+/** Checksum file could not be parsed or target filename not found */
+export const CHECKSUM_PARSE_FAILED = 'CHECKSUM_PARSE_FAILED' as const;
+
+/** Archive extraction failure */
+export const EXTRACT_FAILED = 'EXTRACT_FAILED' as const;
+
 /** Union of all error codes */
 export type ErrorCode =
   | typeof DETECTION_FAILED
@@ -64,4 +82,10 @@ export type ErrorCode =
   | typeof APPLY_FAILED
   | typeof COMMAND_FAILED
   | typeof UNSUPPORTED_PLATFORM
-  | typeof PERMISSION_DENIED;
+  | typeof PERMISSION_DENIED
+  | typeof INSECURE_URL
+  | typeof DOWNLOAD_FAILED
+  | typeof CHECKSUM_MISSING
+  | typeof CHECKSUM_FETCH_FAILED
+  | typeof CHECKSUM_PARSE_FAILED
+  | typeof EXTRACT_FAILED;
