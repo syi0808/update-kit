@@ -70,6 +70,15 @@ export const CHECKSUM_PARSE_FAILED = 'CHECKSUM_PARSE_FAILED' as const;
 /** Archive extraction failure */
 export const EXTRACT_FAILED = 'EXTRACT_FAILED' as const;
 
+/** Delegate command exceeded timeout */
+export const COMMAND_TIMEOUT = 'COMMAND_TIMEOUT' as const;
+
+/** Delegate command cancelled via AbortSignal */
+export const COMMAND_ABORTED = 'COMMAND_ABORTED' as const;
+
+/** Delegate command spawn failed (e.g. binary not found) */
+export const COMMAND_SPAWN_FAILED = 'COMMAND_SPAWN_FAILED' as const;
+
 /** Union of all error codes */
 export type ErrorCode =
   | typeof DETECTION_FAILED
@@ -88,4 +97,7 @@ export type ErrorCode =
   | typeof CHECKSUM_MISSING
   | typeof CHECKSUM_FETCH_FAILED
   | typeof CHECKSUM_PARSE_FAILED
-  | typeof EXTRACT_FAILED;
+  | typeof EXTRACT_FAILED
+  | typeof COMMAND_TIMEOUT
+  | typeof COMMAND_ABORTED
+  | typeof COMMAND_SPAWN_FAILED;

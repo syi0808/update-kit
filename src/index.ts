@@ -34,6 +34,9 @@ export {
   CHECKSUM_FETCH_FAILED,
   CHECKSUM_PARSE_FAILED,
   EXTRACT_FAILED,
+  COMMAND_TIMEOUT,
+  COMMAND_ABORTED,
+  COMMAND_SPAWN_FAILED,
 } from './errors.js';
 export type { ErrorCode } from './errors.js';
 
@@ -70,7 +73,8 @@ export type { CacheEntry } from './checker/cache.js';
 
 // Applier
 export { applyNativeUpdate } from './applier/native.js';
-export type { ApplyOptions } from './applier/types.js';
+export { applyDelegateUpdate } from './applier/delegate.js';
+export type { ApplyOptions, DelegateApplyOptions, DelegateApplyResult } from './applier/types.js';
 export { verifyChecksum, computeSha256 } from './applier/verify.js';
 export type { ChecksumInfo } from './applier/verify.js';
 export { atomicReplace } from './platform/replace.js';
