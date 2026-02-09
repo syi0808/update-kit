@@ -1,0 +1,13 @@
+{
+  "appName": "my-cli",
+  "currentVersion": "1.0.0",
+  "sources": [
+    {
+      "type": "github",
+      "owner": "my-org",
+      "repo": "my-cli"
+    }
+  ],
+  "checkInterval": 72000000,
+  "delegateMode": "print-only"
+}

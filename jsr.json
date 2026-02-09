@@ -1,0 +1,10 @@
+{
+  "name": "@syi0808/update-kit",
+  "version": "0.1.12",
+  "exports": {
+    ".": "./dist/index.mjs"
+  },
+  "publish": {
+    "include": ["dist"]
+  }
+}

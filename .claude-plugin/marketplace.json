@@ -1,0 +1,19 @@
+{
+  "name": "update-kit-marketplace",
+  "owner": {
+    "name": "Yein Sung"
+  },
+  "metadata": {
+    "description": "Plugin marketplace for update-kit — a channel-aware self-update toolkit for Node.js CLI applications",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "update-kit",
+      "source": "./plugins/update-kit-plugin",
+      "description": "Integrates update-kit into CLI projects for self-update and version notification. Provides integration skill, diagnostic doctor command, and integration code review agent.",
+      "category": "developer-tools",
+      "tags": ["update", "cli", "self-update", "version", "auto-update"]
+    }
+  ]
+}

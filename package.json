@@ -1,0 +1,83 @@
+{
+  "name": "update-kit",
+  "version": "0.1.12",
+  "description": "Channel-aware self-update toolkit for Node.js CLI applications",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "Yein Sung",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/syi0808/update-kit.git"
+  },
+  "homepage": "https://github.com/syi0808/update-kit",
+  "bugs": {
+    "url": "https://github.com/syi0808/update-kit/issues"
+  },
+  "keywords": [
+    "update",
+    "self-update",
+    "auto-update",
+    "cli",
+    "version-check",
+    "updater"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "update-kit": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "watch": "tsup --watch",
+    "build": "tsup",
+    "check": "biome check",
+    "format": "pnpm check --write",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:dist": "pnpm build && vitest run --config tests/vitest.config.ts",
+    "test:ci": "pnpm build && pnpm test && pnpm test:dist",
+    "prepublishOnly": "pnpm build",
+    "coverage": "vitest run --coverage",
+    "release": "pubm --preflight",
+    "ci:release": "pubm --publish-only"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "semver": "^7.7.4"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.4",
+    "@types/node": "^25.2.2",
+    "@types/semver": "^7.7.1",
+    "@vitest/coverage-v8": "4.0.18",
+    "jsr": "^0.14.3",
+    "pubm": "^0.2.12",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  },
+  "packageManager": "pnpm@10.21.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

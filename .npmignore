@@ -1,0 +1,16 @@
+src/
+tests/
+docs/
+examples/
+.github/
+.claude/
+
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+CLAUDE.md
+CONTRIBUTING.md
+
+*.test.ts
+*.spec.ts
+__tests__/

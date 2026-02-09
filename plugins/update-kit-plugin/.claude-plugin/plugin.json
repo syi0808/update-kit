@@ -1,0 +1,12 @@
+{
+  "name": "update-kit",
+  "description": "Integrates update-kit into CLI projects for self-update and version notification. Provides integration skill, diagnostic doctor command, and code review agent.",
+  "version": "0.1.1",
+  "author": {
+    "name": "Yein Sung"
+  },
+  "homepage": "https://github.com/syi0808/update-kit",
+  "repository": "https://github.com/syi0808/update-kit",
+  "license": "Apache-2.0",
+  "keywords": ["update", "self-update", "cli", "version-check", "auto-update"]
+}
