@@ -30,7 +30,7 @@ CLI 앱의 설치 채널을 감지하고, 안전한 방식으로 업데이트를
 | 04 | 버전 소스 플러그인 시스템 | [X] | [04-version-source-plugin.md](tasks/04-version-source-plugin.md) |
 | 05 | 버전 체커 | [X] | [05-version-checker.md](tasks/05-version-checker.md) |
 | 06 | 캐시 시스템 | [X] | [06-cache-system.md](tasks/06-cache-system.md) |
-| 07 | 업데이트 플래너 | [ ] | [07-update-planner.md](tasks/07-update-planner.md) |
+| 07 | 업데이트 플래너 | [x] | [07-update-planner.md](tasks/07-update-planner.md) |
 | 08 | 업데이트 적용 - Native | [ ] | [08-applier-native.md](tasks/08-applier-native.md) |
 | 09 | 업데이트 적용 - Delegate | [ ] | [09-applier-delegate.md](tasks/09-applier-delegate.md) |
 | 10 | UX 레이어 | [ ] | [10-ux-layer.md](tasks/10-ux-layer.md) |
