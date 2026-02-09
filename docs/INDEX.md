@@ -33,7 +33,7 @@ CLI 앱의 설치 채널을 감지하고, 안전한 방식으로 업데이트를
 | 07 | 업데이트 플래너 | [x] | [07-update-planner.md](tasks/07-update-planner.md) |
 | 08 | 업데이트 적용 - Native | [x] | [08-applier-native.md](tasks/08-applier-native.md) |
 | 09 | 업데이트 적용 - Delegate | [x] | [09-applier-delegate.md](tasks/09-applier-delegate.md) |
-| 10 | UX 레이어 | [ ] | [10-ux-layer.md](tasks/10-ux-layer.md) |
+| 10 | UX 레이어 | [x] | [10-ux-layer.md](tasks/10-ux-layer.md) |
 | 11 | 퍼블릭 API 통합 | [ ] | [11-public-api.md](tasks/11-public-api.md) |
 | 12 | 데모 CLI | [ ] | [12-cli-demo.md](tasks/12-cli-demo.md) |
 | 13 | 하드닝 + 크로스플랫폼 | [ ] | [13-hardening.md](tasks/13-hardening.md) |

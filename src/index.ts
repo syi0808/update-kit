@@ -78,3 +78,10 @@ export type { ApplyOptions, DelegateApplyOptions, DelegateApplyResult } from './
 export { verifyChecksum, computeSha256 } from './applier/verify.js';
 export type { ChecksumInfo } from './applier/verify.js';
 export { atomicReplace } from './platform/replace.js';
+
+// UX
+export { renderBanner, renderProgress, renderResult } from './ux/index.js';
+export { defaultTemplates } from './ux/templates.js';
+export type { MessageTemplates } from './ux/templates.js';
+export { supportsColor, bold, red, green, yellow, dim, stripAnsi } from './ux/colors.js';
+export { runHook } from './ux/hooks.js';
