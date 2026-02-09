@@ -54,3 +54,10 @@ export type {
   BrewSourceConfig,
   CustomManifestSourceConfig,
 } from './checker/sources/index.js';
+
+// Checker
+export { checkUpdate, normalizeVersion } from './checker/index.js';
+export type { CheckUpdateOptions } from './checker/index.js';
+
+// Cache
+export type { CacheEntry } from './checker/cache.js';
