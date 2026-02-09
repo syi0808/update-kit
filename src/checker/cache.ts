@@ -95,3 +95,22 @@ export function isCacheStale(entry: CacheEntry, intervalMs: number): boolean {
 
   return Date.now() > checkedAt + intervalMs;
 }
+
+/**
+ * Delete the cached version check file.
+ * Silently succeeds if the file does not exist.
+ */
+export async function clearCache(
+  cacheDir: string,
+  appName: string,
+): Promise<void> {
+  const filePath = getCachePath(cacheDir, appName);
+
+  try {
+    await fs.unlink(filePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
