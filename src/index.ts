@@ -40,3 +40,17 @@ export type {
 
 // Detection
 export { detectInstall } from './detection/index.js';
+
+// Version Sources
+export { createVersionSource } from './checker/sources/index.js';
+export type {
+  VersionSource,
+  VersionSourceResult,
+  VersionInfo,
+  AssetInfo,
+  GitHubSourceConfig,
+  NpmSourceConfig,
+  JsrSourceConfig,
+  BrewSourceConfig,
+  CustomManifestSourceConfig,
+} from './checker/sources/index.js';
