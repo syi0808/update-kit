@@ -37,3 +37,6 @@ export type {
   Hooks,
   VersionSourceConfig,
 } from './config.js';
+
+// Detection
+export { detectInstall } from './detection/index.js';
