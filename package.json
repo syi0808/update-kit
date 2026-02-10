@@ -1,7 +1,26 @@
 {
   "name": "update-kit",
   "version": "0.1.0",
+  "description": "Channel-aware self-update toolkit for Node.js CLI applications",
   "type": "module",
+  "license": "Apache-2.0",
+  "author": "Sung YeIn",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/syi0808/update-kit.git"
+  },
+  "homepage": "https://github.com/syi0808/update-kit",
+  "bugs": {
+    "url": "https://github.com/syi0808/update-kit/issues"
+  },
+  "keywords": [
+    "update",
+    "self-update",
+    "auto-update",
+    "cli",
+    "version-check",
+    "updater"
+  ],
   "exports": {
     ".": {
       "import": {

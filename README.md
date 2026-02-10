@@ -1,5 +1,6 @@
 # update-kit
 
+[![CI](https://github.com/syi0808/update-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/syi0808/update-kit/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 A channel-aware self-update library and CLI for Node.js CLI applications.
