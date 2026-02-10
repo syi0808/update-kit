@@ -94,10 +94,11 @@ async function applyExecute(
 
   return new Promise((resolve, reject) => {
     const commandStr = command.join(' ');
+    const [cmd, ...args] = command;
 
-    const child = spawn(commandStr, [], {
+    const child = spawn(cmd, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
-      shell: true,
+      shell: process.platform === 'win32',
     });
 
     let stdout = '';

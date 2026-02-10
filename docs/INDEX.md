@@ -36,7 +36,7 @@ CLI 앱의 설치 채널을 감지하고, 안전한 방식으로 업데이트를
 | 10 | UX 레이어 | [x] | [10-ux-layer.md](tasks/10-ux-layer.md) |
 | 11 | 퍼블릭 API 통합 | [x] | [11-public-api.md](tasks/11-public-api.md) |
 | 12 | 데모 CLI | [x] | [12-cli-demo.md](tasks/12-cli-demo.md) |
-| 13 | 하드닝 + 크로스플랫폼 | [ ] | [13-hardening.md](tasks/13-hardening.md) |
+| 13 | 하드닝 + 크로스플랫폼 | [x] | [13-hardening.md](tasks/13-hardening.md) |
 
 ## 의존 관계
 

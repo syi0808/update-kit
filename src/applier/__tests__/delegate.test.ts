@@ -165,7 +165,7 @@ describe('applyDelegateUpdate — execute mode', () => {
     expect(result.command).toEqual(['npm', 'install', '-g', 'my-app@2.0.0']);
   });
 
-  it('calls spawn with shell: true', async () => {
+  it('calls spawn with array args and shell only on Windows', async () => {
     const child = createMockChildProcess();
     mockSpawn.mockReturnValue(child);
 
@@ -176,9 +176,12 @@ describe('applyDelegateUpdate — execute mode', () => {
     await promise;
 
     expect(mockSpawn).toHaveBeenCalledWith(
-      'npm install -g my-app@2.0.0',
-      [],
-      expect.objectContaining({ shell: true, stdio: ['ignore', 'pipe', 'pipe'] }),
+      'npm',
+      ['install', '-g', 'my-app@2.0.0'],
+      expect.objectContaining({
+        shell: process.platform === 'win32',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }),
     );
   });
 

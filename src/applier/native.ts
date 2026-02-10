@@ -18,6 +18,7 @@ import {
 } from '../errors.js';
 import { verifyChecksum } from './verify.js';
 import { atomicReplace } from '../platform/replace.js';
+import { fetchWithTimeout } from '../utils/http.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -118,7 +119,7 @@ export async function downloadArtifact(
 
   let response: Response;
   try {
-    response = await fetch(url, { signal: options.signal });
+    response = await fetchWithTimeout(url, { signal: options.signal, timeoutMs: 300_000 });
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw error;

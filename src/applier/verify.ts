@@ -8,6 +8,8 @@ import {
   CHECKSUM_PARSE_FAILED,
   INSECURE_URL,
 } from '../errors.js';
+import { fetchWithTimeout } from '../utils/http.js';
+import { timingSafeEqual } from '../utils/security.js';
 
 /** Source of the expected checksum. Maps directly to PlanKind fields. */
 export interface ChecksumInfo {
@@ -49,7 +51,7 @@ export async function verifyChecksum(
 
   const actualHash = await computeSha256(filePath);
 
-  if (actualHash !== expectedHash) {
+  if (!timingSafeEqual(actualHash, expectedHash)) {
     throw new UpdateKitError(
       CHECKSUM_MISMATCH,
       `Checksum mismatch: expected=${expectedHash}, actual=${actualHash}`,
@@ -88,7 +90,7 @@ export async function fetchChecksumFromUrl(
     );
   }
 
-  const response = await fetch(checksumUrl, { signal });
+  const response = await fetchWithTimeout(checksumUrl, { signal, timeoutMs: 30_000 });
 
   if (!response.ok) {
     throw new UpdateKitError(
