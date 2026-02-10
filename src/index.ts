@@ -23,7 +23,11 @@ import { renderBanner } from './ux/index.js';
 import { runHook } from './ux/hooks.js';
 import { getDefaultCacheDir } from './platform/paths.js';
 import { UpdateKitError, APPLY_FAILED } from './errors.js';
-import { findPackageJsonFromModule } from './utils/package-json.js';
+import {
+  findPackageJsonFromModule,
+  getCallerFilePath,
+  resolvePackageJsonFromCaller,
+} from './utils/package-json.js';
 
 /**
  * Main entry point for update-kit.
@@ -83,29 +87,35 @@ export class UpdateKit {
    * host module's package.json when they are not explicitly provided.
    *
    * When `appName`/`currentVersion`/`pkg` are all omitted, the factory
-   * requires `moduleUrl` (the caller's `import.meta.url`) to locate
-   * the correct package.json relative to the host module — NOT the
-   * end-user's working directory.
+   * automatically detects the caller's file location via the V8 call stack
+   * and walks up from there to find the nearest package.json.
+   *
+   * You can optionally pass `moduleUrl` (e.g. `import.meta.url`) to
+   * explicitly specify which module's package.json to use.
    *
    * @param config - Configuration options.
    * @param options - Factory options.
-   * @param options.moduleUrl - The caller's `import.meta.url`, used to find the
-   *   host package's package.json. Required when identity fields are omitted.
+   * @param options.moduleUrl - Explicit module URL override. When provided,
+   *   the factory locates package.json relative to this URL instead of
+   *   auto-detecting from the call stack.
    * @returns A configured UpdateKit instance.
    * @throws If no package.json with name+version is found and no explicit values provided.
    *
    * @example
    * ```typescript
-   * const kit = await UpdateKit.create(
-   *   { sources: [{ type: 'npm', packageName: 'my-cli' }] },
-   *   { moduleUrl: import.meta.url },
-   * );
+   * // Auto-detects package identity from the caller's package.json
+   * const kit = await UpdateKit.create({
+   *   sources: [{ type: 'npm', packageName: 'my-cli' }],
+   * });
    * ```
    */
   static async create(
     config?: CreateOptions,
     options?: { moduleUrl?: string },
   ): Promise<UpdateKit> {
+    // Capture caller file synchronously before any await
+    const callerFile = getCallerFilePath();
+
     const cfg = config ?? {};
 
     if (cfg.appName && cfg.currentVersion) {
@@ -116,19 +126,16 @@ export class UpdateKit {
       return new UpdateKit({ ...cfg, pkg: cfg.pkg } as UpdateKitConfig);
     }
 
-    if (!options?.moduleUrl) {
-      throw new Error(
-        'When appName/currentVersion/pkg are not provided, you must pass ' +
-          '{ moduleUrl: import.meta.url } so update-kit can locate your package.json. ' +
-          'Alternatively, provide appName and currentVersion explicitly.',
-      );
-    }
+    // Resolve package.json: explicit moduleUrl > auto-detect from caller
+    let pkgResult = options?.moduleUrl
+      ? await findPackageJsonFromModule(options.moduleUrl)
+      : callerFile
+        ? await resolvePackageJsonFromCaller(callerFile)
+        : null;
 
-    const pkgResult = await findPackageJsonFromModule(options.moduleUrl);
     if (!pkgResult) {
       throw new Error(
-        'Could not find a package.json with "name" and "version" fields ' +
-          `starting from module at ${options.moduleUrl}. ` +
+        'Could not auto-detect package identity. ' +
           'Provide appName and currentVersion explicitly.',
       );
     }

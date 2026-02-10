@@ -50,6 +50,8 @@ vi.mock('../utils/package-json.js', () => ({
   findPackageJsonSync: vi.fn(),
   findPackageJsonFromModule: vi.fn(),
   findPackageJsonFromModuleSync: vi.fn(),
+  getCallerFilePath: vi.fn(),
+  resolvePackageJsonFromCaller: vi.fn(),
 }));
 
 // Import mocked modules for assertions
@@ -59,7 +61,11 @@ import { planUpdate as planUpdateFn } from '../planner/index.js';
 import { applyNativeUpdate } from '../applier/native.js';
 import { applyDelegateUpdate } from '../applier/delegate.js';
 import { renderBanner } from '../ux/index.js';
-import { findPackageJsonFromModule } from '../utils/package-json.js';
+import {
+  findPackageJsonFromModule,
+  getCallerFilePath,
+  resolvePackageJsonFromCaller,
+} from '../utils/package-json.js';
 
 const mockDetectInstall = vi.mocked(detectInstallFn);
 const mockCheckUpdate = vi.mocked(checkUpdateFn);
@@ -68,6 +74,8 @@ const mockApplyNative = vi.mocked(applyNativeUpdate);
 const mockApplyDelegate = vi.mocked(applyDelegateUpdate);
 const mockRenderBanner = vi.mocked(renderBanner);
 const mockFindPackageJsonFromModule = vi.mocked(findPackageJsonFromModule);
+const mockGetCallerFilePath = vi.mocked(getCallerFilePath);
+const mockResolvePackageJsonFromCaller = vi.mocked(resolvePackageJsonFromCaller);
 
 const baseConfig = {
   appName: 'test-app',
@@ -522,9 +530,28 @@ describe('UpdateKit', () => {
       expect(mockFindPackageJsonFromModule).toHaveBeenCalledWith('file:///mock/src/index.js');
     });
 
-    it('throws when moduleUrl not provided and no explicit values', async () => {
+    it('auto-resolves from caller stack when moduleUrl is not provided', async () => {
+      mockGetCallerFilePath.mockReturnValue('file:///caller/src/cli.js');
+      mockResolvePackageJsonFromCaller.mockResolvedValue({
+        name: 'caller-app',
+        version: '3.0.0',
+        path: '/caller/package.json',
+      });
+
+      const kit = await UpdateKit.create({
+        sources: [{ type: 'npm', packageName: 'caller-app' }],
+      });
+
+      expect(kit).toBeInstanceOf(UpdateKit);
+      expect(mockGetCallerFilePath).toHaveBeenCalled();
+      expect(mockResolvePackageJsonFromCaller).toHaveBeenCalledWith('file:///caller/src/cli.js');
+    });
+
+    it('throws when auto-detect fails and no explicit values', async () => {
+      mockGetCallerFilePath.mockReturnValue(null);
+
       await expect(UpdateKit.create()).rejects.toThrow(
-        'you must pass { moduleUrl: import.meta.url }',
+        'Could not auto-detect package identity',
       );
     });
 
@@ -533,7 +560,16 @@ describe('UpdateKit', () => {
 
       await expect(
         UpdateKit.create({}, { moduleUrl: 'file:///mock/src/index.js' }),
-      ).rejects.toThrow('Could not find a package.json');
+      ).rejects.toThrow('Could not auto-detect package identity');
+    });
+
+    it('throws when caller file found but no package.json nearby', async () => {
+      mockGetCallerFilePath.mockReturnValue('/some/path/cli.js');
+      mockResolvePackageJsonFromCaller.mockResolvedValue(null);
+
+      await expect(UpdateKit.create()).rejects.toThrow(
+        'Could not auto-detect package identity',
+      );
     });
 
     it('skips auto-resolve when appName + currentVersion are provided', async () => {

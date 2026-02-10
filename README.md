@@ -37,65 +37,16 @@ yarn add update-kit
 
 ## Usage
 
-### Quick startup check
-
-Add a non-blocking update banner to your CLI's startup. This reads from cache and spawns a background refresh — no latency impact:
-
 ```typescript
 import { UpdateKit } from 'update-kit';
 
-const kit = new UpdateKit({
-  appName: 'my-cli',
-  currentVersion: '1.0.0',
+const kit = await UpdateKit.create({
   sources: [{ type: 'github', owner: 'my-org', repo: 'my-cli' }],
-  // For compiled binaries, specify the executable path:
-  // executablePath: process.execPath,
 });
 
 const banner = await kit.checkAndNotify();
 if (banner) console.error(banner);
 ```
-
-### Resolve from package.json
-
-Instead of hard-coding `appName` and `currentVersion`, you can resolve them from your host package's `package.json`:
-
-```typescript
-import { UpdateKit } from 'update-kit';
-import pkg from './package.json' with { type: 'json' };
-
-// Pass your package.json directly
-const kit = new UpdateKit({
-  pkg,
-  sources: [{ type: 'github', owner: 'my-org', repo: 'my-cli' }],
-});
-```
-
-Or use the async factory with `import.meta.url` to auto-locate your package.json:
-
-```typescript
-// Finds package.json relative to the calling module — not the end-user's cwd
-const kit = await UpdateKit.create(
-  { sources: [{ type: 'github', owner: 'my-org', repo: 'my-cli' }] },
-  { moduleUrl: import.meta.url },
-);
-```
-
-You can also use the standalone utilities:
-
-```typescript
-import { UpdateKit, findPackageJsonFromModule } from 'update-kit';
-
-// Resolves relative to this module's location
-const pkg = await findPackageJsonFromModule(import.meta.url);
-
-const kit = new UpdateKit({
-  pkg: pkg!,
-  sources: [{ type: 'npm', packageName: 'my-cli' }],
-});
-```
-
-> When both explicit fields and `pkg` are provided, explicit values take priority (e.g. `appName` overrides `pkg.name`).
 
 ### Full auto-update
 
@@ -144,9 +95,7 @@ npx update-kit cache clear     # Clear the cache
 npx update-kit detect --json
 ```
 
-## API Reference
-
-See the full [API documentation](docs/API.md) for detailed type signatures, configuration options, and standalone function exports.
+See the full [API documentation](docs/API.md) for configuration options, version sources, lifecycle hooks, and standalone function exports.
 
 ## Contributing
 

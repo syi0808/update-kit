@@ -8,34 +8,15 @@ import { UpdateKit } from 'update-kit';
 
 Dual ESM + CJS output. Requires Node.js >= 18. Only runtime dependency: `semver`.
 
-## Constructor
+## Creating an Instance
 
-Accepts a discriminated union config:
-
-**Explicit config** — requires `appName` and `currentVersion`:
 ```typescript
-new UpdateKit({
-  appName: 'my-cli',
-  currentVersion: '1.0.0',
+const kit = await UpdateKit.create({
   sources: [{ type: 'github', owner: 'org', repo: 'my-cli' }],
-})
+});
 ```
 
-**Package-derived config** — requires `pkg`:
-```typescript
-new UpdateKit({
-  pkg: { name: 'my-cli', version: '1.0.0' },  // or import from package.json
-  sources: [{ type: 'npm', packageName: 'my-cli' }],
-})
-```
-
-**Async factory** — auto-resolves from nearest package.json (ESM only):
-```typescript
-await UpdateKit.create(
-  { sources: [{ type: 'npm', packageName: 'my-cli' }] },
-  { moduleUrl: import.meta.url },
-)
-```
+`UpdateKit.create()` auto-detects `appName` and `currentVersion` from the caller's nearest `package.json` via call stack inspection.
 
 ## Configuration Options
 

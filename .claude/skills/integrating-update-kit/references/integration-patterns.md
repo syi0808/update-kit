@@ -5,8 +5,7 @@
 - [Pattern A: Startup Notification](#pattern-a-startup-notification)
 - [Pattern B: Dedicated Update Command](#pattern-b-dedicated-update-command)
 - [Pattern C: Manual Pipeline](#pattern-c-manual-pipeline)
-- [Pattern D: Auto-resolve from package.json](#pattern-d-auto-resolve-from-packagejson)
-- [Pattern E: With Hooks](#pattern-e-with-hooks)
+- [Pattern D: With Hooks](#pattern-d-with-hooks)
 
 ---
 
@@ -19,9 +18,7 @@
 #!/usr/bin/env node
 import { UpdateKit } from 'update-kit';
 
-const kit = new UpdateKit({
-  appName: 'my-cli',
-  currentVersion: '1.0.0',
+const kit = await UpdateKit.create({
   sources: [{ type: 'github', owner: 'myorg', repo: 'my-cli' }],
 });
 
@@ -41,9 +38,7 @@ if (banner) console.error(banner);  // stderr to avoid interfering with piped ou
 
 ```typescript
 async function handleUpdateCommand() {
-  const kit = new UpdateKit({
-    appName: 'my-cli',
-    currentVersion: '1.0.0',
+  const kit = await UpdateKit.create({
     sources: [{ type: 'npm', packageName: 'my-cli' }],
     delegateMode: 'execute',  // Actually run npm install -g / brew upgrade
   });
@@ -82,9 +77,7 @@ async function handleUpdateCommand() {
 **Methods**: `detectInstall()` -> `checkUpdate()` -> `planUpdate()` -> `applyUpdate()`
 
 ```typescript
-const kit = new UpdateKit({
-  appName: 'my-cli',
-  currentVersion: '1.0.0',
+const kit = await UpdateKit.create({
   sources: [{ type: 'github', owner: 'myorg', repo: 'my-cli' }],
   assetPattern: '{app}-{version}-{target}.tar.gz',
 });
@@ -116,38 +109,12 @@ if (result.kind === 'success') {
 
 ---
 
-## Pattern D: Auto-resolve from package.json
-
-**Best for**: npm-published CLIs. Zero manual version tracking. Requires ESM.
-**Method**: `UpdateKit.create()` + `checkAndNotify()`
-
-```typescript
-#!/usr/bin/env node
-import { UpdateKit } from 'update-kit';
-
-// Auto-resolves appName and currentVersion from nearest package.json
-const kit = await UpdateKit.create(
-  {
-    sources: [{ type: 'npm', packageName: 'my-cli' }],
-    checkInterval: 4 * 60 * 60 * 1000,  // 4 hours
-  },
-  { moduleUrl: import.meta.url },
-);
-
-const banner = await kit.checkAndNotify();
-if (banner) console.error(banner);
-```
-
----
-
-## Pattern E: With Hooks
+## Pattern D: With Hooks
 
 **Best for**: Apps needing telemetry, CI gating, or fine-grained control.
 
 ```typescript
-const kit = new UpdateKit({
-  appName: 'my-cli',
-  currentVersion: '1.0.0',
+const kit = await UpdateKit.create({
   sources: [{ type: 'github', owner: 'myorg', repo: 'my-cli' }],
   hooks: {
     beforeCheck: () => {
@@ -180,6 +147,5 @@ Patterns compose naturally. Common combinations:
 - Add `checkAndNotify()` to the main entry point for passive notification
 - Add a dedicated `update` subcommand with `autoUpdate()` for active updates
 
-**Auto-resolve + hooks** (Pattern D + E):
-- Use `UpdateKit.create()` for zero-config identity
-- Add hooks for CI skipping or telemetry
+**Any pattern + hooks** (Pattern A/B/C + D):
+- Add hooks for CI skipping or telemetry to any pattern

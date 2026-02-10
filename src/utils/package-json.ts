@@ -103,6 +103,54 @@ export function findPackageJsonFromModuleSync(
   return findPackageJsonSync(moduleDir);
 }
 
+/**
+ * Get the file path of the external caller using V8 CallSite API.
+ * Walks up the stack to find the first frame outside update-kit's own source.
+ *
+ * @returns A file URL (ESM) or absolute path (CJS), or `null` if not found.
+ * @internal
+ */
+export function getCallerFilePath(): string | null {
+  const origPrepare = Error.prepareStackTrace;
+  try {
+    let callSites: NodeJS.CallSite[] = [];
+    Error.prepareStackTrace = (_, stack) => {
+      callSites = stack;
+      return '';
+    };
+    const err = new Error();
+    // Access .stack to trigger prepareStackTrace
+    err.stack;
+
+    // Skip frame 0 (this function) and frame 1 (the direct caller inside update-kit).
+    // Return the first frame whose filename exists.
+    for (let i = 2; i < callSites.length; i++) {
+      const fileName = callSites[i]?.getFileName();
+      if (fileName) return fileName;
+    }
+    return null;
+  } finally {
+    Error.prepareStackTrace = origPrepare;
+  }
+}
+
+/**
+ * Resolve the nearest package.json from a caller file path.
+ * Handles both ESM `file://` URLs and CJS absolute paths.
+ *
+ * @param callerFile - File URL or absolute path of the caller module.
+ * @returns Parsed package info, or `null` if not found.
+ * @internal
+ */
+export async function resolvePackageJsonFromCaller(
+  callerFile: string,
+): Promise<PackageJsonResult | null> {
+  const filePath = callerFile.startsWith('file://')
+    ? fileURLToPath(callerFile)
+    : callerFile;
+  return findPackageJson(dirname(filePath));
+}
+
 function parsePackageJson(
   content: string,
   filePath: string,

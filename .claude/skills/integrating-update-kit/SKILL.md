@@ -55,19 +55,13 @@ pnpm add update-kit    # or npm install / yarn add / bun add
 
 Read `references/integration-patterns.md` to select the matching pattern. Read `references/api-reference.md` for full API details when needed.
 
-**Quick reference — Constructor shapes:**
+**Quick reference — Creating an instance:**
 
 ```typescript
-// Shape 1: Explicit
-const kit = new UpdateKit({ appName: 'my-cli', currentVersion: '1.0.0', sources: [...] });
-
-// Shape 2: From package.json
-import pkg from './package.json' with { type: 'json' };
-const kit = new UpdateKit({ pkg, sources: [...] });
-
-// Shape 3: Auto-resolve (ESM only)
-const kit = await UpdateKit.create({ sources: [...] }, { moduleUrl: import.meta.url });
+const kit = await UpdateKit.create({ sources: [...] });
 ```
+
+Auto-detects `appName` and `currentVersion` from the caller's nearest `package.json` via call stack inspection.
 
 **Quick reference — Version sources:**
 
@@ -97,7 +91,7 @@ After generating the integration code, run through this checklist:
 - [ ] `update-kit` is in `dependencies` (not devDependencies)
 - [ ] Module syntax matches the project (ESM `import` vs CJS `require`)
 - [ ] Version source matches the project's actual distribution channel
-- [ ] If using `UpdateKit.create()`, project is ESM (`"type": "module"`)
+- [ ] Project uses ESM (`"type": "module"`) for `UpdateKit.create()`
 - [ ] `npmPackageName` / `brewCaskName` set if they differ from `appName`
 - [ ] Banner output goes to `stderr` (not stdout) to avoid interfering with piped output
 - [ ] Run `pnpm build` (or equivalent) to verify no compilation errors

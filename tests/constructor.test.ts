@@ -125,8 +125,10 @@ describe("UpdateKit.create() static factory", () => {
     expect(kit).toBeInstanceOf(UpdateKit);
   });
 
-  it("throws when no identity info and no moduleUrl is provided", async () => {
-    await expect(UpdateKit.create()).rejects.toThrow("moduleUrl");
+  it("throws when auto-detect fails and no identity info is provided", async () => {
+    await expect(
+      UpdateKit.create({ sources: [] }, { moduleUrl: 'file:///nonexistent/path/index.js' }),
+    ).rejects.toThrow("auto-detect");
   });
 
   it("creates instance with sources and explicit identity", async () => {
