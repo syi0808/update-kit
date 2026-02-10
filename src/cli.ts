@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { UpdateKit } from './index.js';
-import type { UpdateKitConfig } from './config.js';
+import type { UpdateKitConfig, UpdateKitExplicitConfig } from './config.js';
 import { readCache, clearCache } from './checker/cache.js';
 import { getDefaultCacheDir } from './platform/paths.js';
 import { readFileSync, existsSync } from 'node:fs';
@@ -41,7 +41,7 @@ function parseArgs(argv: string[]): ParsedArgs {
 
 // ─── Config Loading ───
 
-function loadConfig(configPath?: string): UpdateKitConfig {
+function loadConfig(configPath?: string): UpdateKitExplicitConfig {
   const path = configPath
     ? resolve(configPath)
     : resolve(process.cwd(), 'update-kit.config.json');
@@ -52,7 +52,7 @@ function loadConfig(configPath?: string): UpdateKitConfig {
   }
 
   const raw = readFileSync(path, 'utf-8');
-  return JSON.parse(raw) as UpdateKitConfig;
+  return JSON.parse(raw) as UpdateKitExplicitConfig;
 }
 
 // ─── Command Handlers ───
@@ -171,7 +171,7 @@ async function handleApply(
 
 async function handleCache(
   subcommand: string | undefined,
-  config: UpdateKitConfig,
+  config: UpdateKitExplicitConfig,
   isJson: boolean,
 ): Promise<void> {
   const cacheDir = config.cacheDir ?? getDefaultCacheDir();

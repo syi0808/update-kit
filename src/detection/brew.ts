@@ -1,5 +1,5 @@
 import type { InstallDetection, Evidence } from '../types.js';
-import type { UpdateKitConfig } from '../config.js';
+import type { ResolvedUpdateKitConfig } from '../config.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -20,7 +20,7 @@ const BREW_PATH_PATTERNS = [
  */
 export async function detectFromBrew(
   execPath: string,
-  config: Pick<UpdateKitConfig, 'brewCaskName'>,
+  config: Pick<ResolvedUpdateKitConfig, 'brewCaskName'>,
 ): Promise<InstallDetection | null> {
   const matchedPattern = BREW_PATH_PATTERNS.find((pattern) =>
     execPath.includes(pattern),

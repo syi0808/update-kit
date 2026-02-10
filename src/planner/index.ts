@@ -8,7 +8,7 @@ import type {
   UpdatePlan,
   DelegateMode,
 } from '../types.js';
-import type { UpdateKitConfig } from '../config.js';
+import type { ResolvedUpdateKitConfig } from '../config.js';
 import type { AssetInfo } from '../checker/sources/index.js';
 
 /**
@@ -20,7 +20,7 @@ import type { AssetInfo } from '../checker/sources/index.js';
 export function planUpdate(
   status: UpdateStatus,
   detection: InstallDetection,
-  config: UpdateKitConfig,
+  config: ResolvedUpdateKitConfig,
   assets?: AssetInfo[],
 ): UpdatePlan | null {
   if (status.kind !== 'available') {
@@ -50,7 +50,7 @@ function resolvePlanKind(
   channel: Channel,
   confidence: Confidence,
   toVersion: string,
-  config: UpdateKitConfig,
+  config: ResolvedUpdateKitConfig,
   assets?: AssetInfo[],
 ): PlanKind {
   switch (channel) {
@@ -81,7 +81,7 @@ function resolvePlanKind(
 
 function resolveNativeChannel(
   confidence: Confidence,
-  config: UpdateKitConfig,
+  config: ResolvedUpdateKitConfig,
   assets?: AssetInfo[],
 ): PlanKind {
   if (confidence === 'low') {
@@ -98,7 +98,7 @@ function resolveNativeChannel(
 
 function resolveUnmanagedChannel(
   confidence: Confidence,
-  config: UpdateKitConfig,
+  config: ResolvedUpdateKitConfig,
   assets?: AssetInfo[],
 ): PlanKind {
   if (confidence === 'none') {
@@ -115,7 +115,7 @@ function resolveUnmanagedChannel(
 function resolveNpmChannel(
   confidence: Confidence,
   toVersion: string,
-  config: UpdateKitConfig,
+  config: ResolvedUpdateKitConfig,
 ): PlanKind {
   if (confidence === 'low') {
     return {
@@ -139,7 +139,7 @@ function resolveNpmChannel(
 function resolveBrewChannel(
   confidence: Confidence,
   toVersion: string,
-  config: UpdateKitConfig,
+  config: ResolvedUpdateKitConfig,
 ): PlanKind {
   if (confidence === 'low') {
     return {
@@ -166,7 +166,7 @@ function resolveBrewChannel(
 
 function resolveNativeInPlace(
   assets: AssetInfo[] | undefined,
-  config: UpdateKitConfig,
+  config: ResolvedUpdateKitConfig,
 ): PlanKind {
   if (!assets || assets.length === 0) {
     return {
@@ -201,7 +201,7 @@ function resolveNativeInPlace(
 function resolvePostAction(
   kind: PlanKind,
   confidence: Confidence,
-  config: UpdateKitConfig,
+  config: ResolvedUpdateKitConfig,
 ): PostAction {
   switch (kind.type) {
     case 'native-in-place':
@@ -231,7 +231,7 @@ function resolvePostAction(
  */
 export function selectAsset(
   assets: AssetInfo[],
-  config: UpdateKitConfig,
+  config: ResolvedUpdateKitConfig,
   platform: string = process.platform,
   arch: string = process.arch,
 ): AssetInfo | null {
@@ -261,7 +261,7 @@ export function selectAsset(
  */
 export function expandAssetPattern(
   pattern: string,
-  config: UpdateKitConfig,
+  config: ResolvedUpdateKitConfig,
   platform: string,
   arch: string,
 ): RegExp {

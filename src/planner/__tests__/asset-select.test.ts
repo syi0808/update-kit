@@ -5,14 +5,14 @@ import {
   getPlatformAliases,
   getArchAliases,
 } from '../index.js';
-import type { UpdateKitConfig } from '../../config.js';
+import type { ResolvedUpdateKitConfig } from '../../config.js';
 import type { AssetInfo } from '../../checker/sources/index.js';
 
 // ──────────────────────────────────────────────
 // Test helpers
 // ──────────────────────────────────────────────
 
-function config(overrides?: Partial<UpdateKitConfig>): UpdateKitConfig {
+function config(overrides?: Partial<ResolvedUpdateKitConfig>): ResolvedUpdateKitConfig {
   return { appName: 'test-app', currentVersion: '1.0.0', ...overrides };
 }
 

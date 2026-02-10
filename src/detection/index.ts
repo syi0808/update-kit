@@ -1,5 +1,5 @@
 import type { InstallDetection } from '../types.js';
-import type { UpdateKitConfig } from '../config.js';
+import type { ResolvedUpdateKitConfig } from '../config.js';
 import { realpath } from 'node:fs/promises';
 import { detectFromReceipt } from './receipt.js';
 import { detectFromBrew } from './brew.js';
@@ -21,7 +21,7 @@ import { collectPathHeuristics } from './heuristics.js';
  */
 export async function detectInstall(
   execPath: string,
-  config: Pick<UpdateKitConfig, 'appName' | 'brewCaskName'>,
+  config: Pick<ResolvedUpdateKitConfig, 'appName' | 'brewCaskName'>,
 ): Promise<InstallDetection> {
   // Resolve symlinks to get the real path
   let resolvedPath: string;

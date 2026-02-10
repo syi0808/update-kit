@@ -2,16 +2,19 @@ import type { ApplyResult, DelegateMode, UpdatePlan } from './types.js';
 import type { UpdateKitError } from './errors.js';
 
 /**
- * Full configuration for update-kit.
- * Only `appName` and `currentVersion` are required; all other fields have sensible defaults.
+ * Package identity, typically from package.json.
  */
-export interface UpdateKitConfig {
-  /** Application name (e.g. "my-cli") */
-  appName: string;
+export interface PackageInfo {
+  /** Package name (maps to appName) */
+  name: string;
+  /** Package version (maps to currentVersion) */
+  version: string;
+}
 
-  /** Currently installed version (semver string) */
-  currentVersion: string;
-
+/**
+ * Shared configuration fields.
+ */
+export interface UpdateKitBaseConfig {
   /** Version source list. Tried in order; first successful result is used. */
   sources?: VersionSourceConfig[];
 
@@ -40,8 +43,74 @@ export interface UpdateKitConfig {
    */
   assetPattern?: string;
 
+  /**
+   * Path to the host CLI's executable binary.
+   * Used for install channel detection and native-in-place updates.
+   *
+   * For compiled/standalone binaries, this is the binary itself.
+   * For Node.js CLIs, this should be the entry script path (e.g. `process.argv[1]`).
+   *
+   * Defaults to `process.argv[1]`.
+   */
+  executablePath?: string;
+
   /** Lifecycle hooks */
   hooks?: Hooks;
+}
+
+/**
+ * Config with explicit appName and currentVersion.
+ */
+export interface UpdateKitExplicitConfig extends UpdateKitBaseConfig {
+  /** Application name (e.g. "my-cli") */
+  appName: string;
+
+  /** Currently installed version (semver string) */
+  currentVersion: string;
+
+  /** Optional package info. Explicit fields take priority. */
+  pkg?: PackageInfo;
+}
+
+/**
+ * Config that derives appName / currentVersion from a `pkg` object.
+ */
+export interface UpdateKitPkgConfig extends UpdateKitBaseConfig {
+  /** Application name. Optional when pkg is provided; overrides pkg.name. */
+  appName?: string;
+
+  /** Currently installed version. Optional when pkg is provided; overrides pkg.version. */
+  currentVersion?: string;
+
+  /** Package info to derive appName and currentVersion from. */
+  pkg: PackageInfo;
+}
+
+/**
+ * Full configuration for update-kit.
+ * Provide either `appName` + `currentVersion` directly, or a `pkg` object
+ * (e.g. from your package.json).
+ */
+export type UpdateKitConfig = UpdateKitExplicitConfig | UpdateKitPkgConfig;
+
+/**
+ * Options for `UpdateKit.create()`. Identity fields are optional when
+ * `moduleUrl` is provided to auto-resolve from the host module's package.json.
+ */
+export type CreateOptions = UpdateKitBaseConfig & {
+  appName?: string;
+  currentVersion?: string;
+  pkg?: PackageInfo;
+};
+
+/**
+ * Internally resolved config where appName and currentVersion are always present.
+ * @internal
+ */
+export interface ResolvedUpdateKitConfig extends UpdateKitBaseConfig {
+  appName: string;
+  currentVersion: string;
+  pkg?: PackageInfo;
 }
 
 /**

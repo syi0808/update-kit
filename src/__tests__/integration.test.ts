@@ -45,6 +45,13 @@ vi.mock('../platform/paths.js', () => ({
   getDefaultCacheDir: vi.fn(() => '/tmp/test-cache'),
 }));
 
+vi.mock('../utils/package-json.js', () => ({
+  findPackageJson: vi.fn(),
+  findPackageJsonSync: vi.fn(),
+  findPackageJsonFromModule: vi.fn(),
+  findPackageJsonFromModuleSync: vi.fn(),
+}));
+
 // Import mocked modules for assertions
 import { detectInstall as detectInstallFn } from '../detection/index.js';
 import { checkUpdate as checkUpdateFn } from '../checker/index.js';
@@ -52,6 +59,7 @@ import { planUpdate as planUpdateFn } from '../planner/index.js';
 import { applyNativeUpdate } from '../applier/native.js';
 import { applyDelegateUpdate } from '../applier/delegate.js';
 import { renderBanner } from '../ux/index.js';
+import { findPackageJsonFromModule } from '../utils/package-json.js';
 
 const mockDetectInstall = vi.mocked(detectInstallFn);
 const mockCheckUpdate = vi.mocked(checkUpdateFn);
@@ -59,6 +67,7 @@ const mockPlanUpdate = vi.mocked(planUpdateFn);
 const mockApplyNative = vi.mocked(applyNativeUpdate);
 const mockApplyDelegate = vi.mocked(applyDelegateUpdate);
 const mockRenderBanner = vi.mocked(renderBanner);
+const mockFindPackageJsonFromModule = vi.mocked(findPackageJsonFromModule);
 
 const baseConfig = {
   appName: 'test-app',
@@ -147,7 +156,7 @@ describe('UpdateKit', () => {
       const kit = new UpdateKit(baseConfig);
       const result = await kit.detectInstall();
 
-      expect(mockDetectInstall).toHaveBeenCalledWith(process.execPath, expect.objectContaining({
+      expect(mockDetectInstall).toHaveBeenCalledWith(process.argv[1], expect.objectContaining({
         appName: 'test-app',
       }));
       expect(result).toEqual(mockDetection);
@@ -258,7 +267,7 @@ describe('UpdateKit', () => {
       const kit = new UpdateKit(baseConfig);
       const result = await kit.applyUpdate(nativePlan);
 
-      expect(mockApplyNative).toHaveBeenCalledWith(nativePlan, process.execPath, undefined);
+      expect(mockApplyNative).toHaveBeenCalledWith(nativePlan, process.argv[1], undefined);
       expect(result.kind).toBe('success');
     });
 
@@ -421,6 +430,151 @@ describe('UpdateKit', () => {
 
       expect(result).toBeDefined();
       expect(result.kind).toBe('failed');
+    });
+  });
+
+  describe('constructor with pkg field', () => {
+    it('accepts pkg field instead of explicit appName/currentVersion', () => {
+      const kit = new UpdateKit({
+        pkg: { name: 'pkg-app', version: '2.0.0' },
+      });
+      expect(kit).toBeInstanceOf(UpdateKit);
+    });
+
+    it('resolves appName from pkg.name', async () => {
+      const kit = new UpdateKit({
+        pkg: { name: 'pkg-app', version: '2.0.0' },
+      });
+
+      await kit.detectInstall();
+      expect(mockDetectInstall).toHaveBeenCalledWith(
+        process.argv[1],
+        expect.objectContaining({ appName: 'pkg-app' }),
+      );
+    });
+
+    it('resolves currentVersion from pkg.version', async () => {
+      const kit = new UpdateKit({
+        pkg: { name: 'pkg-app', version: '3.0.0' },
+      });
+
+      await kit.checkUpdate();
+      expect(mockCheckUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ currentVersion: '3.0.0' }),
+        'non-blocking',
+      );
+    });
+
+    it('prefers explicit appName over pkg.name', async () => {
+      const kit = new UpdateKit({
+        appName: 'explicit-name',
+        pkg: { name: 'pkg-name', version: '1.0.0' },
+      });
+
+      await kit.detectInstall();
+      expect(mockDetectInstall).toHaveBeenCalledWith(
+        process.argv[1],
+        expect.objectContaining({ appName: 'explicit-name' }),
+      );
+    });
+
+    it('prefers explicit currentVersion over pkg.version', async () => {
+      const kit = new UpdateKit({
+        appName: 'test',
+        currentVersion: '5.0.0',
+        pkg: { name: 'test', version: '1.0.0' },
+      });
+
+      await kit.checkUpdate();
+      expect(mockCheckUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ currentVersion: '5.0.0' }),
+        'non-blocking',
+      );
+    });
+
+    it('throws when neither appName nor pkg is provided', () => {
+      expect(
+        () => new UpdateKit({ currentVersion: '1.0.0' } as any),
+      ).toThrow('appName is required');
+    });
+
+    it('throws when neither currentVersion nor pkg is provided', () => {
+      expect(
+        () => new UpdateKit({ appName: 'test' } as any),
+      ).toThrow('currentVersion is required');
+    });
+  });
+
+  describe('UpdateKit.create()', () => {
+    it('auto-resolves from module package.json when moduleUrl is provided', async () => {
+      mockFindPackageJsonFromModule.mockResolvedValue({
+        name: 'auto-app',
+        version: '4.0.0',
+        path: '/mock/package.json',
+      });
+
+      const kit = await UpdateKit.create(
+        { sources: [{ type: 'npm', packageName: 'auto-app' }] },
+        { moduleUrl: 'file:///mock/src/index.js' },
+      );
+
+      expect(kit).toBeInstanceOf(UpdateKit);
+      expect(mockFindPackageJsonFromModule).toHaveBeenCalledWith('file:///mock/src/index.js');
+    });
+
+    it('throws when moduleUrl not provided and no explicit values', async () => {
+      await expect(UpdateKit.create()).rejects.toThrow(
+        'you must pass { moduleUrl: import.meta.url }',
+      );
+    });
+
+    it('throws when no package.json found via moduleUrl', async () => {
+      mockFindPackageJsonFromModule.mockResolvedValue(null);
+
+      await expect(
+        UpdateKit.create({}, { moduleUrl: 'file:///mock/src/index.js' }),
+      ).rejects.toThrow('Could not find a package.json');
+    });
+
+    it('skips auto-resolve when appName + currentVersion are provided', async () => {
+      const kit = await UpdateKit.create({
+        appName: 'explicit-app',
+        currentVersion: '1.0.0',
+      });
+
+      expect(kit).toBeInstanceOf(UpdateKit);
+      expect(mockFindPackageJsonFromModule).not.toHaveBeenCalled();
+    });
+
+    it('skips auto-resolve when pkg is provided', async () => {
+      const kit = await UpdateKit.create({
+        pkg: { name: 'pkg-app', version: '2.0.0' },
+      });
+
+      expect(kit).toBeInstanceOf(UpdateKit);
+      expect(mockFindPackageJsonFromModule).not.toHaveBeenCalled();
+    });
+
+    it('uses resolved values for version checking', async () => {
+      mockFindPackageJsonFromModule.mockResolvedValue({
+        name: 'resolved-app',
+        version: '6.0.0',
+        path: '/mock/package.json',
+      });
+
+      const kit = await UpdateKit.create(
+        {},
+        { moduleUrl: 'file:///mock/src/index.js' },
+      );
+      await kit.checkUpdate();
+
+      expect(mockCheckUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          appName: 'resolved-app',
+          currentVersion: '6.0.0',
+        }),
+        'non-blocking',
+      );
     });
   });
 });

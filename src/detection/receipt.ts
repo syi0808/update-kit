@@ -1,5 +1,5 @@
 import type { InstallDetection } from '../types.js';
-import type { UpdateKitConfig } from '../config.js';
+import type { ResolvedUpdateKitConfig } from '../config.js';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
@@ -17,7 +17,7 @@ interface InstallReceipt {
  * exists and the appName matches.
  */
 export async function detectFromReceipt(
-  config: Pick<UpdateKitConfig, 'appName'>,
+  config: Pick<ResolvedUpdateKitConfig, 'appName'>,
   receiptDir?: string,
 ): Promise<InstallDetection | null> {
   const dir = receiptDir ?? join(homedir(), '.config', config.appName);

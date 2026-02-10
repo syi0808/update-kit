@@ -6,7 +6,7 @@ import type {
   InstallDetection,
   UpdateStatus,
 } from '../../types.js';
-import type { UpdateKitConfig } from '../../config.js';
+import type { ResolvedUpdateKitConfig } from '../../config.js';
 import type { AssetInfo } from '../../checker/sources/index.js';
 
 // ──────────────────────────────────────────────
@@ -24,7 +24,7 @@ function detection(channel: Channel, confidence: Confidence): InstallDetection {
   return { channel, confidence, evidence: [] };
 }
 
-function config(overrides?: Partial<UpdateKitConfig>): UpdateKitConfig {
+function config(overrides?: Partial<ResolvedUpdateKitConfig>): ResolvedUpdateKitConfig {
   return { appName: 'test-app', currentVersion: '1.0.0', ...overrides };
 }
 
