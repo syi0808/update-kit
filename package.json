@@ -27,6 +27,7 @@
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:dist": "pnpm build && vitest run --config tests/vitest.config.ts",
     "lint": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
