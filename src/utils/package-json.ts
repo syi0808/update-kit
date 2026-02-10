@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -105,7 +105,8 @@ export function findPackageJsonFromModuleSync(
 
 /**
  * Get the file path of the external caller using V8 CallSite API.
- * Walks up the stack to find the first frame outside update-kit's own source.
+ * Finds the update-kit package root from frame 0, then returns the first
+ * frame whose file is outside that root.
  *
  * @returns A file URL (ESM) or absolute path (CJS), or `null` if not found.
  * @internal
@@ -122,11 +123,21 @@ export function getCallerFilePath(): string | null {
     // Access .stack to trigger prepareStackTrace
     err.stack;
 
-    // Skip frame 0 (this function) and frame 1 (the direct caller inside update-kit).
-    // Return the first frame whose filename exists.
-    for (let i = 2; i < callSites.length; i++) {
+    // Determine update-kit's package root from frame 0 (this function's own file)
+    const ownFile = callSites[0]?.getFileName();
+    if (!ownFile) return null;
+
+    const ownPath = ownFile.startsWith('file://') ? fileURLToPath(ownFile) : ownFile;
+    const ownPkg = findPackageJsonSync(dirname(ownPath));
+    const ownRoot = ownPkg ? dirname(ownPkg.path) + sep : dirname(ownPath) + sep;
+
+    // Return the first frame whose file is outside update-kit's package root
+    for (let i = 1; i < callSites.length; i++) {
       const fileName = callSites[i]?.getFileName();
-      if (fileName) return fileName;
+      if (!fileName) continue;
+
+      const filePath = fileName.startsWith('file://') ? fileURLToPath(fileName) : fileName;
+      if (!filePath.startsWith(ownRoot)) return fileName;
     }
     return null;
   } finally {
