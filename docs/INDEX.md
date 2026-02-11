@@ -37,6 +37,7 @@ CLI 앱의 설치 채널을 감지하고, 안전한 방식으로 업데이트를
 | 11 | 퍼블릭 API 통합 | [x] | [11-public-api.md](tasks/11-public-api.md) |
 | 12 | 데모 CLI | [x] | [12-cli-demo.md](tasks/12-cli-demo.md) |
 | 13 | 하드닝 + 크로스플랫폼 | [x] | [13-hardening.md](tasks/13-hardening.md) |
+| 14 | 소스 자동 추론 + CLI doctor | [x] | — |
 
 ## 의존 관계
 
@@ -64,10 +65,11 @@ src/
   config.ts                 # UpdateKitConfig
   types.ts                  # 공유 타입
   errors.ts                 # UpdateKitError
+  doctor.ts                 # 진단 검사 (config, sources, connectivity)
   detection/                # 설치 채널 감지
     index.ts, receipt.ts, heuristics.ts, brew.ts, npm.ts
   checker/                  # 버전 체크
-    index.ts, cache.ts, background.ts
+    index.ts, cache.ts, background.ts, infer-sources.ts
     sources/                # 버전 소스 플러그인
       index.ts, github.ts, npm-registry.ts, jsr.ts, brew-api.ts, custom-manifest.ts
   planner/                  # 업데이트 계획

@@ -4,6 +4,7 @@ import { UpdateKit } from './index.js';
 import type { UpdateKitConfig, UpdateKitExplicitConfig } from './config.js';
 import { readCache, clearCache } from './checker/cache.js';
 import { getDefaultCacheDir } from './platform/paths.js';
+import { runDoctor } from './doctor.js';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -203,6 +204,52 @@ async function handleCache(
   }
 }
 
+async function handleDoctor(
+  flags: Record<string, string | boolean>,
+  isJson: boolean,
+): Promise<void> {
+  const configPath = typeof flags['config'] === 'string'
+    ? resolve(flags['config'])
+    : resolve(process.cwd(), 'update-kit.config.json');
+
+  const report = await runDoctor(configPath, { cwd: process.cwd() });
+
+  if (isJson) {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+
+  for (const check of report.checks) {
+    const icon =
+      check.status === 'pass'
+        ? 'PASS'
+        : check.status === 'fail'
+          ? 'FAIL'
+          : check.status === 'warn'
+            ? 'WARN'
+            : 'SKIP';
+    console.log(`  [${icon}] ${check.name}: ${check.message}`);
+    if (check.details) {
+      for (const [key, value] of Object.entries(check.details)) {
+        const display =
+          typeof value === 'object' ? JSON.stringify(value) : String(value);
+        console.log(`         ${key}: ${display}`);
+      }
+    }
+  }
+
+  console.log();
+  const parts = [`${report.summary.passed}/${report.summary.total} passed`];
+  if (report.summary.failed > 0) parts.push(`${report.summary.failed} failed`);
+  if (report.summary.warnings > 0)
+    parts.push(`${report.summary.warnings} warnings`);
+  console.log(`  Summary: ${parts.join(', ')}`);
+
+  if (report.summary.failed > 0) {
+    process.exit(1);
+  }
+}
+
 function printUsage(): void {
   console.log(
     `
@@ -218,6 +265,7 @@ Commands:
   apply [--execute]   Run full update pipeline
   cache show          Show current cache contents
   cache clear         Clear cache
+  doctor              Run diagnostics (config, sources, connectivity)
 
 Options:
   --config <path>     Path to config file (default: ./update-kit.config.json)
@@ -237,8 +285,14 @@ async function main(): Promise<void> {
     return;
   }
 
-  const config = loadConfig(flags['config'] as string | undefined);
   const isJson = flags['json'] === true;
+
+  if (command === 'doctor') {
+    await handleDoctor(flags, isJson);
+    return;
+  }
+
+  const config = loadConfig(flags['config'] as string | undefined);
 
   if (command === 'cache') {
     await handleCache(subcommand, config, isJson);

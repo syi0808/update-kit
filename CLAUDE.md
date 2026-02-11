@@ -35,7 +35,7 @@ Detection → Check → Plan → Apply
 ```
 
 1. **Detection** (`src/detection/`) — Determines install channel (`native`, `npm-global`, `brew-cask`, `unmanaged`) via receipt files, brew/npm queries, and path heuristics. Returns a confidence level.
-2. **Checker** (`src/checker/`) — Fetches latest version from pluggable sources (`src/checker/sources/`: GitHub, npm, JSR, Brew, custom manifest). Supports two modes: `blocking` (fetch now) and `non-blocking` (read cache + spawn background check for next run). Cache is disk-based (`src/checker/cache.ts`).
+2. **Checker** (`src/checker/`) — Fetches latest version from pluggable sources (`src/checker/sources/`: GitHub, npm, JSR, Brew, custom manifest). When `sources` is omitted, they are auto-inferred from config and `package.json` fields (`src/checker/infer-sources.ts`), with check order determined by the detected install channel. Supports two modes: `blocking` (fetch now) and `non-blocking` (read cache + spawn background check for next run). Cache is disk-based (`src/checker/cache.ts`).
 3. **Planner** (`src/planner/`) — Given an `UpdateStatus` + `InstallDetection`, produces an `UpdatePlan` with one of three strategies: `native-in-place` (download & replace binary), `delegate-command` (run npm/brew), or `manual-install` (print instructions).
 4. **Applier** (`src/applier/`) — Executes the plan. `native.ts` handles download/verify/extract/replace. `delegate.ts` runs package manager commands. `verify.ts` does SHA-256 checksum verification.
 
@@ -48,13 +48,13 @@ Detection → Check → Plan → Apply
 
 ### Public API
 
-The `UpdateKit` class (`src/index.ts`) orchestrates the full pipeline. Two convenience methods:
+The `UpdateKit` class (`src/index.ts`) orchestrates the full pipeline. `sources` is optional — when omitted, sources are auto-inferred from config fields (`appName`, `repository`, `brewCaskName`) and ordered by detected channel. Two convenience methods:
 - `checkAndNotify()` — One-liner for app startup; returns a banner string or null.
 - `autoUpdate()` — Full pipeline: detect → check → plan → apply.
 
 ### CLI
 
-`src/cli.ts` provides subcommands: `detect`, `check`, `plan`, `apply`, `cache show/clear`. Supports `--json` output.
+`src/cli.ts` provides subcommands: `detect`, `check`, `plan`, `apply`, `cache show/clear`, `doctor`. Supports `--json` output. The `doctor` command (`src/doctor.ts`) validates config, package.json, source resolution, detection, and source connectivity.
 
 ## Testing
 

@@ -13,6 +13,8 @@ export interface PackageJsonResult {
   version: string;
   /** Absolute path to the found package.json */
   path: string;
+  /** Raw repository field from package.json */
+  repository?: string | { type?: string; url?: string };
 }
 
 /**
@@ -179,11 +181,26 @@ function parsePackageJson(
       (parsed as Record<string, unknown>).version !== ''
     ) {
       const obj = parsed as Record<string, unknown>;
-      return {
+      const result: PackageJsonResult = {
         name: obj.name as string,
         version: obj.version as string,
         path: filePath,
       };
+
+      if ('repository' in obj && obj.repository != null) {
+        const repo = obj.repository;
+        if (typeof repo === 'string') {
+          result.repository = repo;
+        } else if (typeof repo === 'object' && !Array.isArray(repo)) {
+          const repoObj = repo as Record<string, unknown>;
+          result.repository = {
+            ...(typeof repoObj.type === 'string' ? { type: repoObj.type } : {}),
+            ...(typeof repoObj.url === 'string' ? { url: repoObj.url } : {}),
+          };
+        }
+      }
+
+      return result;
     }
     return null;
   } catch {

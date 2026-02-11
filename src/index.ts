@@ -12,10 +12,13 @@ import type {
 } from './types.js';
 import type { ApplyOptions } from './applier/types.js';
 import type { VersionSource } from './checker/sources/index.js';
+import type { Channel } from './types.js';
+import type { VersionSourceConfig } from './config.js';
 import { detectInstall as detectInstallFn } from './detection/index.js';
 import { checkUpdate as checkUpdateFn } from './checker/index.js';
 import { normalizeVersion } from './checker/index.js';
 import { createVersionSource } from './checker/sources/index.js';
+import { inferSourceConfigs, orderSourcesByChannel } from './checker/infer-sources.js';
 import { planUpdate as planUpdateFn } from './planner/index.js';
 import { applyNativeUpdate } from './applier/native.js';
 import { applyDelegateUpdate } from './applier/delegate.js';
@@ -52,7 +55,9 @@ import {
  */
 export class UpdateKit {
   private readonly config: ResolvedUpdateKitConfig;
-  private readonly sources: VersionSource[];
+  private readonly userSources: VersionSource[];
+  private readonly inferredSourceConfigs: VersionSourceConfig[];
+  private readonly hasExplicitSources: boolean;
 
   /**
    * Create a new UpdateKit instance.
@@ -79,7 +84,17 @@ export class UpdateKit {
    */
   constructor(config: UpdateKitConfig) {
     this.config = this.resolveAndValidateConfig(config);
-    this.sources = (this.config.sources ?? []).map(createVersionSource);
+    this.hasExplicitSources = Boolean(
+      this.config.sources && this.config.sources.length > 0,
+    );
+
+    if (this.hasExplicitSources) {
+      this.userSources = this.config.sources!.map(createVersionSource);
+      this.inferredSourceConfigs = [];
+    } else {
+      this.userSources = [];
+      this.inferredSourceConfigs = inferSourceConfigs(this.config);
+    }
   }
 
   /**
@@ -140,8 +155,13 @@ export class UpdateKit {
       );
     }
 
+    // Auto-fill repository from package.json if not explicitly provided
+    const repository =
+      cfg.repository ?? normalizeRepository(pkgResult.repository);
+
     return new UpdateKit({
       ...cfg,
+      ...(repository ? { repository } : {}),
       pkg: { name: pkgResult.name, version: pkgResult.version },
     } as UpdateKitConfig);
   }
@@ -178,16 +198,37 @@ export class UpdateKit {
    * ```
    */
   async checkUpdate(mode: CheckMode = 'non-blocking'): Promise<UpdateStatus> {
+    return this.performCheck(mode);
+  }
+
+  private getEffectiveSources(channel?: Channel): VersionSource[] {
+    if (this.hasExplicitSources) {
+      return this.userSources;
+    }
+
+    let configs = this.inferredSourceConfigs;
+    if (channel) {
+      configs = orderSourcesByChannel(configs, channel);
+    }
+    return configs.map(createVersionSource);
+  }
+
+  private async performCheck(
+    mode: CheckMode,
+    channel?: Channel,
+  ): Promise<UpdateStatus> {
     const allowed = await runHook(this.config.hooks, 'beforeCheck');
     if (allowed === false) {
       return { kind: 'unknown', reason: 'skipped by hook' };
     }
 
+    const sources = this.getEffectiveSources(channel);
+
     return checkUpdateFn(
       {
         appName: this.config.appName,
         currentVersion: this.config.currentVersion,
-        sources: this.sources,
+        sources,
         cacheDir: this.config.cacheDir ?? getDefaultCacheDir(),
         checkInterval: this.config.checkInterval,
       },
@@ -290,8 +331,8 @@ export class UpdateKit {
    */
   async checkAndNotify(): Promise<string | null> {
     try {
-      const status = await this.checkUpdate('non-blocking');
       const detection = await this.detectInstall();
+      const status = await this.performCheck('non-blocking', detection.channel);
       return renderBanner(status, detection);
     } catch {
       return null;
@@ -315,7 +356,7 @@ export class UpdateKit {
   async autoUpdate(options?: ApplyOptions): Promise<ApplyResult> {
     try {
       const detection = await this.detectInstall();
-      const status = await this.checkUpdate('blocking');
+      const status = await this.performCheck('blocking', detection.channel);
 
       if (status.kind !== 'available') {
         return {
@@ -348,6 +389,11 @@ export class UpdateKit {
     }
   }
 
+  /** @internal Exposed for testing / doctor command */
+  getResolvedConfig(): ResolvedUpdateKitConfig {
+    return this.config;
+  }
+
   private resolveAndValidateConfig(config: UpdateKitConfig): ResolvedUpdateKitConfig {
     const appName = config.appName || config.pkg?.name;
     const currentVersion = config.currentVersion || config.pkg?.version;
@@ -375,6 +421,18 @@ export class UpdateKit {
       currentVersion,
     };
   }
+}
+
+/**
+ * Normalize the package.json repository field into the config-accepted shape.
+ */
+function normalizeRepository(
+  repo: string | { type?: string; url?: string } | undefined,
+): string | { url: string } | undefined {
+  if (!repo) return undefined;
+  if (typeof repo === 'string') return repo;
+  if (typeof repo.url === 'string') return { url: repo.url };
+  return undefined;
 }
 
 // Types
@@ -453,6 +511,13 @@ export type {
 export { checkUpdate, normalizeVersion } from './checker/index.js';
 export type { CheckUpdateOptions } from './checker/index.js';
 
+// Source inference
+export {
+  inferSourceConfigs,
+  orderSourcesByChannel,
+  parseGitHubRepository,
+} from './checker/infer-sources.js';
+
 // Cache
 export type { CacheEntry } from './checker/cache.js';
 
@@ -470,6 +535,10 @@ export { defaultTemplates } from './ux/templates.js';
 export type { MessageTemplates } from './ux/templates.js';
 export { supportsColor, bold, red, green, yellow, dim, stripAnsi } from './ux/colors.js';
 export { runHook } from './ux/hooks.js';
+
+// Doctor
+export { runDoctor } from './doctor.js';
+export type { DoctorReport, DiagnosticCheck } from './doctor.js';
 
 // Package.json utilities
 export {

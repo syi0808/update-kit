@@ -54,6 +54,15 @@ export interface UpdateKitBaseConfig {
    */
   executablePath?: string;
 
+  /**
+   * GitHub repository URL or shorthand. Used for auto-inferring a GitHub
+   * version source when `sources` is omitted.
+   * Accepted formats: "https://github.com/owner/repo", "github:owner/repo",
+   * "git+https://github.com/owner/repo.git", or { url: "..." }.
+   * Auto-filled from package.json when using `UpdateKit.create()`.
+   */
+  repository?: string | { url: string };
+
   /** Lifecycle hooks */
   hooks?: Hooks;
 }

@@ -10,12 +10,13 @@ Most CLI tools are installed through different channels — npm, Homebrew, direc
 ## Features
 
 - **Install Channel Detection** — Identifies how your CLI was installed (npm, Homebrew, native binary, or custom) using receipt files, path heuristics, and package manager queries
+- **Automatic Source Inference** — When `sources` is omitted, automatically derives version sources from `package.json` fields (`name`, `repository`) and prioritizes them based on the detected install channel
 - **Pluggable Version Sources** — Checks for updates from GitHub Releases, npm registry, JSR, Homebrew API, or a custom JSON manifest
 - **Non-blocking Checks** — Returns cached results instantly and refreshes in the background, so app startup is never delayed
 - **Smart Update Planning** — Chooses the safest strategy per channel: in-place binary replacement, delegated package manager command, or manual instructions
 - **Safe Application** — SHA-256 checksum verification, atomic file replacement, HTTPS-only enforcement, and automatic rollback on failure
 - **Lifecycle Hooks** — `beforeCheck`, `beforeApply`, `afterApply`, and `onError` hooks for telemetry, logging, or custom logic
-- **CLI Included** — Built-in `update-kit` CLI with `detect`, `check`, `plan`, `apply`, and `cache` subcommands
+- **CLI Included** — Built-in `update-kit` CLI with `detect`, `check`, `plan`, `apply`, `cache`, and `doctor` subcommands
 
 ## Getting Started
 
@@ -41,13 +42,14 @@ yarn add update-kit
 ```typescript
 import { UpdateKit } from 'update-kit';
 
-const kit = await UpdateKit.create({
-  sources: [{ type: 'github', owner: 'my-org', repo: 'my-cli' }],
-});
+// Zero-config: sources are auto-inferred from your package.json
+const kit = await UpdateKit.create();
 
 const banner = await kit.checkAndNotify();
 if (banner) console.error(banner);
 ```
+
+Source check order adapts to the detected install channel — npm-installed apps check npm first, Homebrew-installed apps check brew first. You can still pass explicit `sources` when you need full control.
 
 ### Full auto-update
 
@@ -91,6 +93,7 @@ npx update-kit plan            # Show the update plan
 npx update-kit apply           # Run the full update pipeline
 npx update-kit cache show      # Display cached version data
 npx update-kit cache clear     # Clear the cache
+npx update-kit doctor          # Validate config, sources, and connectivity
 
 # All commands support JSON output
 npx update-kit detect --json

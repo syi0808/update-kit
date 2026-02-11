@@ -65,7 +65,8 @@ pnpm lint               # Type-check with tsc --noEmit
 src/
 ├── detection/          # Install channel detection (receipt, brew, npm, heuristics)
 ├── checker/            # Version checking with caching and background refresh
-│   └── sources/        # Pluggable version sources (GitHub, npm, JSR, Brew, custom)
+│   ├── sources/        # Pluggable version sources (GitHub, npm, JSR, Brew, custom)
+│   └── infer-sources.ts # Auto-inference of sources from config and package.json
 ├── planner/            # Update strategy selection
 ├── applier/            # Update execution (native download, delegate command, verify)
 ├── platform/           # OS-specific cache paths and atomic file replacement
@@ -75,7 +76,8 @@ src/
 ├── cli.ts              # CLI entry point
 ├── config.ts           # Configuration interface
 ├── types.ts            # Core type definitions
-└── errors.ts           # Structured error codes
+├── errors.ts           # Structured error codes
+└── doctor.ts           # Diagnostic checks (config, sources, connectivity)
 ```
 
 ## Style Guide

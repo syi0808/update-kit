@@ -50,6 +50,10 @@ describe("Module Format Verification", () => {
     "dim",
     "stripAnsi",
     "defaultTemplates",
+    "runDoctor",
+    "inferSourceConfigs",
+    "orderSourcesByChannel",
+    "parseGitHubRepository",
   ].sort();
 
   it("ESM dynamic import resolves without error", async () => {
@@ -92,8 +96,8 @@ describe("Module Format Verification", () => {
     expect(esmKeys).toEqual(cjsKeys);
   });
 
-  it("exports exactly 47 symbols", async () => {
+  it("exports exactly 51 symbols", async () => {
     const mod = await import("../dist/index.mjs");
-    expect(Object.keys(mod)).toHaveLength(47);
+    expect(Object.keys(mod)).toHaveLength(51);
   });
 });
