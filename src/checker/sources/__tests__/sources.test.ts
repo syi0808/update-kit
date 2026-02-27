@@ -129,6 +129,41 @@ describe('GitHubReleasesSource', () => {
       }),
     );
   });
+
+  it('filters out assets with non-HTTPS URLs', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      headers: new Headers(),
+      json: async () => ({
+        tag_name: 'v2.0.0',
+        assets: [
+          {
+            name: 'safe.tar.gz',
+            browser_download_url: 'https://github.com/example/my-cli/releases/download/v2.0.0/safe.tar.gz',
+            size: 1000,
+          },
+          {
+            name: 'unsafe.tar.gz',
+            browser_download_url: 'http://malicious.example.com/unsafe.tar.gz',
+            size: 2000,
+          },
+          {
+            name: 'invalid.tar.gz',
+            browser_download_url: 'not-a-url',
+            size: 500,
+          },
+        ],
+      }),
+    });
+
+    const result = await source.fetchLatest();
+    expect(result.kind).toBe('found');
+    if (result.kind === 'found') {
+      expect(result.info.assets).toHaveLength(1);
+      expect(result.info.assets![0].name).toBe('safe.tar.gz');
+    }
+  });
 });
 
 describe('NpmRegistrySource', () => {

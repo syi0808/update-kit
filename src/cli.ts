@@ -43,17 +43,53 @@ function parseArgs(argv: string[]): ParsedArgs {
 // ─── Config Loading ───
 
 function loadConfig(configPath?: string): UpdateKitExplicitConfig {
-  const path = configPath
+  const resolvedPath = configPath
     ? resolve(configPath)
     : resolve(process.cwd(), 'update-kit.config.json');
 
-  if (!existsSync(path)) {
-    console.error(`Config file not found: ${path}`);
+  if (!existsSync(resolvedPath)) {
+    console.error(`Config file not found: ${resolvedPath}`);
     process.exit(1);
   }
 
-  const raw = readFileSync(path, 'utf-8');
-  return JSON.parse(raw) as UpdateKitExplicitConfig;
+  let raw: string;
+  try {
+    raw = readFileSync(resolvedPath, 'utf-8');
+  } catch (error) {
+    console.error(
+      `Failed to read config file: ${resolvedPath}\n${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exit(1);
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (error) {
+    console.error(
+      `Invalid JSON in config file: ${resolvedPath}\n${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exit(1);
+  }
+
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    console.error(`Config must be a JSON object: ${resolvedPath}`);
+    process.exit(1);
+  }
+
+  const config = parsed as Record<string, unknown>;
+
+  if (typeof config['appName'] !== 'string' || config['appName'].length === 0) {
+    console.error(`Config missing required field "appName" (string): ${resolvedPath}`);
+    process.exit(1);
+  }
+
+  if (typeof config['currentVersion'] !== 'string' || config['currentVersion'].length === 0) {
+    console.error(`Config missing required field "currentVersion" (string): ${resolvedPath}`);
+    process.exit(1);
+  }
+
+  return config as unknown as UpdateKitExplicitConfig;
 }
 
 // ─── Command Handlers ───

@@ -10,6 +10,7 @@ import {
   COMMAND_SPAWN_FAILED,
   PERMISSION_DENIED,
 } from '../errors.js';
+import { DEFAULT_DELEGATE_TIMEOUT_MS, MAX_COMMAND_OUTPUT_BYTES } from '../constants.js';
 
 const ALLOWED_COMMANDS = new Set([
   'npm',
@@ -89,7 +90,7 @@ async function applyExecute(
   postAction: PostAction,
   options: DelegateApplyOptions,
 ): Promise<DelegateApplyResult> {
-  const timeoutMs = options.timeoutMs ?? 120_000;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_DELEGATE_TIMEOUT_MS;
   const { onProgress, signal } = options;
 
   return new Promise((resolve, reject) => {
@@ -155,7 +156,9 @@ async function applyExecute(
 
     child.stdout?.on('data', (chunk: Buffer) => {
       const text = chunk.toString();
-      stdout += text;
+      if (stdout.length < MAX_COMMAND_OUTPUT_BYTES) {
+        stdout += text;
+      }
       onProgress?.({
         phase: 'executing',
         output: text,
@@ -165,7 +168,9 @@ async function applyExecute(
 
     child.stderr?.on('data', (chunk: Buffer) => {
       const text = chunk.toString();
-      stderr += text;
+      if (stderr.length < MAX_COMMAND_OUTPUT_BYTES) {
+        stderr += text;
+      }
       onProgress?.({
         phase: 'executing',
         output: text,

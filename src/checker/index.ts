@@ -4,6 +4,7 @@ import type { VersionSource } from './sources/index.js';
 import type { CacheEntry } from './cache.js';
 import { readCache, writeCache, isCacheStale } from './cache.js';
 import { spawnBackgroundCheck } from './background.js';
+import { DEFAULT_CHECK_INTERVAL_MS } from '../constants.js';
 
 /** Options for the version checker. */
 export interface CheckUpdateOptions {
@@ -19,7 +20,7 @@ export interface CheckUpdateOptions {
   checkInterval?: number;
 }
 
-const DEFAULT_INTERVAL = 72_000_000;
+const DEFAULT_INTERVAL = DEFAULT_CHECK_INTERVAL_MS;
 
 /**
  * Check for available updates.
@@ -62,6 +63,8 @@ async function checkBlocking(
           await writeCache(cacheDir, appName, updatedEntry);
           return buildStatus(currentVersion, cached.latestVersion, cached);
         }
+        // etag is derived from cached?.etag, so not-modified without cache
+        // implies a server bug (304 without If-None-Match). Try next source.
         continue;
       }
       case 'found': {

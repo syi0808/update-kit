@@ -26,6 +26,7 @@ import { renderBanner } from './ux/index.js';
 import { runHook } from './ux/hooks.js';
 import { getDefaultCacheDir } from './platform/paths.js';
 import { UpdateKitError, APPLY_FAILED } from './errors.js';
+import { DEFAULT_CHECK_INTERVAL_MS } from './constants.js';
 import {
   findPackageJsonFromModule,
   getCallerFilePath,
@@ -134,11 +135,15 @@ export class UpdateKit {
     const cfg = config ?? {};
 
     if (cfg.appName && cfg.currentVersion) {
-      return new UpdateKit(cfg as UpdateKitConfig);
+      return new UpdateKit({
+        ...cfg,
+        appName: cfg.appName,
+        currentVersion: cfg.currentVersion,
+      });
     }
 
     if (cfg.pkg) {
-      return new UpdateKit({ ...cfg, pkg: cfg.pkg } as UpdateKitConfig);
+      return new UpdateKit({ ...cfg, pkg: cfg.pkg });
     }
 
     // Resolve package.json: explicit moduleUrl > auto-detect from caller
@@ -163,7 +168,7 @@ export class UpdateKit {
       ...cfg,
       ...(repository ? { repository } : {}),
       pkg: { name: pkgResult.name, version: pkgResult.version },
-    } as UpdateKitConfig);
+    });
   }
 
   /**
@@ -420,7 +425,7 @@ export class UpdateKit {
     }
 
     return {
-      checkInterval: 72_000_000,
+      checkInterval: DEFAULT_CHECK_INTERVAL_MS,
       delegateMode: 'print-only',
       allowReexec: false,
       ...config,
@@ -553,3 +558,14 @@ export {
   findPackageJsonFromModuleSync,
 } from './utils/package-json.js';
 export type { PackageJsonResult } from './utils/package-json.js';
+
+// Constants
+export {
+  DEFAULT_CHECK_INTERVAL_MS,
+  DEFAULT_DELEGATE_TIMEOUT_MS,
+  DEFAULT_DOWNLOAD_TIMEOUT_MS,
+  DEFAULT_BACKGROUND_TIMEOUT_MS,
+  DEFAULT_FETCH_TIMEOUT_MS,
+  DEFAULT_SOURCE_TIMEOUT_MS,
+  MAX_COMMAND_OUTPUT_BYTES,
+} from './constants.js';

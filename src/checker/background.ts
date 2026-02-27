@@ -1,6 +1,7 @@
 import type { VersionSource } from './sources/index.js';
 import type { CacheEntry } from './cache.js';
 import { writeCache } from './cache.js';
+import { DEFAULT_BACKGROUND_TIMEOUT_MS } from '../constants.js';
 
 /** Configuration for background version check. */
 export interface BackgroundCheckConfig {
@@ -9,9 +10,17 @@ export interface BackgroundCheckConfig {
   cacheDir: string;
 }
 
+let backgroundCheckInProgress = false;
+
+/** @internal Reset background check state. For testing only. */
+export function _resetBackgroundState(): void {
+  backgroundCheckInProgress = false;
+}
+
 /**
  * Spawn a fire-and-forget background version check.
  * Never blocks the caller and never throws.
+ * Deduplicates: if a background check is already running, the call is ignored.
  *
  * @param config - App name, current version, and cache directory
  * @param sources - Version sources to try in order
@@ -20,8 +29,11 @@ export interface BackgroundCheckConfig {
 export function spawnBackgroundCheck(
   config: BackgroundCheckConfig,
   sources: VersionSource[],
-  timeoutMs: number = 10_000,
+  timeoutMs: number = DEFAULT_BACKGROUND_TIMEOUT_MS,
 ): void {
+  if (backgroundCheckInProgress) return;
+  backgroundCheckInProgress = true;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -33,6 +45,7 @@ export function spawnBackgroundCheck(
     })
     .finally(() => {
       clearTimeout(timer);
+      backgroundCheckInProgress = false;
     });
 }
 

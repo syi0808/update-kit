@@ -1,4 +1,5 @@
 import { UpdateKitError, NETWORK_ERROR } from '../errors.js';
+import { DEFAULT_FETCH_TIMEOUT_MS } from '../constants.js';
 
 export interface FetchWithTimeoutOptions extends RequestInit {
   timeoutMs?: number;
@@ -13,7 +14,7 @@ export async function fetchWithTimeout(
   url: string,
   options: FetchWithTimeoutOptions = {},
 ): Promise<Response> {
-  const { timeoutMs = 30_000, signal: externalSignal, ...fetchOptions } = options;
+  const { timeoutMs = DEFAULT_FETCH_TIMEOUT_MS, signal: externalSignal, ...fetchOptions } = options;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);

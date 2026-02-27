@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import { UpdateKitError, PERMISSION_DENIED } from '../errors.js';
+import { UpdateKitError, PERMISSION_DENIED, APPLY_FAILED } from '../errors.js';
 
 /**
  * Atomically replace the target binary with a new file.
@@ -63,10 +63,19 @@ async function windowsReplace(newPath: string, targetPath: string): Promise<void
   try {
     // Copy new file to target location
     await fs.copyFile(newPath, targetPath);
-  } catch (error) {
+  } catch (copyError) {
     // Rollback: restore from .old
-    await fs.rename(backupPath, targetPath);
-    throw error;
+    try {
+      await fs.rename(backupPath, targetPath);
+    } catch (rollbackError) {
+      throw new UpdateKitError(
+        APPLY_FAILED,
+        `Update failed and rollback also failed. Original binary may be at ${backupPath}. ` +
+          `Copy error: ${copyError instanceof Error ? copyError.message : String(copyError)}. ` +
+          `Rollback error: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}.`,
+      );
+    }
+    throw copyError;
   }
 
   // Clean up .old (may fail if the file is still in use on Windows)

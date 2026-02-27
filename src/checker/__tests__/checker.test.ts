@@ -142,6 +142,7 @@ describe('checkUpdate — blocking mode', () => {
     const source = createMockSource('github', {
       kind: 'error',
       reason: 'GitHub API responded with failure: 429 Too Many Requests',
+      status: 429,
     });
 
     const status = await checkUpdate(
@@ -161,6 +162,7 @@ describe('checkUpdate — blocking mode', () => {
     const source = createMockSource('github', {
       kind: 'error',
       reason: 'GitHub API responded with failure: 403 Forbidden',
+      status: 403,
     });
 
     const status = await checkUpdate(
@@ -230,6 +232,48 @@ describe('checkUpdate — blocking mode', () => {
     if (status.kind === 'available') {
       expect(status.latest).toBe('1.5.0');
     }
+  });
+
+  it('skips not-modified source without cache and tries next source', async () => {
+    // Edge case: server returns 304 but we have no cache (should not happen, but handle gracefully)
+    const notModifiedSource = createMockSource('github', {
+      kind: 'not-modified',
+      etag: '"some-etag"',
+    });
+    const fallbackSource = createMockSource('npm', {
+      kind: 'found',
+      info: { version: '2.0.0' },
+    });
+
+    const status = await checkUpdate(
+      {
+        appName: 'test',
+        currentVersion: '1.0.0',
+        sources: [notModifiedSource, fallbackSource],
+        cacheDir: CACHE_DIR,
+      },
+      'blocking',
+    );
+
+    expect(status.kind).toBe('available');
+    if (status.kind === 'available') {
+      expect(status.latest).toBe('2.0.0');
+    }
+    expect(fallbackSource.fetchLatest).toHaveBeenCalledOnce();
+  });
+
+  it('returns unknown when not-modified is only source and no cache', async () => {
+    const source = createMockSource('github', {
+      kind: 'not-modified',
+      etag: '"etag"',
+    });
+
+    const status = await checkUpdate(
+      { appName: 'test', currentVersion: '1.0.0', sources: [source], cacheDir: CACHE_DIR },
+      'blocking',
+    );
+
+    expect(status.kind).toBe('unknown');
   });
 
   it('returns unknown when no sources are provided and no cache', async () => {

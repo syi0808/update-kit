@@ -19,6 +19,7 @@ import {
 import { verifyChecksum } from './verify.js';
 import { atomicReplace } from '../platform/replace.js';
 import { fetchWithTimeout } from '../utils/http.js';
+import { DEFAULT_DOWNLOAD_TIMEOUT_MS } from '../constants.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -119,7 +120,7 @@ export async function downloadArtifact(
 
   let response: Response;
   try {
-    response = await fetchWithTimeout(url, { signal: options.signal, timeoutMs: 300_000 });
+    response = await fetchWithTimeout(url, { signal: options.signal, timeoutMs: DEFAULT_DOWNLOAD_TIMEOUT_MS });
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw error;
@@ -145,8 +146,10 @@ export async function downloadArtifact(
   const destPath = path.join(tmpDir, filename);
 
   let bytesDownloaded = 0;
-  // Readable.fromWeb types differ between Node and DOM; cast is necessary
-  const nodeStream = Readable.fromWeb(response.body as any);
+  // Readable.fromWeb types differ between Node and DOM; explicit cast bridges the gap
+  const nodeStream = Readable.fromWeb(
+    response.body as import('node:stream/web').ReadableStream,
+  );
   const writeStream = createWriteStream(destPath);
 
   nodeStream.on('data', (chunk: Buffer) => {
@@ -213,10 +216,31 @@ export async function extractBinary(
  * Single file → return it. Multiple files → prefer the one with execute permission.
  */
 export async function findBinaryInDir(dir: string): Promise<string> {
+  const resolvedDir = await fs.realpath(dir);
   const entries = await fs.readdir(dir, { withFileTypes: true, recursive: true });
-  const files = entries
-    .filter((e) => e.isFile())
-    .map((e) => path.join(e.parentPath ?? (e as any).path ?? dir, e.name));
+  const files: string[] = [];
+
+  for (const e of entries) {
+    if (!e.isFile()) continue;
+
+    // parentPath was added in Node 20.12; fall back to the legacy 'path' property
+    const parentDir =
+      e.parentPath ?? (e as unknown as { path?: string }).path ?? dir;
+    const filePath = path.join(parentDir, e.name);
+
+    // Ensure the resolved path is within the extraction directory
+    // to prevent symlink escape attacks
+    try {
+      const resolvedFile = await fs.realpath(filePath);
+      if (!resolvedFile.startsWith(resolvedDir + path.sep) && resolvedFile !== resolvedDir) {
+        continue;
+      }
+    } catch {
+      continue;
+    }
+
+    files.push(filePath);
+  }
 
   if (files.length === 0) {
     throw new UpdateKitError(EXTRACT_FAILED, 'No binary found in extracted archive.');

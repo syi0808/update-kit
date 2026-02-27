@@ -8,7 +8,7 @@ vi.mock('../cache.js', () => ({
   writeCache: (...args: unknown[]) => mockWriteCache(...(args as [])),
 }));
 
-import { spawnBackgroundCheck, type BackgroundCheckConfig } from '../background.js';
+import { spawnBackgroundCheck, _resetBackgroundState, type BackgroundCheckConfig } from '../background.js';
 
 function createMockSource(
   name: string,
@@ -29,6 +29,7 @@ const baseConfig: BackgroundCheckConfig = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockWriteCache.mockResolvedValue(undefined);
+  _resetBackgroundState();
 });
 
 describe('spawnBackgroundCheck', () => {
@@ -132,6 +133,49 @@ describe('spawnBackgroundCheck', () => {
     const writtenEntry = mockWriteCache.mock.calls[0]![2] as CacheEntry;
     expect(writtenEntry.latestVersion).toBe('2.5.0');
     expect(writtenEntry.source).toBe('npm');
+  });
+
+  it('deduplicates concurrent background checks', async () => {
+    const source = createMockSource('github', {
+      kind: 'found',
+      info: { version: '2.0.0' },
+    });
+
+    // Call twice rapidly — second call should be ignored
+    spawnBackgroundCheck(baseConfig, [source]);
+    spawnBackgroundCheck(baseConfig, [source]);
+
+    await vi.waitFor(() => {
+      expect(mockWriteCache).toHaveBeenCalledOnce();
+    });
+
+    // fetchLatest should have been called only once
+    expect(source.fetchLatest).toHaveBeenCalledOnce();
+  });
+
+  it('allows a new background check after the first completes', async () => {
+    const source1 = createMockSource('github', {
+      kind: 'found',
+      info: { version: '2.0.0' },
+    });
+
+    spawnBackgroundCheck(baseConfig, [source1]);
+
+    await vi.waitFor(() => {
+      expect(mockWriteCache).toHaveBeenCalledOnce();
+    });
+
+    // After completion, a new check should be allowed
+    const source2 = createMockSource('npm', {
+      kind: 'found',
+      info: { version: '3.0.0' },
+    });
+
+    spawnBackgroundCheck(baseConfig, [source2]);
+
+    await vi.waitFor(() => {
+      expect(mockWriteCache).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('does not throw when writeCache fails', async () => {

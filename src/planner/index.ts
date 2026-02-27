@@ -265,6 +265,10 @@ export function expandAssetPattern(
   platform: string,
   arch: string,
 ): RegExp {
+  if (pattern.length > 256) {
+    throw new Error(`Asset pattern is too long (${pattern.length} chars, max 256)`);
+  }
+
   const platformGroup = getPlatformAliases(platform).join('|');
   const archGroup = getArchAliases(arch).join('|');
   const targetGroup = `(${platformGroup})[_-](${archGroup})`;
@@ -282,7 +286,13 @@ export function expandAssetPattern(
     .replace(/\{arch\}/g, `(${archGroup})`)
     .replace(/\{ext\}/g, '(tar\\.gz|tgz|zip|gz|dmg|exe|msi|deb|rpm|pkg)');
 
-  return new RegExp(`^${expanded}$`, 'i');
+  try {
+    return new RegExp(`^${expanded}$`, 'i');
+  } catch (error) {
+    throw new Error(
+      `Invalid asset pattern "${pattern}": ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 function autoMatchAsset(

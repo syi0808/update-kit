@@ -52,6 +52,13 @@ describe("Module Format Verification", () => {
     "inferSourceConfigs",
     "orderSourcesByChannel",
     "parseGitHubRepository",
+    "DEFAULT_CHECK_INTERVAL_MS",
+    "DEFAULT_DELEGATE_TIMEOUT_MS",
+    "DEFAULT_DOWNLOAD_TIMEOUT_MS",
+    "DEFAULT_BACKGROUND_TIMEOUT_MS",
+    "DEFAULT_FETCH_TIMEOUT_MS",
+    "DEFAULT_SOURCE_TIMEOUT_MS",
+    "MAX_COMMAND_OUTPUT_BYTES",
   ].sort();
 
   it("ESM dynamic import resolves without error", async () => {
@@ -94,8 +101,8 @@ describe("Module Format Verification", () => {
     expect(esmKeys).toEqual(cjsKeys);
   });
 
-  it("exports exactly 49 symbols", async () => {
+  it("exports exactly 56 symbols", async () => {
     const mod = await import("../dist/index.mjs");
-    expect(Object.keys(mod)).toHaveLength(49);
+    expect(Object.keys(mod)).toHaveLength(56);
   });
 });

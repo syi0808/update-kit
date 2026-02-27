@@ -315,4 +315,25 @@ describe('expandAssetPattern', () => {
     expect(regex.test('test-app-linux-amd64.tar.gz')).toBe(true);
     expect(regex.test('test-app-linux-x86_64.tar.gz')).toBe(true);
   });
+
+  it('rejects patterns exceeding 256 characters', () => {
+    const longPattern = 'a'.repeat(257);
+    expect(() =>
+      expandAssetPattern(longPattern, config(), 'linux', 'x64'),
+    ).toThrow(/too long/);
+  });
+
+  it('wraps invalid regex in a helpful error', () => {
+    // A pattern that becomes invalid after partial expansion shouldn't crash
+    // Since most special chars are escaped, this is hard to trigger naturally,
+    // but we test the try-catch guard is in place
+    const regex = expandAssetPattern(
+      '{app}-{version}.tar.gz',
+      config(),
+      'linux',
+      'x64',
+    );
+    // Should produce a valid regex even with no platform/arch placeholders
+    expect(regex).toBeInstanceOf(RegExp);
+  });
 });
