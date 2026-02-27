@@ -125,7 +125,7 @@ describe('GitHubReleasesSource', () => {
     expect(mockFetch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
-        signal: controller.signal,
+        signal: expect.any(AbortSignal),
       }),
     );
   });
@@ -330,6 +330,15 @@ describe('BrewSource', () => {
 });
 
 describe('CustomManifestSource', () => {
+  it('rejects non-HTTPS URLs', () => {
+    expect(() =>
+      createVersionSource({
+        type: 'custom',
+        url: 'http://example.com/manifest.json',
+      }),
+    ).toThrow('HTTPS');
+  });
+
   it('extracts version from nested path', async () => {
     const source = createVersionSource({
       type: 'custom',

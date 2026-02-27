@@ -110,6 +110,10 @@ export type ApplyResult =
       postAction: PostAction;
     }
   | {
+      kind: 'up-to-date';
+      current: string;
+    }
+  | {
       kind: 'needs-restart';
       message: string;
     }

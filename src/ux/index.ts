@@ -41,6 +41,9 @@ export function renderResult(result: ApplyResult): string {
       postAction: result.postAction,
     }));
   }
+  if (result.kind === 'up-to-date') {
+    return green(`Already up to date (${result.current}).`);
+  }
   if (result.kind === 'needs-restart') {
     return yellow(result.message);
   }

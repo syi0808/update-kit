@@ -395,14 +395,13 @@ describe('UpdateKit', () => {
       expect(result.kind).toBe('success');
     });
 
-    it('returns failed result when no update is available', async () => {
+    it('returns up-to-date result when no update is available', async () => {
       mockCheckUpdate.mockResolvedValue(mockUpToDateStatus);
 
       const kit = new UpdateKit(baseConfig);
       const result = await kit.autoUpdate();
 
-      expect(result.kind).toBe('failed');
-      expect((result as any).error.message).toBe('No update available');
+      expect(result.kind).toBe('up-to-date');
       expect(mockPlanUpdate).not.toHaveBeenCalled();
     });
 

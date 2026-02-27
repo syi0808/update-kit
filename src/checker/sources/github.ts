@@ -1,16 +1,8 @@
 import type { VersionSource, VersionSourceResult, VersionInfo, AssetInfo } from './index.js';
+import type { GitHubSourceConfig } from '../../config.js';
+import { fetchWithTimeout } from '../../utils/http.js';
 
-export interface GitHubSourceConfig {
-  type: 'github';
-  /** Repository owner */
-  owner: string;
-  /** Repository name */
-  repo: string;
-  /** GitHub API token (optional, for rate limit avoidance) */
-  token?: string;
-  /** API base URL (for GitHub Enterprise, etc.) */
-  apiBaseUrl?: string;
-}
+export type { GitHubSourceConfig } from '../../config.js';
 
 export class GitHubReleasesSource implements VersionSource {
   readonly name = 'github';
@@ -41,9 +33,10 @@ export class GitHubReleasesSource implements VersionSource {
     }
 
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         headers,
         signal: options?.signal,
+        timeoutMs: 15_000,
       });
 
       if (response.status === 304 && options?.etag) {
@@ -61,8 +54,15 @@ export class GitHubReleasesSource implements VersionSource {
       const data = await response.json();
       const etag = response.headers.get('etag') ?? undefined;
 
+      if (!data.tag_name) {
+        return {
+          kind: 'error',
+          reason: 'GitHub release has no tag_name',
+        };
+      }
+
       // Strip 'v' prefix from tag_name
-      const version = data.tag_name?.replace(/^v/, '') ?? data.tag_name;
+      const version = data.tag_name.replace(/^v/, '');
 
       const assets: AssetInfo[] = (data.assets ?? []).map((asset: any) => ({
         name: asset.name,

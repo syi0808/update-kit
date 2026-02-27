@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { UpdateKitError, CACHE_ERROR } from '../errors.js';
 
 /** Cached version check result persisted to disk. */
 export interface CacheEntry {
@@ -78,7 +79,11 @@ export async function writeCache(
     } catch {
       // Intentionally ignored — tmp file may already be gone
     }
-    throw error;
+    throw new UpdateKitError(
+      CACHE_ERROR,
+      `Failed to write cache for ${appName}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error instanceof Error ? error : undefined },
+    );
   }
 }
 

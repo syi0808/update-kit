@@ -1,12 +1,8 @@
 import type { VersionSource, VersionSourceResult, VersionInfo } from './index.js';
+import type { JsrSourceConfig } from '../../config.js';
+import { fetchWithTimeout } from '../../utils/http.js';
 
-export interface JsrSourceConfig {
-  type: 'jsr';
-  /** Scope (without @, e.g. "std") */
-  scope: string;
-  /** Package name */
-  name: string;
-}
+export type { JsrSourceConfig } from '../../config.js';
 
 export class JsrSource implements VersionSource {
   readonly name = 'jsr';
@@ -29,9 +25,10 @@ export class JsrSource implements VersionSource {
     }
 
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         headers,
         signal: options?.signal,
+        timeoutMs: 15_000,
       });
 
       if (response.status === 304 && options?.etag) {

@@ -178,8 +178,7 @@ export class UpdateKit {
    * ```
    */
   async detectInstall(): Promise<InstallDetection> {
-    const execPath = this.config.executablePath ?? process.argv[1];
-    return detectInstallFn(execPath, this.config);
+    return detectInstallFn(this.resolveExecPath(), this.config);
   }
 
   /**
@@ -286,8 +285,7 @@ export class UpdateKit {
     try {
       switch (plan.kind.type) {
         case 'native-in-place': {
-          const execPath = this.config.executablePath ?? process.argv[1];
-          result = await applyNativeUpdate(plan, execPath, options);
+          result = await applyNativeUpdate(plan, this.resolveExecPath(), options);
           break;
         }
         case 'delegate-command':
@@ -360,9 +358,8 @@ export class UpdateKit {
 
       if (status.kind !== 'available') {
         return {
-          kind: 'failed',
-          error: new Error('No update available'),
-          rollbackSucceeded: true,
+          kind: 'up-to-date',
+          current: status.kind === 'up-to-date' ? status.current : this.config.currentVersion,
         };
       }
 
@@ -387,6 +384,16 @@ export class UpdateKit {
       );
       return { kind: 'failed', error: err, rollbackSucceeded: false };
     }
+  }
+
+  private resolveExecPath(): string {
+    const execPath = this.config.executablePath ?? process.argv[1];
+    if (!execPath) {
+      throw new Error(
+        'Cannot determine executable path. Provide executablePath in config.',
+      );
+    }
+    return execPath;
   }
 
   /** @internal Exposed for testing / doctor command */

@@ -140,14 +140,59 @@ export interface Hooks {
   onError?: (error: UpdateKitError) => void | Promise<void>;
 }
 
-/**
- * Version source configuration. The `type` field identifies the source kind.
- * Additional source-specific options are allowed via index signature.
- */
-export interface VersionSourceConfig {
-  /** Source type */
-  type: 'github' | 'npm' | 'jsr' | 'brew' | 'custom';
+// ──────────────────────────────────────────────
+// Version source configurations
+// ──────────────────────────────────────────────
 
-  /** Source-specific additional settings */
-  [key: string]: unknown;
+export interface GitHubSourceConfig {
+  type: 'github';
+  /** Repository owner */
+  owner: string;
+  /** Repository name */
+  repo: string;
+  /** GitHub API token (optional, for rate limit avoidance) */
+  token?: string;
+  /** API base URL (for GitHub Enterprise, etc.) */
+  apiBaseUrl?: string;
 }
+
+export interface NpmSourceConfig {
+  type: 'npm';
+  /** npm package name */
+  packageName: string;
+  /** Registry URL (default: https://registry.npmjs.org) */
+  registryUrl?: string;
+}
+
+export interface JsrSourceConfig {
+  type: 'jsr';
+  /** Scope (without @, e.g. "std") */
+  scope: string;
+  /** Package name */
+  name: string;
+}
+
+export interface BrewSourceConfig {
+  type: 'brew';
+  /** Homebrew cask name */
+  caskName: string;
+}
+
+export interface CustomManifestSourceConfig {
+  type: 'custom';
+  /** Manifest JSON URL */
+  url: string;
+  /** Version field name (default: "version"). Supports dot-notation for nested paths (e.g. "data.latest.version") */
+  versionField?: string;
+}
+
+/**
+ * Version source configuration. Discriminated union by the `type` field.
+ * Each variant carries only the fields relevant to that source.
+ */
+export type VersionSourceConfig =
+  | GitHubSourceConfig
+  | NpmSourceConfig
+  | JsrSourceConfig
+  | BrewSourceConfig
+  | CustomManifestSourceConfig;

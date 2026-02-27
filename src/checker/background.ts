@@ -26,8 +26,10 @@ export function spawnBackgroundCheck(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   backgroundFetch(config, sources, controller.signal)
-    .catch(() => {
-      // Intentionally swallowed — background failures are silent
+    .catch((error: unknown) => {
+      if (process.env['UPDATE_KIT_DEBUG']) {
+        console.error('[update-kit] Background check failed:', error);
+      }
     })
     .finally(() => {
       clearTimeout(timer);

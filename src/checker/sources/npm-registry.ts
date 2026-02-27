@@ -1,12 +1,8 @@
 import type { VersionSource, VersionSourceResult, VersionInfo } from './index.js';
+import type { NpmSourceConfig } from '../../config.js';
+import { fetchWithTimeout } from '../../utils/http.js';
 
-export interface NpmSourceConfig {
-  type: 'npm';
-  /** npm package name */
-  packageName: string;
-  /** Registry URL (default: https://registry.npmjs.org) */
-  registryUrl?: string;
-}
+export type { NpmSourceConfig } from '../../config.js';
 
 export class NpmRegistrySource implements VersionSource {
   readonly name = 'npm';
@@ -32,9 +28,10 @@ export class NpmRegistrySource implements VersionSource {
     }
 
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         headers,
         signal: options?.signal,
+        timeoutMs: 15_000,
       });
 
       if (response.status === 304 && options?.etag) {

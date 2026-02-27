@@ -1,12 +1,9 @@
 import type { VersionSourceConfig } from '../../config.js';
-import { GitHubReleasesSource, type GitHubSourceConfig } from './github.js';
-import { NpmRegistrySource, type NpmSourceConfig } from './npm-registry.js';
-import { JsrSource, type JsrSourceConfig } from './jsr.js';
-import { BrewSource, type BrewSourceConfig } from './brew-api.js';
-import {
-  CustomManifestSource,
-  type CustomManifestSourceConfig,
-} from './custom-manifest.js';
+import { GitHubReleasesSource } from './github.js';
+import { NpmRegistrySource } from './npm-registry.js';
+import { JsrSource } from './jsr.js';
+import { BrewSource } from './brew-api.js';
+import { CustomManifestSource } from './custom-manifest.js';
 
 /** Version information returned by a source */
 export interface VersionInfo {
@@ -71,17 +68,17 @@ export type VersionSourceResult =
 export function createVersionSource(config: VersionSourceConfig): VersionSource {
   switch (config.type) {
     case 'github':
-      return new GitHubReleasesSource(config as unknown as GitHubSourceConfig);
+      return new GitHubReleasesSource(config);
     case 'npm':
-      return new NpmRegistrySource(config as unknown as NpmSourceConfig);
+      return new NpmRegistrySource(config);
     case 'jsr':
-      return new JsrSource(config as unknown as JsrSourceConfig);
+      return new JsrSource(config);
     case 'brew':
-      return new BrewSource(config as unknown as BrewSourceConfig);
+      return new BrewSource(config);
     case 'custom':
-      return new CustomManifestSource(config as unknown as CustomManifestSourceConfig);
+      return new CustomManifestSource(config);
     default:
-      throw new Error(`Unknown version source type: ${(config as any).type}`);
+      throw new Error(`Unknown version source type: ${(config as { type: string }).type}`);
   }
 }
 
@@ -91,4 +88,4 @@ export type {
   JsrSourceConfig,
   BrewSourceConfig,
   CustomManifestSourceConfig,
-};
+} from '../../config.js';

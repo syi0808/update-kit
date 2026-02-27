@@ -1,10 +1,8 @@
 import type { VersionSource, VersionSourceResult, VersionInfo } from './index.js';
+import type { BrewSourceConfig } from '../../config.js';
+import { fetchWithTimeout } from '../../utils/http.js';
 
-export interface BrewSourceConfig {
-  type: 'brew';
-  /** Homebrew cask name */
-  caskName: string;
-}
+export type { BrewSourceConfig } from '../../config.js';
 
 export class BrewSource implements VersionSource {
   readonly name = 'brew';
@@ -27,9 +25,10 @@ export class BrewSource implements VersionSource {
     }
 
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         headers,
         signal: options?.signal,
+        timeoutMs: 15_000,
       });
 
       if (response.status === 304 && options?.etag) {
@@ -58,7 +57,6 @@ export class BrewSource implements VersionSource {
       const info: VersionInfo = {
         version: data.version,
         releaseUrl: data.homepage,
-        publishedAt: data.installed?.[0]?.time,
       };
 
       return { kind: 'found', info, etag };

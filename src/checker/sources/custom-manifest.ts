@@ -1,18 +1,16 @@
 import type { VersionSource, VersionSourceResult, VersionInfo } from './index.js';
+import type { CustomManifestSourceConfig } from '../../config.js';
+import { requireHttps } from '../../utils/security.js';
+import { fetchWithTimeout } from '../../utils/http.js';
 
-export interface CustomManifestSourceConfig {
-  type: 'custom';
-  /** Manifest JSON URL */
-  url: string;
-  /** Version field name (default: "version"). Supports dot-notation for nested paths (e.g. "data.latest.version") */
-  versionField?: string;
-}
+export type { CustomManifestSourceConfig } from '../../config.js';
 
 export class CustomManifestSource implements VersionSource {
   readonly name = 'custom';
   private readonly config: CustomManifestSourceConfig;
 
   constructor(config: CustomManifestSourceConfig) {
+    requireHttps(config.url, 'Custom manifest URL');
     this.config = config;
   }
 
@@ -29,9 +27,10 @@ export class CustomManifestSource implements VersionSource {
     }
 
     try {
-      const response = await fetch(this.config.url, {
+      const response = await fetchWithTimeout(this.config.url, {
         headers,
         signal: options?.signal,
+        timeoutMs: 15_000,
       });
 
       if (response.status === 304 && options?.etag) {
