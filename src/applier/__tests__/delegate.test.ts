@@ -204,12 +204,12 @@ describe('applyDelegateUpdate — execute mode', () => {
 
     expect(progressEvents).toHaveLength(2);
     expect(progressEvents[0]).toMatchObject({
-      phase: 'execute',
+      phase: 'executing',
       output: 'downloading...',
       stream: 'stdout',
     });
     expect(progressEvents[1]).toMatchObject({
-      phase: 'execute',
+      phase: 'executing',
       output: 'warn: something',
       stream: 'stderr',
     });

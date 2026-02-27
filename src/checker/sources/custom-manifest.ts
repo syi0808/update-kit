@@ -42,6 +42,7 @@ export class CustomManifestSource implements VersionSource {
         return {
           kind: 'error',
           reason: `Custom manifest responded with failure: ${response.status}`,
+          status: response.status,
         };
       }
 

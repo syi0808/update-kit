@@ -217,7 +217,10 @@ describe('JsrSource', () => {
       headers: new Headers({ etag: '"jsr-etag"' }),
       json: async () => ({
         latest: '0.220.0',
-        versions: { '0.219.0': {}, '0.220.0': {} },
+        versions: {
+          '0.219.0': {},
+          '0.220.0': { createdAt: '2024-01-15T00:00:00Z' },
+        },
       }),
     });
 
@@ -226,6 +229,7 @@ describe('JsrSource', () => {
     if (result.kind === 'found') {
       expect(result.info.version).toBe('0.220.0');
       expect(result.info.releaseUrl).toBe('https://jsr.io/@std/path');
+      expect(result.info.publishedAt).toBe('2024-01-15T00:00:00Z');
       expect(result.etag).toBe('"jsr-etag"');
     }
   });

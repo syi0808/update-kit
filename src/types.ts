@@ -98,6 +98,7 @@ export type ApplyProgress =
   | { phase: 'verifying' }
   | { phase: 'extracting' }
   | { phase: 'replacing' }
+  | { phase: 'executing'; output: string; stream: 'stdout' | 'stderr' }
   | { phase: 'done' };
 
 /** Apply result */

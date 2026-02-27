@@ -170,7 +170,6 @@ export function normalizeVersion(version: string): string | null {
   return coerced ? coerced.version : null;
 }
 
-function isRateLimitResult(result: { kind: 'error'; reason: string }): boolean {
-  const reason = result.reason.toLowerCase();
-  return reason.includes('429') || reason.includes('403');
+function isRateLimitResult(result: { kind: 'error'; reason: string; status?: number }): boolean {
+  return result.status === 429 || result.status === 403;
 }

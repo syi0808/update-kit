@@ -59,7 +59,7 @@ export interface VersionSource {
 export type VersionSourceResult =
   | { kind: 'found'; info: VersionInfo; etag?: string }
   | { kind: 'not-modified'; etag: string }
-  | { kind: 'error'; reason: string };
+  | { kind: 'error'; reason: string; status?: number };
 
 /**
  * Factory function that creates an appropriate VersionSource instance from a config object.

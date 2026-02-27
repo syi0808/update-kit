@@ -40,6 +40,7 @@ export class BrewSource implements VersionSource {
         return {
           kind: 'error',
           reason: `Homebrew cask not found: ${this.config.caskName}`,
+          status: response.status,
         };
       }
 
@@ -47,6 +48,7 @@ export class BrewSource implements VersionSource {
         return {
           kind: 'error',
           reason: `Homebrew API responded with failure: ${response.status}`,
+          status: response.status,
         };
       }
 

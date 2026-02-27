@@ -42,6 +42,7 @@ export class JsrSource implements VersionSource {
         return {
           kind: 'error',
           reason: `JSR package not found: @${this.config.scope}/${this.config.name}`,
+          status: response.status,
         };
       }
 
@@ -49,6 +50,7 @@ export class JsrSource implements VersionSource {
         return {
           kind: 'error',
           reason: `JSR responded with failure: ${response.status}`,
+          status: response.status,
         };
       }
 
@@ -65,9 +67,11 @@ export class JsrSource implements VersionSource {
         };
       }
 
+      const versionMeta = data.versions?.[latest];
       const info: VersionInfo = {
         version: latest,
         releaseUrl: `https://jsr.io/@${this.config.scope}/${this.config.name}`,
+        publishedAt: versionMeta?.createdAt,
       };
 
       return { kind: 'found', info, etag };

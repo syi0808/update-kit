@@ -10,8 +10,6 @@ describe("Module Format Verification", () => {
     "CACHE_ERROR",
     "VERSION_PARSE",
     "CHECKSUM_MISMATCH",
-    "SIGNATURE_INVALID",
-    "PLAN_REJECTED",
     "APPLY_FAILED",
     "COMMAND_FAILED",
     "UNSUPPORTED_PLATFORM",
@@ -96,8 +94,8 @@ describe("Module Format Verification", () => {
     expect(esmKeys).toEqual(cjsKeys);
   });
 
-  it("exports exactly 51 symbols", async () => {
+  it("exports exactly 49 symbols", async () => {
     const mod = await import("../dist/index.mjs");
-    expect(Object.keys(mod)).toHaveLength(51);
+    expect(Object.keys(mod)).toHaveLength(49);
   });
 });

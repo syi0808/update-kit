@@ -157,20 +157,20 @@ async function applyExecute(
       const text = chunk.toString();
       stdout += text;
       onProgress?.({
-        phase: 'execute',
+        phase: 'executing',
         output: text,
         stream: 'stdout',
-      } as any);
+      });
     });
 
     child.stderr?.on('data', (chunk: Buffer) => {
       const text = chunk.toString();
       stderr += text;
       onProgress?.({
-        phase: 'execute',
+        phase: 'executing',
         output: text,
         stream: 'stderr',
-      } as any);
+      });
     });
 
     child.on('close', (exitCode) => {

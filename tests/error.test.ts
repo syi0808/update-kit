@@ -6,8 +6,6 @@ import {
   CACHE_ERROR,
   VERSION_PARSE,
   CHECKSUM_MISMATCH,
-  SIGNATURE_INVALID,
-  PLAN_REJECTED,
   APPLY_FAILED,
   COMMAND_FAILED,
   UNSUPPORTED_PLATFORM,
@@ -75,8 +73,6 @@ describe("UpdateKitError", () => {
       [CACHE_ERROR, "CACHE_ERROR"],
       [VERSION_PARSE, "VERSION_PARSE"],
       [CHECKSUM_MISMATCH, "CHECKSUM_MISMATCH"],
-      [SIGNATURE_INVALID, "SIGNATURE_INVALID"],
-      [PLAN_REJECTED, "PLAN_REJECTED"],
       [APPLY_FAILED, "APPLY_FAILED"],
       [COMMAND_FAILED, "COMMAND_FAILED"],
       [UNSUPPORTED_PLATFORM, "UNSUPPORTED_PLATFORM"],
@@ -96,8 +92,8 @@ describe("UpdateKitError", () => {
       expect(constant).toBe(expected);
     });
 
-    it("there are exactly 20 error codes", () => {
-      expect(errorCodePairs).toHaveLength(20);
+    it("there are exactly 18 error codes", () => {
+      expect(errorCodePairs).toHaveLength(18);
     });
   });
 });

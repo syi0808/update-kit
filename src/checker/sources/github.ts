@@ -54,6 +54,7 @@ export class GitHubReleasesSource implements VersionSource {
         return {
           kind: 'error',
           reason: `GitHub API responded with failure: ${response.status} ${response.statusText}`,
+          status: response.status,
         };
       }
 

@@ -34,12 +34,6 @@ export const VERSION_PARSE = 'VERSION_PARSE' as const;
 /** Downloaded file checksum mismatch */
 export const CHECKSUM_MISMATCH = 'CHECKSUM_MISMATCH' as const;
 
-/** Signature verification failed */
-export const SIGNATURE_INVALID = 'SIGNATURE_INVALID' as const;
-
-/** User or hook rejected the update plan */
-export const PLAN_REJECTED = 'PLAN_REJECTED' as const;
-
 /** Update application failed */
 export const APPLY_FAILED = 'APPLY_FAILED' as const;
 
@@ -86,8 +80,6 @@ export type ErrorCode =
   | typeof CACHE_ERROR
   | typeof VERSION_PARSE
   | typeof CHECKSUM_MISMATCH
-  | typeof SIGNATURE_INVALID
-  | typeof PLAN_REJECTED
   | typeof APPLY_FAILED
   | typeof COMMAND_FAILED
   | typeof UNSUPPORTED_PLATFORM

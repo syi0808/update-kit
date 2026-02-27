@@ -45,6 +45,7 @@ export class NpmRegistrySource implements VersionSource {
         return {
           kind: 'error',
           reason: `npm package not found: ${this.config.packageName}`,
+          status: response.status,
         };
       }
 
@@ -52,6 +53,7 @@ export class NpmRegistrySource implements VersionSource {
         return {
           kind: 'error',
           reason: `npm registry responded with failure: ${response.status}`,
+          status: response.status,
         };
       }
 
