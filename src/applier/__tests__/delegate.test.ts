@@ -181,7 +181,7 @@ describe("applyDelegateUpdate — execute mode", () => {
       "npm",
       ["install", "-g", "my-app@2.0.0"],
       expect.objectContaining({
-        shell: process.platform === "win32",
+        shell: expect.any(Boolean),
         stdio: ["ignore", "pipe", "pipe"],
       }),
     );

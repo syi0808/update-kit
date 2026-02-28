@@ -64,4 +64,20 @@ describe("detectInstall", () => {
     const result = await detectInstall("/some/random/path/test-app", config);
     expect(result.channel).toBe("unmanaged");
   });
+
+  it("returns npm-global for Windows npm paths", async () => {
+    const result = await detectInstall(
+      "C:\\Users\\user\\AppData\\Roaming\\npm\\node_modules\\.bin\\test-app",
+      config,
+    );
+    expect(result.channel).toBe("npm-global");
+  });
+
+  it("falls back to unmanaged for unknown Windows paths", async () => {
+    const result = await detectInstall(
+      "C:\\some\\random\\path\\test-app.exe",
+      config,
+    );
+    expect(result.channel).toBe("unmanaged");
+  });
 });

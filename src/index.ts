@@ -150,11 +150,16 @@ export class UpdateKit {
     }
 
     // Resolve package.json: explicit moduleUrl > auto-detect from caller
-    const pkgResult = options?.moduleUrl
-      ? await findPackageJsonFromModule(options.moduleUrl)
-      : callerFile
-        ? await resolvePackageJsonFromCaller(callerFile)
-        : null;
+    let pkgResult;
+    try {
+      pkgResult = options?.moduleUrl
+        ? await findPackageJsonFromModule(options.moduleUrl)
+        : callerFile
+          ? await resolvePackageJsonFromCaller(callerFile)
+          : null;
+    } catch {
+      pkgResult = null;
+    }
 
     if (!pkgResult) {
       throw new Error(

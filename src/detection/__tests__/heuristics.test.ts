@@ -33,12 +33,36 @@ describe("collectPathHeuristics", () => {
     expect(evidence[0].detail).toContain("User local binary");
   });
 
-  it("returns evidence for /AppData/ path", () => {
+  it("returns evidence for /AppData/ path (forward slash)", () => {
     const evidence = collectPathHeuristics(
       "C:/Users/user/AppData/Local/my-app",
     );
     expect(evidence).toHaveLength(1);
     expect(evidence[0].detail).toContain("Windows AppData");
+  });
+
+  it("returns evidence for AppData path with backslashes", () => {
+    const evidence = collectPathHeuristics(
+      "C:\\Users\\user\\AppData\\Local\\my-app\\my-app.exe",
+    );
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0].detail).toContain("Windows AppData");
+  });
+
+  it("returns evidence for Program Files path", () => {
+    const evidence = collectPathHeuristics(
+      "C:\\Program Files\\my-app\\my-app.exe",
+    );
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0].detail).toContain("Windows Program Files");
+  });
+
+  it("returns evidence for Program Files path (forward slash)", () => {
+    const evidence = collectPathHeuristics(
+      "C:/Program Files/my-app/my-app.exe",
+    );
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0].detail).toContain("Windows Program Files");
   });
 
   it("returns evidence for /Applications/ path", () => {

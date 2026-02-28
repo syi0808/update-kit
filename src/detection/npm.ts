@@ -16,11 +16,12 @@ const NPM_PATH_PATTERNS = ["node_modules/.bin/", "/lib/node_modules/"];
 export async function detectFromNpm(
   execPath: string,
 ): Promise<InstallDetection | null> {
+  const normalized = execPath.replaceAll("\\", "/");
   const evidence: Evidence[] = [];
 
   // 1. Path pattern matching
   const matchedPattern = NPM_PATH_PATTERNS.find((pattern) =>
-    execPath.includes(pattern),
+    normalized.includes(pattern),
   );
 
   if (matchedPattern) {
@@ -33,8 +34,8 @@ export async function detectFromNpm(
   // 2. npm prefix -g comparison
   try {
     const { stdout } = await execFileAsync("npm", ["prefix", "-g"]);
-    const globalPrefix = stdout.trim();
-    if (execPath.startsWith(globalPrefix)) {
+    const globalPrefix = stdout.trim().replaceAll("\\", "/");
+    if (normalized.startsWith(globalPrefix)) {
       evidence.push({
         source: "npm_prefix",
         detail: `Exec path is under npm global prefix: ${globalPrefix}`,

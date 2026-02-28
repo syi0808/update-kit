@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { detectFromReceipt } from "../receipt.js";
 
@@ -72,7 +73,7 @@ describe("detectFromReceipt", () => {
     const result = await detectFromReceipt(config, "/custom/dir");
     expect(result).not.toBeNull();
     expect(vi.mocked(readFile)).toHaveBeenCalledWith(
-      "/custom/dir/install-receipt.json",
+      join("/custom/dir", "install-receipt.json"),
       "utf-8",
     );
   });

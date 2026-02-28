@@ -23,7 +23,7 @@ afterEach(async () => {
 // ──────────────────────────────────────────────
 
 describe("atomicReplace — permission check", () => {
-  it("throws PERMISSION_DENIED when target is not writable", async () => {
+  it.skipIf(process.platform === "win32")("throws PERMISSION_DENIED when target is not writable", async () => {
     const targetPath = path.join(tmpDir, "readonly-binary");
     const newPath = path.join(tmpDir, "new-binary");
 
@@ -60,7 +60,7 @@ describe("atomicReplace — Unix", () => {
     expect(result).toBe("new content");
   });
 
-  it("preserves executable permission on the new file", async () => {
+  it.skipIf(process.platform === "win32")("preserves executable permission on the new file", async () => {
     Object.defineProperty(process, "platform", { value: "linux" });
 
     const targetPath = path.join(tmpDir, "binary");

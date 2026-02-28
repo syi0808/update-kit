@@ -113,4 +113,44 @@ describe("detectFromNpm", () => {
     );
     expect(result).not.toBeNull();
   });
+
+  it("returns npm-global for Windows backslash node_modules/.bin path", async () => {
+    const result = await detectFromNpm(
+      "C:\\Users\\user\\AppData\\Roaming\\npm\\node_modules\\.bin\\my-app",
+    );
+    expect(result).not.toBeNull();
+    expect(result!.channel).toBe("npm-global");
+    expect(result!.evidence[0].source).toBe("path_pattern");
+  });
+
+  it("returns npm-global for Windows backslash lib/node_modules path", async () => {
+    const result = await detectFromNpm(
+      "C:\\Users\\user\\AppData\\Roaming\\npm\\lib\\node_modules\\my-app\\bin\\cli.js",
+    );
+    expect(result).not.toBeNull();
+    expect(result!.channel).toBe("npm-global");
+  });
+
+  it("adds npm_prefix evidence with Windows backslash prefix", async () => {
+    execFilePromisified.mockResolvedValueOnce({
+      stdout: "C:\\Users\\user\\AppData\\Roaming\\npm\n",
+      stderr: "",
+    });
+
+    const result = await detectFromNpm(
+      "C:\\Users\\user\\AppData\\Roaming\\npm\\node_modules\\.bin\\my-app",
+    );
+    expect(result).not.toBeNull();
+    const npmPrefixEvidence = result!.evidence.find(
+      (e) => e.source === "npm_prefix",
+    );
+    expect(npmPrefixEvidence).toBeDefined();
+  });
+
+  it("returns null for Windows non-npm path", async () => {
+    const result = await detectFromNpm(
+      "C:\\Program Files\\my-app\\my-app.exe",
+    );
+    expect(result).toBeNull();
+  });
 });

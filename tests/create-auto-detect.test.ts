@@ -2,9 +2,10 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-const distPath = resolve("dist/index.mjs");
+const distPath = pathToFileURL(resolve("dist/index.mjs")).href;
 
 let tmpDir: string;
 
