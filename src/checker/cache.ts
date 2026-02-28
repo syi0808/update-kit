@@ -47,6 +47,10 @@ export async function readCache(
       return null;
     }
 
+    if (Number.isNaN(new Date(parsed.lastCheckedAt).getTime())) {
+      return null;
+    }
+
     return parsed as CacheEntry;
   } catch {
     return null;
@@ -85,6 +89,30 @@ export async function writeCache(
       { cause: error instanceof Error ? error : undefined },
     );
   }
+}
+
+/**
+ * Create a CacheEntry from version check result data.
+ */
+export function createCacheEntry(
+  version: string,
+  currentVersion: string,
+  sourceName: string,
+  extra?: {
+    etag?: string;
+    releaseUrl?: string;
+    releaseNotes?: string;
+  },
+): CacheEntry {
+  return {
+    latestVersion: version,
+    currentVersionAtCheck: currentVersion,
+    lastCheckedAt: new Date().toISOString(),
+    source: sourceName,
+    etag: extra?.etag,
+    releaseUrl: extra?.releaseUrl,
+    releaseNotes: extra?.releaseNotes,
+  };
 }
 
 /**

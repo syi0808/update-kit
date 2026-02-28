@@ -225,7 +225,7 @@ export async function findBinaryInDir(dir: string): Promise<string> {
 
     // parentPath was added in Node 20.12; fall back to the legacy 'path' property
     const parentDir =
-      e.parentPath ?? (e as unknown as { path?: string }).path ?? dir;
+      e.parentPath ?? ('path' in e ? (e as { path: string }).path : dir);
     const filePath = path.join(parentDir, e.name);
 
     // Ensure the resolved path is within the extraction directory
@@ -260,7 +260,22 @@ export async function findBinaryInDir(dir: string): Promise<string> {
     }
   }
 
-  return files[0];
+  // Filter out known non-binary files before falling back
+  const NON_BINARY_EXTENSIONS = new Set([
+    '.md', '.txt', '.json', '.yml', '.yaml', '.toml',
+    '.license', '.licence', '.readme', '.html', '.css',
+  ]);
+  const binaryCandidates = files.filter((file) => {
+    const ext = path.extname(file).toLowerCase();
+    const basename = path.basename(file).toLowerCase();
+    return (
+      !NON_BINARY_EXTENSIONS.has(ext) &&
+      basename !== 'license' &&
+      basename !== 'readme'
+    );
+  });
+
+  return binaryCandidates.length > 0 ? binaryCandidates[0] : files[0];
 }
 
 /** Extract the filename from a URL pathname. */

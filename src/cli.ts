@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { UpdateKit } from './index.js';
-import type { UpdateKitConfig, UpdateKitExplicitConfig } from './config.js';
+import type { UpdateKitConfig, UpdateKitExplicitConfig, VersionSourceConfig } from './config.js';
 import { readCache, clearCache } from './checker/cache.js';
 import { getDefaultCacheDir } from './platform/paths.js';
 import { runDoctor } from './doctor.js';
@@ -77,19 +77,61 @@ function loadConfig(configPath?: string): UpdateKitExplicitConfig {
     process.exit(1);
   }
 
-  const config = parsed as Record<string, unknown>;
+  const obj = parsed as Record<string, unknown>;
 
-  if (typeof config['appName'] !== 'string' || config['appName'].length === 0) {
+  if (typeof obj['appName'] !== 'string' || obj['appName'].length === 0) {
     console.error(`Config missing required field "appName" (string): ${resolvedPath}`);
     process.exit(1);
   }
 
-  if (typeof config['currentVersion'] !== 'string' || config['currentVersion'].length === 0) {
+  if (typeof obj['currentVersion'] !== 'string' || obj['currentVersion'].length === 0) {
     console.error(`Config missing required field "currentVersion" (string): ${resolvedPath}`);
     process.exit(1);
   }
 
-  return config as unknown as UpdateKitExplicitConfig;
+  const result: UpdateKitExplicitConfig = {
+    appName: obj['appName'] as string,
+    currentVersion: obj['currentVersion'] as string,
+  };
+
+  if (typeof obj['checkInterval'] === 'number') {
+    result.checkInterval = obj['checkInterval'];
+  }
+  if (obj['delegateMode'] === 'print-only' || obj['delegateMode'] === 'execute') {
+    result.delegateMode = obj['delegateMode'];
+  }
+  if (typeof obj['npmPackageName'] === 'string') {
+    result.npmPackageName = obj['npmPackageName'];
+  }
+  if (typeof obj['brewCaskName'] === 'string') {
+    result.brewCaskName = obj['brewCaskName'];
+  }
+  if (typeof obj['executablePath'] === 'string') {
+    result.executablePath = obj['executablePath'];
+  }
+  if (typeof obj['cacheDir'] === 'string') {
+    result.cacheDir = obj['cacheDir'];
+  }
+  if (typeof obj['assetPattern'] === 'string') {
+    result.assetPattern = obj['assetPattern'];
+  }
+  if (typeof obj['allowReexec'] === 'boolean') {
+    result.allowReexec = obj['allowReexec'];
+  }
+  if (typeof obj['repository'] === 'string') {
+    result.repository = obj['repository'];
+  } else if (
+    typeof obj['repository'] === 'object' &&
+    obj['repository'] !== null &&
+    typeof (obj['repository'] as Record<string, unknown>)['url'] === 'string'
+  ) {
+    result.repository = { url: (obj['repository'] as Record<string, unknown>)['url'] as string };
+  }
+  if (Array.isArray(obj['sources'])) {
+    result.sources = obj['sources'] as VersionSourceConfig[];
+  }
+
+  return result;
 }
 
 // ─── Command Handlers ───

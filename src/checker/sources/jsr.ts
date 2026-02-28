@@ -1,6 +1,7 @@
 import type { VersionSource, VersionSourceResult, VersionInfo } from './index.js';
 import type { JsrSourceConfig } from '../../config.js';
-import { fetchWithTimeout } from '../../utils/http.js';
+import { fetchWithEtag } from './base.js';
+import semver from 'semver';
 
 export type { JsrSourceConfig } from '../../config.js';
 
@@ -18,65 +19,51 @@ export class JsrSource implements VersionSource {
   }): Promise<VersionSourceResult> {
     const url = `https://jsr.io/@${this.config.scope}/${this.config.name}/meta.json`;
 
-    const headers: Record<string, string> = {};
+    const result = await fetchWithEtag({ url }, options);
 
-    if (options?.etag) {
-      headers['If-None-Match'] = options.etag;
-    }
-
-    try {
-      const response = await fetchWithTimeout(url, {
-        headers,
-        signal: options?.signal,
-        timeoutMs: 15_000,
-      });
-
-      if (response.status === 304 && options?.etag) {
-        return { kind: 'not-modified', etag: options.etag };
-      }
-
-      if (response.status === 404) {
+    if (result.kind !== 'response') {
+      if (result.kind === 'error' && result.status === 404) {
         return {
           kind: 'error',
           reason: `JSR package not found: @${this.config.scope}/${this.config.name}`,
-          status: response.status,
+          status: 404,
         };
       }
+      return result;
+    }
 
-      if (!response.ok) {
-        return {
-          kind: 'error',
-          reason: `JSR responded with failure: ${response.status}`,
-          status: response.status,
-        };
-      }
+    const data = await result.response.json();
+    const latest = extractLatestVersion(data);
 
-      const data = await response.json();
-      const etag = response.headers.get('etag') ?? undefined;
-
-      // Extract latest version from meta.json
-      const latest = data.latest ?? Object.keys(data.versions ?? {}).pop();
-
-      if (!latest) {
-        return {
-          kind: 'error',
-          reason: 'Could not find latest version in JSR metadata',
-        };
-      }
-
-      const versionMeta = data.versions?.[latest];
-      const info: VersionInfo = {
-        version: latest,
-        releaseUrl: `https://jsr.io/@${this.config.scope}/${this.config.name}`,
-        publishedAt: versionMeta?.createdAt,
-      };
-
-      return { kind: 'found', info, etag };
-    } catch (error) {
+    if (!latest) {
       return {
         kind: 'error',
-        reason: `JSR request failed: ${error instanceof Error ? error.message : String(error)}`,
+        reason: 'Could not find latest version in JSR metadata',
       };
     }
+
+    const versionMeta = data.versions?.[latest];
+    const info: VersionInfo = {
+      version: latest,
+      releaseUrl: `https://jsr.io/@${this.config.scope}/${this.config.name}`,
+      publishedAt: versionMeta?.createdAt,
+    };
+
+    return { kind: 'found', info, etag: result.etag };
   }
+}
+
+function extractLatestVersion(data: Record<string, unknown>): string | undefined {
+  if (typeof data.latest === 'string') return data.latest;
+
+  const versions = data.versions;
+  if (!versions || typeof versions !== 'object') return undefined;
+
+  const keys = Object.keys(versions as Record<string, unknown>);
+  if (keys.length === 0) return undefined;
+
+  const valid = keys.filter((k) => semver.valid(k));
+  if (valid.length === 0) return keys[keys.length - 1];
+
+  return valid.sort(semver.rcompare)[0];
 }

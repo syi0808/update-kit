@@ -1,6 +1,5 @@
 import type { VersionSource } from './sources/index.js';
-import type { CacheEntry } from './cache.js';
-import { writeCache } from './cache.js';
+import { writeCache, createCacheEntry } from './cache.js';
 import { DEFAULT_BACKGROUND_TIMEOUT_MS } from '../constants.js';
 
 /** Configuration for background version check. */
@@ -17,6 +16,11 @@ export function _resetBackgroundState(): void {
   backgroundCheckInProgress = false;
 }
 
+/** Optional callbacks for background check lifecycle. */
+export interface BackgroundCheckCallbacks {
+  onError?: (error: unknown) => void;
+}
+
 /**
  * Spawn a fire-and-forget background version check.
  * Never blocks the caller and never throws.
@@ -25,11 +29,13 @@ export function _resetBackgroundState(): void {
  * @param config - App name, current version, and cache directory
  * @param sources - Version sources to try in order
  * @param timeoutMs - Abort timeout in milliseconds (default: 10s)
+ * @param callbacks - Optional callbacks for error observability
  */
 export function spawnBackgroundCheck(
   config: BackgroundCheckConfig,
   sources: VersionSource[],
   timeoutMs: number = DEFAULT_BACKGROUND_TIMEOUT_MS,
+  callbacks?: BackgroundCheckCallbacks,
 ): void {
   if (backgroundCheckInProgress) return;
   backgroundCheckInProgress = true;
@@ -39,6 +45,7 @@ export function spawnBackgroundCheck(
 
   backgroundFetch(config, sources, controller.signal)
     .catch((error: unknown) => {
+      callbacks?.onError?.(error);
       if (process.env['UPDATE_KIT_DEBUG']) {
         console.error('[update-kit] Background check failed:', error);
       }
@@ -64,15 +71,11 @@ async function backgroundFetch(
     if (result.kind === 'not-modified') return;
     if (result.kind === 'error') continue;
 
-    const entry: CacheEntry = {
-      latestVersion: result.info.version,
-      currentVersionAtCheck: currentVersion,
-      lastCheckedAt: new Date().toISOString(),
-      source: source.name,
+    const entry = createCacheEntry(result.info.version, currentVersion, source.name, {
       etag: result.etag,
       releaseUrl: result.info.releaseUrl,
       releaseNotes: result.info.releaseNotes,
-    };
+    });
     await writeCache(cacheDir, appName, entry);
     return;
   }

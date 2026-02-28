@@ -1,8 +1,8 @@
 import semver from 'semver';
 import type { CheckMode, UpdateStatus } from '../types.js';
-import type { VersionSource } from './sources/index.js';
+import type { AssetInfo, VersionSource } from './sources/index.js';
 import type { CacheEntry } from './cache.js';
-import { readCache, writeCache, isCacheStale } from './cache.js';
+import { readCache, writeCache, isCacheStale, createCacheEntry } from './cache.js';
 import { spawnBackgroundCheck } from './background.js';
 import { DEFAULT_CHECK_INTERVAL_MS } from '../constants.js';
 
@@ -60,7 +60,11 @@ async function checkBlocking(
             ...cached,
             lastCheckedAt: new Date().toISOString(),
           };
-          await writeCache(cacheDir, appName, updatedEntry);
+          try {
+            await writeCache(cacheDir, appName, updatedEntry);
+          } catch {
+            // Cache write failure is non-fatal for blocking checks
+          }
           return buildStatus(currentVersion, cached.latestVersion, cached);
         }
         // etag is derived from cached?.etag, so not-modified without cache
@@ -68,17 +72,17 @@ async function checkBlocking(
         continue;
       }
       case 'found': {
-        const entry: CacheEntry = {
-          latestVersion: result.info.version,
-          currentVersionAtCheck: currentVersion,
-          lastCheckedAt: new Date().toISOString(),
-          source: source.name,
+        const entry = createCacheEntry(result.info.version, currentVersion, source.name, {
           etag: result.etag,
           releaseUrl: result.info.releaseUrl,
           releaseNotes: result.info.releaseNotes,
-        };
-        await writeCache(cacheDir, appName, entry);
-        return buildStatus(currentVersion, result.info.version, entry);
+        });
+        try {
+          await writeCache(cacheDir, appName, entry);
+        } catch {
+          // Cache write failure is non-fatal for blocking checks
+        }
+        return buildStatus(currentVersion, result.info.version, entry, result.info.assets);
       }
       case 'error': {
         if (isRateLimitResult(result)) {
@@ -129,6 +133,7 @@ function buildStatus(
   currentVersion: string,
   latestVersion: string,
   entry?: Partial<CacheEntry>,
+  assets?: AssetInfo[],
 ): UpdateStatus {
   const current = normalizeVersion(currentVersion);
   const latest = normalizeVersion(latestVersion);
@@ -148,6 +153,7 @@ function buildStatus(
       latest: latestVersion,
       releaseUrl: entry?.releaseUrl,
       releaseNotes: entry?.releaseNotes,
+      assets,
     };
   }
 

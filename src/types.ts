@@ -38,6 +38,8 @@ export type UpdateStatus =
       latest: string;
       releaseUrl?: string;
       releaseNotes?: string;
+      /** Release assets (only populated by blocking checks with GitHub source) */
+      assets?: import('./checker/sources/index.js').AssetInfo[];
     }
   | {
       kind: 'up-to-date';

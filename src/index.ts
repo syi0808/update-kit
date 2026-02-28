@@ -85,12 +85,10 @@ export class UpdateKit {
    */
   constructor(config: UpdateKitConfig) {
     this.config = this.resolveAndValidateConfig(config);
-    this.hasExplicitSources = Boolean(
-      this.config.sources && this.config.sources.length > 0,
-    );
+    this.hasExplicitSources = Array.isArray(this.config.sources);
 
     if (this.hasExplicitSources) {
-      this.userSources = this.config.sources!.map(createVersionSource);
+      this.userSources = (this.config.sources ?? []).map(createVersionSource);
       this.inferredSourceConfigs = [];
     } else {
       this.userSources = [];
@@ -368,7 +366,8 @@ export class UpdateKit {
         };
       }
 
-      const plan = this.planUpdate(status, detection);
+      const assets = status.kind === 'available' ? status.assets : undefined;
+      const plan = planUpdateFn(status, detection, this.config, assets);
       if (!plan) {
         return {
           kind: 'failed',
@@ -498,6 +497,8 @@ export type {
   PackageInfo,
   Hooks,
   VersionSourceConfig,
+  CustomDetector,
+  PlanResolverContext,
 } from './config.js';
 
 // Detection

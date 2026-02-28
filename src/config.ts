@@ -1,4 +1,4 @@
-import type { ApplyResult, DelegateMode, UpdatePlan } from './types.js';
+import type { ApplyResult, DelegateMode, InstallDetection, PlanKind, UpdatePlan } from './types.js';
 import type { UpdateKitError } from './errors.js';
 
 /**
@@ -11,37 +11,19 @@ export interface PackageInfo {
   version: string;
 }
 
+// ──────────────────────────────────────────────
+// Config sub-groups
+// ──────────────────────────────────────────────
+
 /**
- * Shared configuration fields.
+ * Configuration fields related to install channel detection.
  */
-export interface UpdateKitBaseConfig {
-  /** Version source list. Tried in order; first successful result is used. */
-  sources?: VersionSourceConfig[];
-
-  /** Version check interval in milliseconds. Default: 72_000_000 (20 hours) */
-  checkInterval?: number;
-
-  /** Cache directory path. Default: OS-specific standard cache path */
-  cacheDir?: string;
-
-  /** Delegate mode. Default: 'print-only' */
-  delegateMode?: DelegateMode;
-
+export interface DetectionConfig {
   /** npm package name (used for npm-global channel detection and updates) */
   npmPackageName?: string;
 
   /** Homebrew cask name (used for brew-cask channel detection and updates) */
   brewCaskName?: string;
-
-  /** Whether to allow re-exec. Default: false. When true, re-executes the new binary after update. */
-  allowReexec?: boolean;
-
-  /**
-   * Asset filename pattern. Uses placeholders to match platform-specific assets.
-   * Example: "{app}-{version}-{target}.tar.gz"
-   * Placeholders: {app}, {version}, {target}, {arch}, {ext}
-   */
-  assetPattern?: string;
 
   /**
    * Path to the host CLI's executable binary.
@@ -55,6 +37,27 @@ export interface UpdateKitBaseConfig {
   executablePath?: string;
 
   /**
+   * Custom install channel detectors, checked before built-in detectors.
+   * Each detector receives the executable path and returns a detection
+   * result or null to pass to the next detector.
+   */
+  customDetectors?: CustomDetector[];
+}
+
+/**
+ * Configuration fields related to version checking.
+ */
+export interface CheckConfig {
+  /** Version source list. Tried in order; first successful result is used. */
+  sources?: VersionSourceConfig[];
+
+  /** Version check interval in milliseconds. Default: 72_000_000 (20 hours) */
+  checkInterval?: number;
+
+  /** Cache directory path. Default: OS-specific standard cache path */
+  cacheDir?: string;
+
+  /**
    * GitHub repository URL or shorthand. Used for auto-inferring a GitHub
    * version source when `sources` is omitted.
    * Accepted formats: "https://github.com/owner/repo", "github:owner/repo",
@@ -62,9 +65,66 @@ export interface UpdateKitBaseConfig {
    * Auto-filled from package.json when using `UpdateKit.create()`.
    */
   repository?: string | { url: string };
+}
 
+/**
+ * Configuration fields related to update plan generation.
+ */
+export interface PlanConfig {
+  /** Delegate mode. Default: 'print-only' */
+  delegateMode?: DelegateMode;
+
+  /**
+   * Asset filename pattern. Uses placeholders to match platform-specific assets.
+   * Example: "{app}-{version}-{target}.tar.gz"
+   * Placeholders: {app}, {version}, {target}, {arch}, {ext}
+   */
+  assetPattern?: string;
+
+  /**
+   * Custom plan resolver, called after the built-in planner produces a plan.
+   * Receives the plan context including the default plan and can replace it.
+   * Return null to keep the default plan.
+   */
+  customPlanResolver?: (context: PlanResolverContext) => PlanKind | null;
+}
+
+/**
+ * Configuration fields related to update application.
+ */
+export interface ApplyConfig {
+  /** Whether to allow re-exec. Default: false. When true, re-executes the new binary after update. */
+  allowReexec?: boolean;
+}
+
+/**
+ * Shared configuration fields.
+ * Composed from semantic sub-groups: {@link DetectionConfig}, {@link CheckConfig},
+ * {@link PlanConfig}, and {@link ApplyConfig}.
+ */
+export interface UpdateKitBaseConfig extends DetectionConfig, CheckConfig, PlanConfig, ApplyConfig {
   /** Lifecycle hooks */
   hooks?: Hooks;
+}
+
+/**
+ * Custom install channel detector.
+ */
+export interface CustomDetector {
+  name: string;
+  detect: (execPath: string) => Promise<InstallDetection | null> | InstallDetection | null;
+}
+
+/**
+ * Context provided to a custom plan resolver.
+ */
+export interface PlanResolverContext {
+  channel: import('./types.js').Channel;
+  confidence: import('./types.js').Confidence;
+  toVersion: string;
+  config: ResolvedUpdateKitConfig;
+  assets?: import('./checker/sources/index.js').AssetInfo[];
+  defaultPlan: PlanKind;
 }
 
 /**

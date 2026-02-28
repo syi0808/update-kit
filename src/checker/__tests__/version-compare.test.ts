@@ -2,11 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { normalizeVersion, checkUpdate } from '../index.js';
 import type { VersionSource, VersionSourceResult } from '../sources/index.js';
 
-vi.mock('../cache.js', () => ({
-  readCache: vi.fn().mockResolvedValue(null),
-  writeCache: vi.fn().mockResolvedValue(undefined),
-  isCacheStale: vi.fn().mockReturnValue(true),
-}));
+vi.mock('../cache.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../cache.js')>();
+  return {
+    ...actual,
+    readCache: vi.fn().mockResolvedValue(null),
+    writeCache: vi.fn().mockResolvedValue(undefined),
+    isCacheStale: vi.fn().mockReturnValue(true),
+  };
+});
 
 vi.mock('../background.js', () => ({
   spawnBackgroundCheck: vi.fn(),

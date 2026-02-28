@@ -7,11 +7,15 @@ const mockWriteCache = vi.fn<() => Promise<void>>();
 const mockIsCacheStale = vi.fn<() => boolean>();
 const mockSpawnBackgroundCheck = vi.fn();
 
-vi.mock('../cache.js', () => ({
-  readCache: (...args: unknown[]) => mockReadCache(...(args as [])),
-  writeCache: (...args: unknown[]) => mockWriteCache(...(args as [])),
-  isCacheStale: (...args: unknown[]) => mockIsCacheStale(...(args as [])),
-}));
+vi.mock('../cache.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../cache.js')>();
+  return {
+    ...actual,
+    readCache: (...args: unknown[]) => mockReadCache(...(args as [])),
+    writeCache: (...args: unknown[]) => mockWriteCache(...(args as [])),
+    isCacheStale: (...args: unknown[]) => mockIsCacheStale(...(args as [])),
+  };
+});
 
 vi.mock('../background.js', () => ({
   spawnBackgroundCheck: (...args: unknown[]) => mockSpawnBackgroundCheck(...args),

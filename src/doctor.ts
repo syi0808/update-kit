@@ -107,6 +107,17 @@ function checkConfigFile(configPath: string): {
     };
   }
 
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    return {
+      check: {
+        name: 'Config file',
+        status: 'fail',
+        message: `Config must be a JSON object: ${fullPath}`,
+      },
+      config: null,
+    };
+  }
+
   const obj = raw as Record<string, unknown>;
   const issues: string[] = [];
 
@@ -131,18 +142,21 @@ function checkConfigFile(configPath: string): {
     };
   }
 
-  // Build a minimal resolved config
+  // Build a minimal resolved config with validated fields
   const config: ResolvedUpdateKitConfig = {
     appName: obj.appName as string,
     currentVersion: obj.currentVersion as string,
-    checkInterval: (obj.checkInterval as number) ?? 72_000_000,
-    delegateMode: (obj.delegateMode as 'print-only' | 'execute') ?? 'print-only',
-    allowReexec: (obj.allowReexec as boolean) ?? false,
-    sources: obj.sources as VersionSourceConfig[] | undefined,
-    npmPackageName: obj.npmPackageName as string | undefined,
-    brewCaskName: obj.brewCaskName as string | undefined,
-    repository: obj.repository as string | { url: string } | undefined,
-    executablePath: obj.executablePath as string | undefined,
+    checkInterval: typeof obj.checkInterval === 'number' ? obj.checkInterval : 72_000_000,
+    delegateMode:
+      obj.delegateMode === 'print-only' || obj.delegateMode === 'execute'
+        ? obj.delegateMode
+        : 'print-only',
+    allowReexec: typeof obj.allowReexec === 'boolean' ? obj.allowReexec : false,
+    sources: Array.isArray(obj.sources) ? (obj.sources as VersionSourceConfig[]) : undefined,
+    npmPackageName: typeof obj.npmPackageName === 'string' ? obj.npmPackageName : undefined,
+    brewCaskName: typeof obj.brewCaskName === 'string' ? obj.brewCaskName : undefined,
+    repository: parseRepositoryField(obj.repository),
+    executablePath: typeof obj.executablePath === 'string' ? obj.executablePath : undefined,
   };
 
   return {
@@ -218,27 +232,20 @@ function checkSourceResolution(
   const hasExplicit = config.sources && config.sources.length > 0;
 
   if (hasExplicit) {
-    const types = config.sources!.map((s) => s.type);
+    const sources = config.sources ?? [];
+    const types = sources.map((s) => s.type);
     return {
       name: 'Sources',
       status: 'pass',
       message: `Explicit: ${types.join(', ')}`,
-      details: { mode: 'explicit', sources: config.sources },
+      details: { mode: 'explicit', sources },
     };
   }
 
   // Build an effective config that includes repository from package.json
   const effectiveConfig = { ...config };
   if (!effectiveConfig.repository && pkgDetails?.repository) {
-    const repoRaw = pkgDetails.repository;
-    if (typeof repoRaw === 'string') {
-      effectiveConfig.repository = repoRaw;
-    } else if (typeof repoRaw === 'object' && repoRaw !== null) {
-      const url = (repoRaw as Record<string, unknown>).url;
-      if (typeof url === 'string') {
-        effectiveConfig.repository = { url };
-      }
-    }
+    effectiveConfig.repository = parseRepositoryField(pkgDetails.repository);
   }
 
   const inferred = inferSourceConfigs(effectiveConfig);
@@ -293,19 +300,11 @@ async function checkSourceConnectivity(
 
   let sourceConfigs: VersionSourceConfig[];
   if (hasExplicit) {
-    sourceConfigs = config.sources!;
+    sourceConfigs = config.sources ?? [];
   } else {
     const effectiveConfig = { ...config };
     if (!effectiveConfig.repository && pkgDetails?.repository) {
-      const repoRaw = pkgDetails.repository;
-      if (typeof repoRaw === 'string') {
-        effectiveConfig.repository = repoRaw;
-      } else if (typeof repoRaw === 'object' && repoRaw !== null) {
-        const url = (repoRaw as Record<string, unknown>).url;
-        if (typeof url === 'string') {
-          effectiveConfig.repository = { url };
-        }
-      }
+      effectiveConfig.repository = parseRepositoryField(pkgDetails.repository);
     }
     sourceConfigs = inferSourceConfigs(effectiveConfig);
     if (channel) {
@@ -379,6 +378,17 @@ async function checkSingleSource(
       message: err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+function parseRepositoryField(
+  value: unknown,
+): string | { url: string } | undefined {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value !== null) {
+    const url = (value as Record<string, unknown>).url;
+    if (typeof url === 'string') return { url };
+  }
+  return undefined;
 }
 
 function buildReport(checks: DiagnosticCheck[]): DoctorReport {

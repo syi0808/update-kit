@@ -4,9 +4,13 @@ import type { CacheEntry } from '../cache.js';
 
 const mockWriteCache = vi.fn<() => Promise<void>>();
 
-vi.mock('../cache.js', () => ({
-  writeCache: (...args: unknown[]) => mockWriteCache(...(args as [])),
-}));
+vi.mock('../cache.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../cache.js')>();
+  return {
+    ...actual,
+    writeCache: (...args: unknown[]) => mockWriteCache(...(args as [])),
+  };
+});
 
 import { spawnBackgroundCheck, _resetBackgroundState, type BackgroundCheckConfig } from '../background.js';
 

@@ -31,7 +31,21 @@ export function planUpdate(
   const fromVersion = status.current;
   const toVersion = status.latest;
 
-  const kind = resolvePlanKind(channel, confidence, toVersion, config, assets);
+  let kind = resolvePlanKind(channel, confidence, toVersion, config, assets);
+
+  // Allow custom plan resolver to override
+  if (config.customPlanResolver) {
+    const custom = config.customPlanResolver({
+      channel,
+      confidence,
+      toVersion,
+      config,
+      assets,
+      defaultPlan: kind,
+    });
+    if (custom) kind = custom;
+  }
+
   const postAction = resolvePostAction(kind, confidence, config);
 
   return {

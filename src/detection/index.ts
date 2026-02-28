@@ -21,7 +21,7 @@ import { collectPathHeuristics } from './heuristics.js';
  */
 export async function detectInstall(
   execPath: string,
-  config: Pick<ResolvedUpdateKitConfig, 'appName' | 'brewCaskName'>,
+  config: Pick<ResolvedUpdateKitConfig, 'appName' | 'brewCaskName' | 'customDetectors'>,
 ): Promise<InstallDetection> {
   // Resolve symlinks to get the real path
   let resolvedPath: string;
@@ -29,6 +29,18 @@ export async function detectInstall(
     resolvedPath = await realpath(execPath);
   } catch {
     resolvedPath = execPath;
+  }
+
+  // 0. Custom detectors (highest priority)
+  if (config.customDetectors) {
+    for (const detector of config.customDetectors) {
+      try {
+        const result = await detector.detect(resolvedPath);
+        if (result) return result;
+      } catch {
+        // Custom detector failure is non-fatal, try next
+      }
+    }
   }
 
   // 1. Install receipt check

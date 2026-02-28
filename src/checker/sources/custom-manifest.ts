@@ -1,7 +1,7 @@
 import type { VersionSource, VersionSourceResult, VersionInfo } from './index.js';
 import type { CustomManifestSourceConfig } from '../../config.js';
 import { requireHttps } from '../../utils/security.js';
-import { fetchWithTimeout } from '../../utils/http.js';
+import { fetchWithEtag } from './base.js';
 
 export type { CustomManifestSourceConfig } from '../../config.js';
 
@@ -18,61 +18,34 @@ export class CustomManifestSource implements VersionSource {
     etag?: string;
     signal?: AbortSignal;
   }): Promise<VersionSourceResult> {
-    const headers: Record<string, string> = {
-      Accept: 'application/json',
-    };
+    const result = await fetchWithEtag(
+      { url: this.config.url, headers: { Accept: 'application/json' } },
+      options,
+    );
 
-    if (options?.etag) {
-      headers['If-None-Match'] = options.etag;
-    }
+    if (result.kind !== 'response') return result;
 
-    try {
-      const response = await fetchWithTimeout(this.config.url, {
-        headers,
-        signal: options?.signal,
-        timeoutMs: 15_000,
-      });
+    const data = await result.response.json();
 
-      if (response.status === 304 && options?.etag) {
-        return { kind: 'not-modified', etag: options.etag };
-      }
+    // Support nested paths (e.g. "data.latest.version")
+    const fieldPath = this.config.versionField ?? 'version';
+    const version = getNestedValue(data, fieldPath);
 
-      if (!response.ok) {
-        return {
-          kind: 'error',
-          reason: `Custom manifest responded with failure: ${response.status}`,
-          status: response.status,
-        };
-      }
-
-      const data = await response.json();
-      const etag = response.headers.get('etag') ?? undefined;
-
-      // Support nested paths (e.g. "data.latest.version")
-      const fieldPath = this.config.versionField ?? 'version';
-      const version = getNestedValue(data, fieldPath);
-
-      if (typeof version !== 'string') {
-        return {
-          kind: 'error',
-          reason: `Version field not found in manifest: ${fieldPath}`,
-        };
-      }
-
-      const info: VersionInfo = {
-        version,
-        releaseUrl: data.releaseUrl ?? data.url,
-        releaseNotes: data.releaseNotes ?? data.changelog,
-        publishedAt: data.publishedAt ?? data.date,
-      };
-
-      return { kind: 'found', info, etag };
-    } catch (error) {
+    if (typeof version !== 'string') {
       return {
         kind: 'error',
-        reason: `Custom manifest request failed: ${error instanceof Error ? error.message : String(error)}`,
+        reason: `Version field not found in manifest: ${fieldPath}`,
       };
     }
+
+    const info: VersionInfo = {
+      version,
+      releaseUrl: data.releaseUrl ?? data.url,
+      releaseNotes: data.releaseNotes ?? data.changelog,
+      publishedAt: data.publishedAt ?? data.date,
+    };
+
+    return { kind: 'found', info, etag: result.etag };
   }
 }
 
