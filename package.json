@@ -4,7 +4,7 @@
   "description": "Channel-aware self-update toolkit for Node.js CLI applications",
   "type": "module",
   "license": "Apache-2.0",
-  "author": "Sung YeIn",
+  "author": "Yein Sung",
   "repository": {
     "type": "git",
     "url": "https://github.com/syi0808/update-kit.git"
@@ -54,7 +54,7 @@
     "prepublishOnly": "pnpm build"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=24.0.0"
   },
   "dependencies": {
     "semver": "^7.7.4"
