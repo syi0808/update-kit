@@ -1,25 +1,24 @@
-import fs from 'node:fs/promises';
-import { createWriteStream } from 'node:fs';
-import path from 'node:path';
-import { pipeline } from 'node:stream/promises';
-import { Readable } from 'node:stream';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-
-import type { UpdatePlan, ApplyProgress, ApplyResult } from '../types.js';
-import type { ApplyOptions } from './types.js';
+import { execFile } from "node:child_process";
+import { createWriteStream } from "node:fs";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
+import { promisify } from "node:util";
+import { DEFAULT_DOWNLOAD_TIMEOUT_MS } from "../constants.js";
 import {
-  UpdateKitError,
-  INSECURE_URL,
+  APPLY_FAILED,
   DOWNLOAD_FAILED,
   EXTRACT_FAILED,
-  APPLY_FAILED,
+  INSECURE_URL,
   NETWORK_ERROR,
-} from '../errors.js';
-import { verifyChecksum } from './verify.js';
-import { atomicReplace } from '../platform/replace.js';
-import { fetchWithTimeout } from '../utils/http.js';
-import { DEFAULT_DOWNLOAD_TIMEOUT_MS } from '../constants.js';
+  UpdateKitError,
+} from "../errors.js";
+import { atomicReplace } from "../platform/replace.js";
+import type { ApplyProgress, ApplyResult, UpdatePlan } from "../types.js";
+import { fetchWithTimeout } from "../utils/http.js";
+import type { ApplyOptions } from "./types.js";
+import { verifyChecksum } from "./verify.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -35,7 +34,7 @@ export async function applyNativeUpdate(
   targetPath: string,
   options: ApplyOptions = {},
 ): Promise<ApplyResult> {
-  if (plan.kind.type !== 'native-in-place') {
+  if (plan.kind.type !== "native-in-place") {
     throw new UpdateKitError(
       APPLY_FAILED,
       `applyNativeUpdate requires a native-in-place plan, got: ${plan.kind.type}`,
@@ -56,7 +55,7 @@ export async function applyNativeUpdate(
 
     // Phase 2: Verify checksum
     if (!skipChecksum) {
-      onProgress?.({ phase: 'verifying' });
+      onProgress?.({ phase: "verifying" });
       const filename = extractFilename(downloadUrl);
       await verifyChecksum(
         downloadedPath,
@@ -66,23 +65,23 @@ export async function applyNativeUpdate(
     }
 
     // Phase 3: Extract
-    onProgress?.({ phase: 'extracting' });
+    onProgress?.({ phase: "extracting" });
     const binaryPath = await extractBinary(downloadedPath, tmpDir);
 
     // Phase 4: Set executable permission (Unix only)
-    if (process.platform !== 'win32') {
+    if (process.platform !== "win32") {
       await setExecutablePermission(binaryPath);
     }
 
     // Phase 5: Atomic replace
-    onProgress?.({ phase: 'replacing' });
+    onProgress?.({ phase: "replacing" });
     await atomicReplace(binaryPath, targetPath);
 
     // Phase 6: Done
-    onProgress?.({ phase: 'done' });
+    onProgress?.({ phase: "done" });
 
     return {
-      kind: 'success',
+      kind: "success",
       fromVersion: plan.fromVersion,
       toVersion: plan.toVersion,
       postAction: plan.postAction,
@@ -93,11 +92,11 @@ export async function applyNativeUpdate(
     const rollbackSucceeded = true;
 
     if (error instanceof UpdateKitError) {
-      return { kind: 'failed', error, rollbackSucceeded };
+      return { kind: "failed", error, rollbackSucceeded };
     }
 
     return {
-      kind: 'failed',
+      kind: "failed",
       error: error instanceof Error ? error : new Error(String(error)),
       rollbackSucceeded,
     };
@@ -114,18 +113,21 @@ export async function downloadArtifact(
   tmpDir: string,
   options: { onProgress?: (p: ApplyProgress) => void; signal?: AbortSignal },
 ): Promise<string> {
-  if (!url.startsWith('https://')) {
-    throw new UpdateKitError(INSECURE_URL, 'HTTPS is required.');
+  if (!url.startsWith("https://")) {
+    throw new UpdateKitError(INSECURE_URL, "HTTPS is required.");
   }
 
   let response: Response;
   try {
-    response = await fetchWithTimeout(url, { signal: options.signal, timeoutMs: DEFAULT_DOWNLOAD_TIMEOUT_MS });
+    response = await fetchWithTimeout(url, {
+      signal: options.signal,
+      timeoutMs: DEFAULT_DOWNLOAD_TIMEOUT_MS,
+    });
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
+    if (error instanceof Error && error.name === "AbortError") {
       throw error;
     }
-    throw new UpdateKitError(NETWORK_ERROR, 'Download request failed.', {
+    throw new UpdateKitError(NETWORK_ERROR, "Download request failed.", {
       cause: error instanceof Error ? error : undefined,
     });
   }
@@ -138,24 +140,25 @@ export async function downloadArtifact(
   }
 
   if (!response.body) {
-    throw new UpdateKitError(DOWNLOAD_FAILED, 'Response body is empty.');
+    throw new UpdateKitError(DOWNLOAD_FAILED, "Response body is empty.");
   }
 
-  const totalBytes = Number(response.headers.get('content-length')) || undefined;
+  const totalBytes =
+    Number(response.headers.get("content-length")) || undefined;
   const filename = extractFilename(url);
   const destPath = path.join(tmpDir, filename);
 
   let bytesDownloaded = 0;
   // Readable.fromWeb types differ between Node and DOM; explicit cast bridges the gap
   const nodeStream = Readable.fromWeb(
-    response.body as import('node:stream/web').ReadableStream,
+    response.body as import("node:stream/web").ReadableStream,
   );
   const writeStream = createWriteStream(destPath);
 
-  nodeStream.on('data', (chunk: Buffer) => {
+  nodeStream.on("data", (chunk: Buffer) => {
     bytesDownloaded += chunk.length;
     options.onProgress?.({
-      phase: 'downloading',
+      phase: "downloading",
       bytesDownloaded,
       totalBytes,
     });
@@ -174,32 +177,40 @@ export async function extractBinary(
   archivePath: string,
   tmpDir: string,
 ): Promise<string> {
-  const extractDir = path.join(tmpDir, 'extracted');
+  const extractDir = path.join(tmpDir, "extracted");
   await fs.mkdir(extractDir, { recursive: true });
 
-  if (archivePath.endsWith('.tar.gz') || archivePath.endsWith('.tgz')) {
+  if (archivePath.endsWith(".tar.gz") || archivePath.endsWith(".tgz")) {
     try {
-      await execFileAsync('tar', ['xzf', archivePath, '-C', extractDir]);
+      await execFileAsync("tar", ["xzf", archivePath, "-C", extractDir]);
     } catch (error) {
-      throw new UpdateKitError(EXTRACT_FAILED, 'Failed to extract tar.gz archive.', {
-        cause: error instanceof Error ? error : undefined,
-      });
+      throw new UpdateKitError(
+        EXTRACT_FAILED,
+        "Failed to extract tar.gz archive.",
+        {
+          cause: error instanceof Error ? error : undefined,
+        },
+      );
     }
-  } else if (archivePath.endsWith('.zip')) {
+  } else if (archivePath.endsWith(".zip")) {
     try {
-      if (process.platform !== 'win32') {
-        await execFileAsync('unzip', ['-o', archivePath, '-d', extractDir]);
+      if (process.platform !== "win32") {
+        await execFileAsync("unzip", ["-o", archivePath, "-d", extractDir]);
       } else {
-        await execFileAsync('powershell', [
-          '-NoProfile',
-          '-Command',
+        await execFileAsync("powershell", [
+          "-NoProfile",
+          "-Command",
           `Expand-Archive -Path '${archivePath}' -DestinationPath '${extractDir}' -Force`,
         ]);
       }
     } catch (error) {
-      throw new UpdateKitError(EXTRACT_FAILED, 'Failed to extract zip archive.', {
-        cause: error instanceof Error ? error : undefined,
-      });
+      throw new UpdateKitError(
+        EXTRACT_FAILED,
+        "Failed to extract zip archive.",
+        {
+          cause: error instanceof Error ? error : undefined,
+        },
+      );
     }
   } else {
     // Bare binary — just copy it
@@ -217,7 +228,10 @@ export async function extractBinary(
  */
 export async function findBinaryInDir(dir: string): Promise<string> {
   const resolvedDir = await fs.realpath(dir);
-  const entries = await fs.readdir(dir, { withFileTypes: true, recursive: true });
+  const entries = await fs.readdir(dir, {
+    withFileTypes: true,
+    recursive: true,
+  });
   const files: string[] = [];
 
   for (const e of entries) {
@@ -225,14 +239,17 @@ export async function findBinaryInDir(dir: string): Promise<string> {
 
     // parentPath was added in Node 20.12; fall back to the legacy 'path' property
     const parentDir =
-      e.parentPath ?? ('path' in e ? (e as { path: string }).path : dir);
+      e.parentPath ?? ("path" in e ? (e as { path: string }).path : dir);
     const filePath = path.join(parentDir, e.name);
 
     // Ensure the resolved path is within the extraction directory
     // to prevent symlink escape attacks
     try {
       const resolvedFile = await fs.realpath(filePath);
-      if (!resolvedFile.startsWith(resolvedDir + path.sep) && resolvedFile !== resolvedDir) {
+      if (
+        !resolvedFile.startsWith(resolvedDir + path.sep) &&
+        resolvedFile !== resolvedDir
+      ) {
         continue;
       }
     } catch {
@@ -243,7 +260,10 @@ export async function findBinaryInDir(dir: string): Promise<string> {
   }
 
   if (files.length === 0) {
-    throw new UpdateKitError(EXTRACT_FAILED, 'No binary found in extracted archive.');
+    throw new UpdateKitError(
+      EXTRACT_FAILED,
+      "No binary found in extracted archive.",
+    );
   }
 
   if (files.length === 1) {
@@ -255,23 +275,30 @@ export async function findBinaryInDir(dir: string): Promise<string> {
     try {
       await fs.access(file, fs.constants.X_OK);
       return file;
-    } catch {
-      continue;
-    }
+    } catch {}
   }
 
   // Filter out known non-binary files before falling back
   const NON_BINARY_EXTENSIONS = new Set([
-    '.md', '.txt', '.json', '.yml', '.yaml', '.toml',
-    '.license', '.licence', '.readme', '.html', '.css',
+    ".md",
+    ".txt",
+    ".json",
+    ".yml",
+    ".yaml",
+    ".toml",
+    ".license",
+    ".licence",
+    ".readme",
+    ".html",
+    ".css",
   ]);
   const binaryCandidates = files.filter((file) => {
     const ext = path.extname(file).toLowerCase();
     const basename = path.basename(file).toLowerCase();
     return (
       !NON_BINARY_EXTENSIONS.has(ext) &&
-      basename !== 'license' &&
-      basename !== 'readme'
+      basename !== "license" &&
+      basename !== "readme"
     );
   });
 
@@ -281,8 +308,8 @@ export async function findBinaryInDir(dir: string): Promise<string> {
 /** Extract the filename from a URL pathname. */
 export function extractFilename(url: string): string {
   const urlObj = new URL(url);
-  const segments = urlObj.pathname.split('/');
-  return segments[segments.length - 1] || 'artifact';
+  const segments = urlObj.pathname.split("/");
+  return segments[segments.length - 1] || "artifact";
 }
 
 /** Create a temp directory on the same filesystem as the target. */

@@ -1,18 +1,22 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { VersionSource, VersionSourceResult } from '../sources/index.js';
-import type { CacheEntry } from '../cache.js';
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { CacheEntry } from "../cache.js";
+import type { VersionSource, VersionSourceResult } from "../sources/index.js";
 
 const mockWriteCache = vi.fn<() => Promise<void>>();
 
-vi.mock('../cache.js', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../cache.js')>();
+vi.mock("../cache.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../cache.js")>();
   return {
     ...actual,
     writeCache: (...args: unknown[]) => mockWriteCache(...(args as [])),
   };
 });
 
-import { spawnBackgroundCheck, _resetBackgroundState, type BackgroundCheckConfig } from '../background.js';
+import {
+  _resetBackgroundState,
+  type BackgroundCheckConfig,
+  spawnBackgroundCheck,
+} from "../background.js";
 
 function createMockSource(
   name: string,
@@ -25,9 +29,9 @@ function createMockSource(
 }
 
 const baseConfig: BackgroundCheckConfig = {
-  appName: 'test-app',
-  currentVersion: '1.0.0',
-  cacheDir: '/tmp/test-cache',
+  appName: "test-app",
+  currentVersion: "1.0.0",
+  cacheDir: "/tmp/test-cache",
 };
 
 beforeEach(() => {
@@ -36,11 +40,11 @@ beforeEach(() => {
   _resetBackgroundState();
 });
 
-describe('spawnBackgroundCheck', () => {
-  it('does not block the caller', () => {
-    const source = createMockSource('github', {
-      kind: 'found',
-      info: { version: '2.0.0' },
+describe("spawnBackgroundCheck", () => {
+  it("does not block the caller", () => {
+    const source = createMockSource("github", {
+      kind: "found",
+      info: { version: "2.0.0" },
     });
 
     // spawnBackgroundCheck returns void synchronously
@@ -48,10 +52,10 @@ describe('spawnBackgroundCheck', () => {
     expect(result).toBeUndefined();
   });
 
-  it('writes cache on successful fetch', async () => {
-    const source = createMockSource('github', {
-      kind: 'found',
-      info: { version: '2.0.0', releaseUrl: 'https://example.com/v2' },
+  it("writes cache on successful fetch", async () => {
+    const source = createMockSource("github", {
+      kind: "found",
+      info: { version: "2.0.0", releaseUrl: "https://example.com/v2" },
       etag: '"etag-1"',
     });
 
@@ -63,16 +67,16 @@ describe('spawnBackgroundCheck', () => {
     });
 
     const writtenEntry = mockWriteCache.mock.calls[0]![2] as CacheEntry;
-    expect(writtenEntry.latestVersion).toBe('2.0.0');
-    expect(writtenEntry.source).toBe('github');
+    expect(writtenEntry.latestVersion).toBe("2.0.0");
+    expect(writtenEntry.source).toBe("github");
     expect(writtenEntry.etag).toBe('"etag-1"');
-    expect(writtenEntry.releaseUrl).toBe('https://example.com/v2');
+    expect(writtenEntry.releaseUrl).toBe("https://example.com/v2");
   });
 
-  it('does not throw when source fails', async () => {
-    const source = createMockSource('github', {
-      kind: 'error',
-      reason: 'Network error',
+  it("does not throw when source fails", async () => {
+    const source = createMockSource("github", {
+      kind: "error",
+      reason: "Network error",
     });
 
     expect(() => spawnBackgroundCheck(baseConfig, [source])).not.toThrow();
@@ -83,9 +87,9 @@ describe('spawnBackgroundCheck', () => {
     expect(mockWriteCache).not.toHaveBeenCalled();
   });
 
-  it('stops on not-modified response', async () => {
-    const source = createMockSource('github', {
-      kind: 'not-modified',
+  it("stops on not-modified response", async () => {
+    const source = createMockSource("github", {
+      kind: "not-modified",
       etag: '"old-etag"',
     });
 
@@ -96,14 +100,14 @@ describe('spawnBackgroundCheck', () => {
     expect(mockWriteCache).not.toHaveBeenCalled();
   });
 
-  it('uses first successful source and skips the rest', async () => {
-    const source1 = createMockSource('github', {
-      kind: 'found',
-      info: { version: '2.0.0' },
+  it("uses first successful source and skips the rest", async () => {
+    const source1 = createMockSource("github", {
+      kind: "found",
+      info: { version: "2.0.0" },
     });
-    const source2 = createMockSource('npm', {
-      kind: 'found',
-      info: { version: '3.0.0' },
+    const source2 = createMockSource("npm", {
+      kind: "found",
+      info: { version: "3.0.0" },
     });
 
     spawnBackgroundCheck(baseConfig, [source1, source2]);
@@ -113,19 +117,19 @@ describe('spawnBackgroundCheck', () => {
     });
 
     const writtenEntry = mockWriteCache.mock.calls[0]![2] as CacheEntry;
-    expect(writtenEntry.latestVersion).toBe('2.0.0');
-    expect(writtenEntry.source).toBe('github');
+    expect(writtenEntry.latestVersion).toBe("2.0.0");
+    expect(writtenEntry.source).toBe("github");
     expect(source2.fetchLatest).not.toHaveBeenCalled();
   });
 
-  it('falls through error sources to find a successful one', async () => {
-    const source1 = createMockSource('github', {
-      kind: 'error',
-      reason: 'rate limit',
+  it("falls through error sources to find a successful one", async () => {
+    const source1 = createMockSource("github", {
+      kind: "error",
+      reason: "rate limit",
     });
-    const source2 = createMockSource('npm', {
-      kind: 'found',
-      info: { version: '2.5.0' },
+    const source2 = createMockSource("npm", {
+      kind: "found",
+      info: { version: "2.5.0" },
     });
 
     spawnBackgroundCheck(baseConfig, [source1, source2]);
@@ -135,14 +139,14 @@ describe('spawnBackgroundCheck', () => {
     });
 
     const writtenEntry = mockWriteCache.mock.calls[0]![2] as CacheEntry;
-    expect(writtenEntry.latestVersion).toBe('2.5.0');
-    expect(writtenEntry.source).toBe('npm');
+    expect(writtenEntry.latestVersion).toBe("2.5.0");
+    expect(writtenEntry.source).toBe("npm");
   });
 
-  it('deduplicates concurrent background checks', async () => {
-    const source = createMockSource('github', {
-      kind: 'found',
-      info: { version: '2.0.0' },
+  it("deduplicates concurrent background checks", async () => {
+    const source = createMockSource("github", {
+      kind: "found",
+      info: { version: "2.0.0" },
     });
 
     // Call twice rapidly — second call should be ignored
@@ -157,10 +161,10 @@ describe('spawnBackgroundCheck', () => {
     expect(source.fetchLatest).toHaveBeenCalledOnce();
   });
 
-  it('allows a new background check after the first completes', async () => {
-    const source1 = createMockSource('github', {
-      kind: 'found',
-      info: { version: '2.0.0' },
+  it("allows a new background check after the first completes", async () => {
+    const source1 = createMockSource("github", {
+      kind: "found",
+      info: { version: "2.0.0" },
     });
 
     spawnBackgroundCheck(baseConfig, [source1]);
@@ -170,9 +174,9 @@ describe('spawnBackgroundCheck', () => {
     });
 
     // After completion, a new check should be allowed
-    const source2 = createMockSource('npm', {
-      kind: 'found',
-      info: { version: '3.0.0' },
+    const source2 = createMockSource("npm", {
+      kind: "found",
+      info: { version: "3.0.0" },
     });
 
     spawnBackgroundCheck(baseConfig, [source2]);
@@ -182,12 +186,12 @@ describe('spawnBackgroundCheck', () => {
     });
   });
 
-  it('does not throw when writeCache fails', async () => {
-    mockWriteCache.mockRejectedValue(new Error('disk full'));
+  it("does not throw when writeCache fails", async () => {
+    mockWriteCache.mockRejectedValue(new Error("disk full"));
 
-    const source = createMockSource('github', {
-      kind: 'found',
-      info: { version: '2.0.0' },
+    const source = createMockSource("github", {
+      kind: "found",
+      info: { version: "2.0.0" },
     });
 
     expect(() => spawnBackgroundCheck(baseConfig, [source])).not.toThrow();

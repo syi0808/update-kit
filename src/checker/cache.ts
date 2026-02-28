@@ -1,6 +1,6 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { UpdateKitError, CACHE_ERROR } from '../errors.js';
+import fs from "node:fs/promises";
+import path from "node:path";
+import { CACHE_ERROR, UpdateKitError } from "../errors.js";
 
 /** Cached version check result persisted to disk. */
 export interface CacheEntry {
@@ -21,7 +21,7 @@ export interface CacheEntry {
 }
 
 function getCachePath(cacheDir: string, appName: string): string {
-  return path.join(cacheDir, appName, 'update-check.json');
+  return path.join(cacheDir, appName, "update-check.json");
 }
 
 /**
@@ -35,14 +35,14 @@ export async function readCache(
   const filePath = getCachePath(cacheDir, appName);
 
   try {
-    const raw = await fs.readFile(filePath, 'utf-8');
+    const raw = await fs.readFile(filePath, "utf-8");
     const parsed = JSON.parse(raw);
 
     if (
-      typeof parsed.latestVersion !== 'string' ||
-      typeof parsed.currentVersionAtCheck !== 'string' ||
-      typeof parsed.lastCheckedAt !== 'string' ||
-      typeof parsed.source !== 'string'
+      typeof parsed.latestVersion !== "string" ||
+      typeof parsed.currentVersionAtCheck !== "string" ||
+      typeof parsed.lastCheckedAt !== "string" ||
+      typeof parsed.source !== "string"
     ) {
       return null;
     }
@@ -74,8 +74,8 @@ export async function writeCache(
   const tmpPath = `${filePath}.${process.pid}-${Date.now()}.tmp`;
 
   try {
-    const data = JSON.stringify(entry, null, 2) + '\n';
-    await fs.writeFile(tmpPath, data, 'utf-8');
+    const data = JSON.stringify(entry, null, 2) + "\n";
+    await fs.writeFile(tmpPath, data, "utf-8");
     await fs.rename(tmpPath, filePath);
   } catch (error) {
     try {
@@ -142,7 +142,7 @@ export async function clearCache(
   try {
     await fs.unlink(filePath);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
       throw error;
     }
   }

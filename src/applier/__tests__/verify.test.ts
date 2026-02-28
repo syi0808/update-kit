@@ -1,22 +1,25 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import os from 'node:os';
-import crypto from 'node:crypto';
-import { verifyChecksum, computeSha256, fetchChecksumFromUrl } from '../verify.js';
+import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  CHECKSUM_FETCH_FAILED,
   CHECKSUM_MISMATCH,
   CHECKSUM_MISSING,
-  CHECKSUM_FETCH_FAILED,
   CHECKSUM_PARSE_FAILED,
   INSECURE_URL,
-  UpdateKitError,
-} from '../../errors.js';
+} from "../../errors.js";
+import {
+  computeSha256,
+  fetchChecksumFromUrl,
+  verifyChecksum,
+} from "../verify.js";
 
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'verify-test-'));
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "verify-test-"));
 });
 
 afterEach(async () => {
@@ -28,23 +31,23 @@ afterEach(async () => {
 // computeSha256
 // ──────────────────────────────────────────────
 
-describe('computeSha256', () => {
-  it('computes correct SHA-256 for a known file', async () => {
-    const content = 'hello world\n';
-    const filePath = path.join(tmpDir, 'test.txt');
+describe("computeSha256", () => {
+  it("computes correct SHA-256 for a known file", async () => {
+    const content = "hello world\n";
+    const filePath = path.join(tmpDir, "test.txt");
     await fs.writeFile(filePath, content);
 
-    const expected = crypto.createHash('sha256').update(content).digest('hex');
+    const expected = crypto.createHash("sha256").update(content).digest("hex");
     const result = await computeSha256(filePath);
 
     expect(result).toBe(expected);
   });
 
-  it('computes correct SHA-256 for empty file', async () => {
-    const filePath = path.join(tmpDir, 'empty.txt');
-    await fs.writeFile(filePath, '');
+  it("computes correct SHA-256 for empty file", async () => {
+    const filePath = path.join(tmpDir, "empty.txt");
+    await fs.writeFile(filePath, "");
 
-    const expected = crypto.createHash('sha256').update('').digest('hex');
+    const expected = crypto.createHash("sha256").update("").digest("hex");
     const result = await computeSha256(filePath);
 
     expect(result).toBe(expected);
@@ -55,36 +58,40 @@ describe('computeSha256', () => {
 // verifyChecksum — with expectedChecksum
 // ──────────────────────────────────────────────
 
-describe('verifyChecksum — expectedChecksum', () => {
-  it('passes when hash matches', async () => {
-    const content = 'test content';
-    const filePath = path.join(tmpDir, 'file.bin');
+describe("verifyChecksum — expectedChecksum", () => {
+  it("passes when hash matches", async () => {
+    const content = "test content";
+    const filePath = path.join(tmpDir, "file.bin");
     await fs.writeFile(filePath, content);
 
-    const hash = crypto.createHash('sha256').update(content).digest('hex');
+    const hash = crypto.createHash("sha256").update(content).digest("hex");
 
     await expect(
       verifyChecksum(filePath, { expectedChecksum: hash }),
     ).resolves.toBeUndefined();
   });
 
-  it('throws CHECKSUM_MISMATCH when hash does not match', async () => {
-    const filePath = path.join(tmpDir, 'file.bin');
-    await fs.writeFile(filePath, 'actual content');
+  it("throws CHECKSUM_MISMATCH when hash does not match", async () => {
+    const filePath = path.join(tmpDir, "file.bin");
+    await fs.writeFile(filePath, "actual content");
 
-    const wrongHash = 'a'.repeat(64);
+    const wrongHash = "a".repeat(64);
 
     await expect(
       verifyChecksum(filePath, { expectedChecksum: wrongHash }),
     ).rejects.toThrow(expect.objectContaining({ code: CHECKSUM_MISMATCH }));
   });
 
-  it('handles uppercase vs lowercase hex comparison', async () => {
-    const content = 'case test';
-    const filePath = path.join(tmpDir, 'file.bin');
+  it("handles uppercase vs lowercase hex comparison", async () => {
+    const content = "case test";
+    const filePath = path.join(tmpDir, "file.bin");
     await fs.writeFile(filePath, content);
 
-    const hash = crypto.createHash('sha256').update(content).digest('hex').toUpperCase();
+    const hash = crypto
+      .createHash("sha256")
+      .update(content)
+      .digest("hex")
+      .toUpperCase();
 
     await expect(
       verifyChecksum(filePath, { expectedChecksum: hash }),
@@ -96,20 +103,20 @@ describe('verifyChecksum — expectedChecksum', () => {
 // verifyChecksum — with checksumUrl
 // ──────────────────────────────────────────────
 
-describe('verifyChecksum — checksumUrl', () => {
-  it('fetches and parses multi-line checksum file', async () => {
-    const content = 'my binary data';
-    const filePath = path.join(tmpDir, 'app.tar.gz');
+describe("verifyChecksum — checksumUrl", () => {
+  it("fetches and parses multi-line checksum file", async () => {
+    const content = "my binary data";
+    const filePath = path.join(tmpDir, "app.tar.gz");
     await fs.writeFile(filePath, content);
 
-    const hash = crypto.createHash('sha256').update(content).digest('hex');
+    const hash = crypto.createHash("sha256").update(content).digest("hex");
     const checksumFileContent = [
-      `deadbeef${'0'.repeat(56)}  other-file.tar.gz`,
+      `deadbeef${"0".repeat(56)}  other-file.tar.gz`,
       `${hash}  app.tar.gz`,
-    ].join('\n');
+    ].join("\n");
 
     vi.stubGlobal(
-      'fetch',
+      "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(checksumFileContent),
@@ -119,21 +126,21 @@ describe('verifyChecksum — checksumUrl', () => {
     await expect(
       verifyChecksum(
         filePath,
-        { checksumUrl: 'https://example.com/SHA256SUMS' },
-        { filename: 'app.tar.gz' },
+        { checksumUrl: "https://example.com/SHA256SUMS" },
+        { filename: "app.tar.gz" },
       ),
     ).resolves.toBeUndefined();
   });
 
-  it('fetches and parses single-hash-only checksum file', async () => {
-    const content = 'single hash test';
-    const filePath = path.join(tmpDir, 'binary');
+  it("fetches and parses single-hash-only checksum file", async () => {
+    const content = "single hash test";
+    const filePath = path.join(tmpDir, "binary");
     await fs.writeFile(filePath, content);
 
-    const hash = crypto.createHash('sha256').update(content).digest('hex');
+    const hash = crypto.createHash("sha256").update(content).digest("hex");
 
     vi.stubGlobal(
-      'fetch',
+      "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(hash),
@@ -143,20 +150,20 @@ describe('verifyChecksum — checksumUrl', () => {
     await expect(
       verifyChecksum(
         filePath,
-        { checksumUrl: 'https://example.com/sha256' },
-        { filename: 'binary' },
+        { checksumUrl: "https://example.com/sha256" },
+        { filename: "binary" },
       ),
     ).resolves.toBeUndefined();
   });
 
-  it('throws CHECKSUM_MISMATCH when URL checksum does not match', async () => {
-    const filePath = path.join(tmpDir, 'file.bin');
-    await fs.writeFile(filePath, 'real content');
+  it("throws CHECKSUM_MISMATCH when URL checksum does not match", async () => {
+    const filePath = path.join(tmpDir, "file.bin");
+    await fs.writeFile(filePath, "real content");
 
-    const wrongHash = 'b'.repeat(64);
+    const wrongHash = "b".repeat(64);
 
     vi.stubGlobal(
-      'fetch',
+      "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
         text: () => Promise.resolve(wrongHash),
@@ -166,8 +173,8 @@ describe('verifyChecksum — checksumUrl', () => {
     await expect(
       verifyChecksum(
         filePath,
-        { checksumUrl: 'https://example.com/sha256' },
-        { filename: 'file.bin' },
+        { checksumUrl: "https://example.com/sha256" },
+        { filename: "file.bin" },
       ),
     ).rejects.toThrow(expect.objectContaining({ code: CHECKSUM_MISMATCH }));
   });
@@ -177,10 +184,10 @@ describe('verifyChecksum — checksumUrl', () => {
 // verifyChecksum — no checksum source
 // ──────────────────────────────────────────────
 
-describe('verifyChecksum — no checksum source', () => {
-  it('throws CHECKSUM_MISSING when neither expectedChecksum nor checksumUrl given', async () => {
-    const filePath = path.join(tmpDir, 'file.bin');
-    await fs.writeFile(filePath, 'data');
+describe("verifyChecksum — no checksum source", () => {
+  it("throws CHECKSUM_MISSING when neither expectedChecksum nor checksumUrl given", async () => {
+    const filePath = path.join(tmpDir, "file.bin");
+    await fs.writeFile(filePath, "data");
 
     await expect(verifyChecksum(filePath, {})).rejects.toThrow(
       expect.objectContaining({ code: CHECKSUM_MISSING }),
@@ -192,36 +199,35 @@ describe('verifyChecksum — no checksum source', () => {
 // fetchChecksumFromUrl
 // ──────────────────────────────────────────────
 
-describe('fetchChecksumFromUrl', () => {
-  it('throws INSECURE_URL for HTTP checksum URL', async () => {
+describe("fetchChecksumFromUrl", () => {
+  it("throws INSECURE_URL for HTTP checksum URL", async () => {
     await expect(
-      fetchChecksumFromUrl('http://example.com/SHA256SUMS', 'app.tar.gz'),
+      fetchChecksumFromUrl("http://example.com/SHA256SUMS", "app.tar.gz"),
     ).rejects.toThrow(expect.objectContaining({ code: INSECURE_URL }));
   });
 
-  it('throws CHECKSUM_FETCH_FAILED on HTTP error', async () => {
+  it("throws CHECKSUM_FETCH_FAILED on HTTP error", async () => {
     vi.stubGlobal(
-      'fetch',
+      "fetch",
       vi.fn().mockResolvedValue({ ok: false, status: 404 }),
     );
 
     await expect(
-      fetchChecksumFromUrl('https://example.com/SHA256SUMS', 'app.tar.gz'),
+      fetchChecksumFromUrl("https://example.com/SHA256SUMS", "app.tar.gz"),
     ).rejects.toThrow(expect.objectContaining({ code: CHECKSUM_FETCH_FAILED }));
   });
 
-  it('throws CHECKSUM_PARSE_FAILED when filename not found', async () => {
+  it("throws CHECKSUM_PARSE_FAILED when filename not found", async () => {
     vi.stubGlobal(
-      'fetch',
+      "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
-        text: () =>
-          Promise.resolve(`${'a'.repeat(64)}  other-file.tar.gz`),
+        text: () => Promise.resolve(`${"a".repeat(64)}  other-file.tar.gz`),
       }),
     );
 
     await expect(
-      fetchChecksumFromUrl('https://example.com/SHA256SUMS', 'app.tar.gz'),
+      fetchChecksumFromUrl("https://example.com/SHA256SUMS", "app.tar.gz"),
     ).rejects.toThrow(expect.objectContaining({ code: CHECKSUM_PARSE_FAILED }));
   });
 });

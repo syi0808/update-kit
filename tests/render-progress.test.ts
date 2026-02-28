@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { renderProgress } from "../dist/index.mjs";
+import { describe, expect, it } from "vitest";
 import type { ApplyProgress } from "../dist/index.mjs";
+import { renderProgress } from "../dist/index.mjs";
 
 describe("renderProgress", () => {
   it("downloading with totalBytes shows 50% progress", () => {
@@ -40,12 +40,14 @@ describe("renderProgress", () => {
     expect(text).not.toContain("%");
   });
 
-  it.each(["verifying", "extracting", "replacing", "done"] as const)(
-    "renders %s phase",
-    (phase) => {
-      const progress = { phase } as ApplyProgress;
-      const text = renderProgress(progress);
-      expect(text).toContain(phase);
-    },
-  );
+  it.each([
+    "verifying",
+    "extracting",
+    "replacing",
+    "done",
+  ] as const)("renders %s phase", (phase) => {
+    const progress = { phase } as ApplyProgress;
+    const text = renderProgress(progress);
+    expect(text).toContain(phase);
+  });
 });

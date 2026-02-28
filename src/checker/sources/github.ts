@@ -1,9 +1,14 @@
-import type { VersionSource, VersionSourceResult, VersionInfo, AssetInfo } from './index.js';
-import type { GitHubSourceConfig } from '../../config.js';
-import { fetchWithEtag } from './base.js';
-import { DEFAULT_SOURCE_TIMEOUT_MS } from '../../constants.js';
+import type { GitHubSourceConfig } from "../../config.js";
+import { DEFAULT_SOURCE_TIMEOUT_MS } from "../../constants.js";
+import { fetchWithEtag } from "./base.js";
+import type {
+  AssetInfo,
+  VersionInfo,
+  VersionSource,
+  VersionSourceResult,
+} from "./index.js";
 
-export type { GitHubSourceConfig } from '../../config.js';
+export type { GitHubSourceConfig } from "../../config.js";
 
 /** Minimal shape of a GitHub release asset from the API. */
 interface GitHubReleaseAsset {
@@ -22,7 +27,7 @@ interface GitHubReleaseResponse {
 }
 
 export class GitHubReleasesSource implements VersionSource {
-  readonly name = 'github';
+  readonly name = "github";
   private readonly config: GitHubSourceConfig;
 
   constructor(config: GitHubSourceConfig) {
@@ -33,16 +38,16 @@ export class GitHubReleasesSource implements VersionSource {
     etag?: string;
     signal?: AbortSignal;
   }): Promise<VersionSourceResult> {
-    const baseUrl = this.config.apiBaseUrl ?? 'https://api.github.com';
+    const baseUrl = this.config.apiBaseUrl ?? "https://api.github.com";
     const url = `${baseUrl}/repos/${this.config.owner}/${this.config.repo}/releases/latest`;
 
     const headers: Record<string, string> = {
-      Accept: 'application/vnd.github.v3+json',
-      'User-Agent': 'update-kit',
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "update-kit",
     };
 
     if (this.config.token) {
-      headers['Authorization'] = `Bearer ${this.config.token}`;
+      headers["Authorization"] = `Bearer ${this.config.token}`;
     }
 
     const result = await fetchWithEtag(
@@ -50,24 +55,24 @@ export class GitHubReleasesSource implements VersionSource {
       options,
     );
 
-    if (result.kind !== 'response') return result;
+    if (result.kind !== "response") return result;
 
     const data: GitHubReleaseResponse = await result.response.json();
 
     if (!data.tag_name) {
       return {
-        kind: 'error',
-        reason: 'GitHub release has no tag_name',
+        kind: "error",
+        reason: "GitHub release has no tag_name",
       };
     }
 
     // Strip 'v' prefix from tag_name
-    const version = data.tag_name.replace(/^v/, '');
+    const version = data.tag_name.replace(/^v/, "");
 
     const assets: AssetInfo[] = (data.assets ?? [])
       .filter((asset: GitHubReleaseAsset) => {
         try {
-          return new URL(asset.browser_download_url).protocol === 'https:';
+          return new URL(asset.browser_download_url).protocol === "https:";
         } catch {
           return false;
         }
@@ -86,6 +91,6 @@ export class GitHubReleasesSource implements VersionSource {
       publishedAt: data.published_at,
     };
 
-    return { kind: 'found', info, etag: result.etag };
+    return { kind: "found", info, etag: result.etag };
   }
 }

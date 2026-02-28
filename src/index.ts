@@ -1,37 +1,42 @@
+import { applyDelegateUpdate } from "./applier/delegate.js";
+import { applyNativeUpdate } from "./applier/native.js";
+import type { ApplyOptions } from "./applier/types.js";
+import {
+  checkUpdate as checkUpdateFn,
+  normalizeVersion,
+} from "./checker/index.js";
+import {
+  inferSourceConfigs,
+  orderSourcesByChannel,
+} from "./checker/infer-sources.js";
+import type { VersionSource } from "./checker/sources/index.js";
+import { createVersionSource } from "./checker/sources/index.js";
 import type {
-  UpdateKitConfig,
   CreateOptions,
   ResolvedUpdateKitConfig,
-} from './config.js';
+  UpdateKitConfig,
+  VersionSourceConfig,
+} from "./config.js";
+import { DEFAULT_CHECK_INTERVAL_MS } from "./constants.js";
+import { detectInstall as detectInstallFn } from "./detection/index.js";
+import { APPLY_FAILED, UpdateKitError } from "./errors.js";
+import { planUpdate as planUpdateFn } from "./planner/index.js";
+import { getDefaultCacheDir } from "./platform/paths.js";
 import type {
-  CheckMode,
-  UpdateStatus,
-  UpdatePlan,
-  InstallDetection,
   ApplyResult,
-} from './types.js';
-import type { ApplyOptions } from './applier/types.js';
-import type { VersionSource } from './checker/sources/index.js';
-import type { Channel } from './types.js';
-import type { VersionSourceConfig } from './config.js';
-import { detectInstall as detectInstallFn } from './detection/index.js';
-import { checkUpdate as checkUpdateFn } from './checker/index.js';
-import { normalizeVersion } from './checker/index.js';
-import { createVersionSource } from './checker/sources/index.js';
-import { inferSourceConfigs, orderSourcesByChannel } from './checker/infer-sources.js';
-import { planUpdate as planUpdateFn } from './planner/index.js';
-import { applyNativeUpdate } from './applier/native.js';
-import { applyDelegateUpdate } from './applier/delegate.js';
-import { renderBanner } from './ux/index.js';
-import { runHook } from './ux/hooks.js';
-import { getDefaultCacheDir } from './platform/paths.js';
-import { UpdateKitError, APPLY_FAILED } from './errors.js';
-import { DEFAULT_CHECK_INTERVAL_MS } from './constants.js';
+  Channel,
+  CheckMode,
+  InstallDetection,
+  UpdatePlan,
+  UpdateStatus,
+} from "./types.js";
 import {
   findPackageJsonFromModule,
   getCallerFilePath,
   resolvePackageJsonFromCaller,
-} from './utils/package-json.js';
+} from "./utils/package-json.js";
+import { runHook } from "./ux/hooks.js";
+import { renderBanner } from "./ux/index.js";
 
 /**
  * Main entry point for update-kit.
@@ -145,7 +150,7 @@ export class UpdateKit {
     }
 
     // Resolve package.json: explicit moduleUrl > auto-detect from caller
-    let pkgResult = options?.moduleUrl
+    const pkgResult = options?.moduleUrl
       ? await findPackageJsonFromModule(options.moduleUrl)
       : callerFile
         ? await resolvePackageJsonFromCaller(callerFile)
@@ -153,8 +158,8 @@ export class UpdateKit {
 
     if (!pkgResult) {
       throw new Error(
-        'Could not auto-detect package identity. ' +
-          'Provide appName and currentVersion explicitly.',
+        "Could not auto-detect package identity. " +
+          "Provide appName and currentVersion explicitly.",
       );
     }
 
@@ -199,7 +204,7 @@ export class UpdateKit {
    * }
    * ```
    */
-  async checkUpdate(mode: CheckMode = 'non-blocking'): Promise<UpdateStatus> {
+  async checkUpdate(mode: CheckMode = "non-blocking"): Promise<UpdateStatus> {
     return this.performCheck(mode);
   }
 
@@ -219,9 +224,9 @@ export class UpdateKit {
     mode: CheckMode,
     channel?: Channel,
   ): Promise<UpdateStatus> {
-    const allowed = await runHook(this.config.hooks, 'beforeCheck');
+    const allowed = await runHook(this.config.hooks, "beforeCheck");
     if (allowed === false) {
-      return { kind: 'unknown', reason: 'skipped by hook' };
+      return { kind: "unknown", reason: "skipped by hook" };
     }
 
     const sources = this.getEffectiveSources(channel);
@@ -253,7 +258,10 @@ export class UpdateKit {
    * }
    * ```
    */
-  planUpdate(status: UpdateStatus, detection: InstallDetection): UpdatePlan | null {
+  planUpdate(
+    status: UpdateStatus,
+    detection: InstallDetection,
+  ): UpdatePlan | null {
     return planUpdateFn(status, detection, this.config);
   }
 
@@ -274,12 +282,15 @@ export class UpdateKit {
    * }
    * ```
    */
-  async applyUpdate(plan: UpdatePlan, options?: ApplyOptions): Promise<ApplyResult> {
-    const allowed = await runHook(this.config.hooks, 'beforeApply', plan);
+  async applyUpdate(
+    plan: UpdatePlan,
+    options?: ApplyOptions,
+  ): Promise<ApplyResult> {
+    const allowed = await runHook(this.config.hooks, "beforeApply", plan);
     if (allowed === false) {
       return {
-        kind: 'failed',
-        error: new Error('Skipped by beforeApply hook'),
+        kind: "failed",
+        error: new Error("Skipped by beforeApply hook"),
         rollbackSucceeded: true,
       };
     }
@@ -287,33 +298,37 @@ export class UpdateKit {
     let result: ApplyResult;
     try {
       switch (plan.kind.type) {
-        case 'native-in-place': {
-          result = await applyNativeUpdate(plan, this.resolveExecPath(), options);
+        case "native-in-place": {
+          result = await applyNativeUpdate(
+            plan,
+            this.resolveExecPath(),
+            options,
+          );
           break;
         }
-        case 'delegate-command':
+        case "delegate-command":
           result = await applyDelegateUpdate(plan, {
             ...options,
             mode: this.config.delegateMode,
           });
           break;
-        case 'manual-install':
-          result = { kind: 'needs-restart', message: plan.kind.instructions };
+        case "manual-install":
+          result = { kind: "needs-restart", message: plan.kind.instructions };
           break;
       }
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       await runHook(
         this.config.hooks,
-        'onError',
+        "onError",
         error instanceof UpdateKitError
           ? error
           : new UpdateKitError(APPLY_FAILED, err.message, { cause: err }),
       );
-      return { kind: 'failed', error: err, rollbackSucceeded: false };
+      return { kind: "failed", error: err, rollbackSucceeded: false };
     }
 
-    await runHook(this.config.hooks, 'afterApply', result);
+    await runHook(this.config.hooks, "afterApply", result);
     return result;
   }
 
@@ -333,7 +348,7 @@ export class UpdateKit {
   async checkAndNotify(): Promise<string | null> {
     try {
       const detection = await this.detectInstall();
-      const status = await this.performCheck('non-blocking', detection.channel);
+      const status = await this.performCheck("non-blocking", detection.channel);
       return renderBanner(status, detection);
     } catch {
       return null;
@@ -357,21 +372,24 @@ export class UpdateKit {
   async autoUpdate(options?: ApplyOptions): Promise<ApplyResult> {
     try {
       const detection = await this.detectInstall();
-      const status = await this.performCheck('blocking', detection.channel);
+      const status = await this.performCheck("blocking", detection.channel);
 
-      if (status.kind !== 'available') {
+      if (status.kind !== "available") {
         return {
-          kind: 'up-to-date',
-          current: status.kind === 'up-to-date' ? status.current : this.config.currentVersion,
+          kind: "up-to-date",
+          current:
+            status.kind === "up-to-date"
+              ? status.current
+              : this.config.currentVersion,
         };
       }
 
-      const assets = status.kind === 'available' ? status.assets : undefined;
+      const assets = status.kind === "available" ? status.assets : undefined;
       const plan = planUpdateFn(status, detection, this.config, assets);
       if (!plan) {
         return {
-          kind: 'failed',
-          error: new Error('No update plan could be created'),
+          kind: "failed",
+          error: new Error("No update plan could be created"),
           rollbackSucceeded: true,
         };
       }
@@ -381,12 +399,12 @@ export class UpdateKit {
       const err = error instanceof Error ? error : new Error(String(error));
       await runHook(
         this.config.hooks,
-        'onError',
+        "onError",
         error instanceof UpdateKitError
           ? error
           : new UpdateKitError(APPLY_FAILED, err.message, { cause: err }),
       );
-      return { kind: 'failed', error: err, rollbackSucceeded: false };
+      return { kind: "failed", error: err, rollbackSucceeded: false };
     }
   }
 
@@ -394,7 +412,7 @@ export class UpdateKit {
     const execPath = this.config.executablePath ?? process.argv[1];
     if (!execPath) {
       throw new Error(
-        'Cannot determine executable path. Provide executablePath in config.',
+        "Cannot determine executable path. Provide executablePath in config.",
       );
     }
     return execPath;
@@ -405,18 +423,20 @@ export class UpdateKit {
     return this.config;
   }
 
-  private resolveAndValidateConfig(config: UpdateKitConfig): ResolvedUpdateKitConfig {
+  private resolveAndValidateConfig(
+    config: UpdateKitConfig,
+  ): ResolvedUpdateKitConfig {
     const appName = config.appName || config.pkg?.name;
     const currentVersion = config.currentVersion || config.pkg?.version;
 
     if (!appName) {
       throw new Error(
-        'appName is required (provide it directly or via the pkg field)',
+        "appName is required (provide it directly or via the pkg field)",
       );
     }
     if (!currentVersion) {
       throw new Error(
-        'currentVersion is required (provide it directly or via the pkg field)',
+        "currentVersion is required (provide it directly or via the pkg field)",
       );
     }
     if (!normalizeVersion(currentVersion)) {
@@ -425,7 +445,7 @@ export class UpdateKit {
 
     return {
       checkInterval: DEFAULT_CHECK_INTERVAL_MS,
-      delegateMode: 'print-only',
+      delegateMode: "print-only",
       allowReexec: false,
       ...config,
       appName,
@@ -441,132 +461,133 @@ function normalizeRepository(
   repo: string | { type?: string; url?: string } | undefined,
 ): string | { url: string } | undefined {
   if (!repo) return undefined;
-  if (typeof repo === 'string') return repo;
-  if (typeof repo.url === 'string') return { url: repo.url };
+  if (typeof repo === "string") return repo;
+  if (typeof repo.url === "string") return { url: repo.url };
   return undefined;
 }
 
-// Types
+export { applyDelegateUpdate } from "./applier/delegate.js";
+// Applier
+export { applyNativeUpdate } from "./applier/native.js";
 export type {
-  Channel,
-  Confidence,
-  Evidence,
-  InstallDetection,
-  CheckMode,
-  UpdateStatus,
-  DelegateMode,
-  PlanKind,
-  PostAction,
-  UpdatePlan,
-  ApplyProgress,
-  ApplyResult,
-} from './types.js';
-
-// Errors
-export {
-  UpdateKitError,
-  DETECTION_FAILED,
-  NETWORK_ERROR,
-  CACHE_ERROR,
-  VERSION_PARSE,
-  CHECKSUM_MISMATCH,
-  APPLY_FAILED,
-  COMMAND_FAILED,
-  UNSUPPORTED_PLATFORM,
-  PERMISSION_DENIED,
-  INSECURE_URL,
-  DOWNLOAD_FAILED,
-  CHECKSUM_MISSING,
-  CHECKSUM_FETCH_FAILED,
-  CHECKSUM_PARSE_FAILED,
-  EXTRACT_FAILED,
-  COMMAND_TIMEOUT,
-  COMMAND_ABORTED,
-  COMMAND_SPAWN_FAILED,
-} from './errors.js';
-export type { ErrorCode } from './errors.js';
-
-// Config
-export type {
-  UpdateKitConfig,
-  UpdateKitBaseConfig,
-  UpdateKitExplicitConfig,
-  UpdateKitPkgConfig,
-  CreateOptions,
-  ResolvedUpdateKitConfig,
-  PackageInfo,
-  Hooks,
-  VersionSourceConfig,
-  CustomDetector,
-  PlanResolverContext,
-} from './config.js';
-
-// Detection
-export { detectInstall } from './detection/index.js';
-
-// Version Sources
-export { createVersionSource } from './checker/sources/index.js';
-export type {
-  VersionSource,
-  VersionSourceResult,
-  VersionInfo,
-  AssetInfo,
-  GitHubSourceConfig,
-  NpmSourceConfig,
-  JsrSourceConfig,
-  BrewSourceConfig,
-  CustomManifestSourceConfig,
-} from './checker/sources/index.js';
+  ApplyOptions,
+  DelegateApplyOptions,
+  DelegateApplyResult,
+} from "./applier/types.js";
+export type { ChecksumInfo } from "./applier/verify.js";
+export { computeSha256, verifyChecksum } from "./applier/verify.js";
+// Cache
+export type { CacheEntry } from "./checker/cache.js";
+export type { CheckUpdateOptions } from "./checker/index.js";
 
 // Checker
-export { checkUpdate, normalizeVersion } from './checker/index.js';
-export type { CheckUpdateOptions } from './checker/index.js';
-
+export { checkUpdate, normalizeVersion } from "./checker/index.js";
 // Source inference
 export {
   inferSourceConfigs,
   orderSourcesByChannel,
   parseGitHubRepository,
-} from './checker/infer-sources.js';
-
-// Cache
-export type { CacheEntry } from './checker/cache.js';
-
-// Applier
-export { applyNativeUpdate } from './applier/native.js';
-export { applyDelegateUpdate } from './applier/delegate.js';
-export type { ApplyOptions, DelegateApplyOptions, DelegateApplyResult } from './applier/types.js';
-export { verifyChecksum, computeSha256 } from './applier/verify.js';
-export type { ChecksumInfo } from './applier/verify.js';
-export { atomicReplace } from './platform/replace.js';
-
-// UX
-export { renderBanner, renderProgress, renderResult } from './ux/index.js';
-export { defaultTemplates } from './ux/templates.js';
-export type { MessageTemplates } from './ux/templates.js';
-export { supportsColor, bold, red, green, yellow, dim, stripAnsi } from './ux/colors.js';
-export { runHook } from './ux/hooks.js';
-
-// Doctor
-export { runDoctor } from './doctor.js';
-export type { DoctorReport, DiagnosticCheck } from './doctor.js';
-
-// Package.json utilities
-export {
-  findPackageJson,
-  findPackageJsonSync,
-  findPackageJsonFromModule,
-  findPackageJsonFromModuleSync,
-} from './utils/package-json.js';
-export type { PackageJsonResult } from './utils/package-json.js';
-
+} from "./checker/infer-sources.js";
+export type {
+  AssetInfo,
+  BrewSourceConfig,
+  CustomManifestSourceConfig,
+  GitHubSourceConfig,
+  JsrSourceConfig,
+  NpmSourceConfig,
+  VersionInfo,
+  VersionSource,
+  VersionSourceResult,
+} from "./checker/sources/index.js";
+// Version Sources
+export { createVersionSource } from "./checker/sources/index.js";
+// Config
+export type {
+  CreateOptions,
+  CustomDetector,
+  Hooks,
+  PackageInfo,
+  PlanResolverContext,
+  ResolvedUpdateKitConfig,
+  UpdateKitBaseConfig,
+  UpdateKitConfig,
+  UpdateKitExplicitConfig,
+  UpdateKitPkgConfig,
+  VersionSourceConfig,
+} from "./config.js";
 // Constants
 export {
+  DEFAULT_BACKGROUND_TIMEOUT_MS,
   DEFAULT_CHECK_INTERVAL_MS,
   DEFAULT_DELEGATE_TIMEOUT_MS,
   DEFAULT_DOWNLOAD_TIMEOUT_MS,
-  DEFAULT_BACKGROUND_TIMEOUT_MS,
   DEFAULT_FETCH_TIMEOUT_MS,
   DEFAULT_SOURCE_TIMEOUT_MS,
   MAX_COMMAND_OUTPUT_BYTES,
-} from './constants.js';
+} from "./constants.js";
+// Detection
+export { detectInstall } from "./detection/index.js";
+export type { DiagnosticCheck, DoctorReport } from "./doctor.js";
+// Doctor
+export { runDoctor } from "./doctor.js";
+export type { ErrorCode } from "./errors.js";
+// Errors
+export {
+  APPLY_FAILED,
+  CACHE_ERROR,
+  CHECKSUM_FETCH_FAILED,
+  CHECKSUM_MISMATCH,
+  CHECKSUM_MISSING,
+  CHECKSUM_PARSE_FAILED,
+  COMMAND_ABORTED,
+  COMMAND_FAILED,
+  COMMAND_SPAWN_FAILED,
+  COMMAND_TIMEOUT,
+  DETECTION_FAILED,
+  DOWNLOAD_FAILED,
+  EXTRACT_FAILED,
+  INSECURE_URL,
+  NETWORK_ERROR,
+  PERMISSION_DENIED,
+  UNSUPPORTED_PLATFORM,
+  UpdateKitError,
+  VERSION_PARSE,
+} from "./errors.js";
+export { atomicReplace } from "./platform/replace.js";
+// Types
+export type {
+  ApplyProgress,
+  ApplyResult,
+  Channel,
+  CheckMode,
+  Confidence,
+  DelegateMode,
+  Evidence,
+  InstallDetection,
+  PlanKind,
+  PostAction,
+  UpdatePlan,
+  UpdateStatus,
+} from "./types.js";
+export type { PackageJsonResult } from "./utils/package-json.js";
+// Package.json utilities
+export {
+  findPackageJson,
+  findPackageJsonFromModule,
+  findPackageJsonFromModuleSync,
+  findPackageJsonSync,
+} from "./utils/package-json.js";
+export {
+  bold,
+  dim,
+  green,
+  red,
+  stripAnsi,
+  supportsColor,
+  yellow,
+} from "./ux/colors.js";
+export { runHook } from "./ux/hooks.js";
+// UX
+export { renderBanner, renderProgress, renderResult } from "./ux/index.js";
+export type { MessageTemplates } from "./ux/templates.js";
+export { defaultTemplates } from "./ux/templates.js";

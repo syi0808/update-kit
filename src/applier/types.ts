@@ -1,4 +1,4 @@
-import type { ApplyProgress, DelegateMode, PostAction } from '../types.js';
+import type { ApplyProgress, DelegateMode, PostAction } from "../types.js";
 
 /** Options for the native update applier. */
 export interface ApplyOptions {
@@ -23,7 +23,7 @@ export interface DelegateApplyOptions extends ApplyOptions {
 
 /** Result of a delegate update application. Failures are thrown as UpdateKitError. */
 export interface DelegateApplyResult {
-  kind: 'success';
+  kind: "success";
   fromVersion: string;
   toVersion: string;
   postAction: PostAction;

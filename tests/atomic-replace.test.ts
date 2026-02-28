@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import {
-  writeFileSync,
+  existsSync,
   mkdtempSync,
   readFileSync,
   rmSync,
-  existsSync,
+  writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { atomicReplace } from "../dist/index.mjs";
 
 let tmpDir: string;

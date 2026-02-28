@@ -1,4 +1,4 @@
-import type { Hooks } from '../config.js';
+import type { Hooks } from "../config.js";
 
 export async function runHook<K extends keyof Hooks>(
   hooks: Hooks | undefined,

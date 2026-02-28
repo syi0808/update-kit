@@ -1,33 +1,33 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { DoctorReport } from '../doctor.js';
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { DoctorReport } from "../doctor.js";
 
 // ─── Mocks ───
 
-vi.mock('../detection/index.js', () => ({
+vi.mock("../detection/index.js", () => ({
   detectInstall: vi.fn(),
 }));
 
-vi.mock('../checker/sources/index.js', () => ({
+vi.mock("../checker/sources/index.js", () => ({
   createVersionSource: vi.fn(() => ({
-    name: 'mock',
+    name: "mock",
     fetchLatest: vi.fn().mockResolvedValue({
-      kind: 'found',
-      info: { version: '2.0.0', releaseUrl: 'https://example.com' },
+      kind: "found",
+      info: { version: "2.0.0", releaseUrl: "https://example.com" },
     }),
   })),
 }));
 
-vi.mock('../utils/package-json.js', () => ({
+vi.mock("../utils/package-json.js", () => ({
   findPackageJson: vi.fn(),
 }));
 
-import { runDoctor } from '../doctor.js';
-import { detectInstall } from '../detection/index.js';
-import { findPackageJson } from '../utils/package-json.js';
-import { createVersionSource } from '../checker/sources/index.js';
-import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createVersionSource } from "../checker/sources/index.js";
+import { detectInstall } from "../detection/index.js";
+import { runDoctor } from "../doctor.js";
+import { findPackageJson } from "../utils/package-json.js";
 
 const mockDetect = vi.mocked(detectInstall);
 const mockFindPkg = vi.mocked(findPackageJson);
@@ -41,16 +41,16 @@ beforeEach(() => {
   mkdirSync(tempDir, { recursive: true });
 
   mockDetect.mockResolvedValue({
-    channel: 'npm-global',
-    confidence: 'high',
-    evidence: [{ source: 'path_pattern', detail: '/usr/lib/node_modules' }],
+    channel: "npm-global",
+    confidence: "high",
+    evidence: [{ source: "path_pattern", detail: "/usr/lib/node_modules" }],
   });
 
   mockFindPkg.mockResolvedValue({
-    name: 'my-cli',
-    version: '1.0.0',
-    path: join(tempDir, 'package.json'),
-    repository: 'https://github.com/org/my-cli',
+    name: "my-cli",
+    version: "1.0.0",
+    path: join(tempDir, "package.json"),
+    repository: "https://github.com/org/my-cli",
   });
 });
 
@@ -63,190 +63,190 @@ afterEach(() => {
 });
 
 function writeConfig(config: Record<string, unknown>, dir?: string): string {
-  const configPath = join(dir ?? tempDir, 'update-kit.config.json');
+  const configPath = join(dir ?? tempDir, "update-kit.config.json");
   writeFileSync(configPath, JSON.stringify(config));
   return configPath;
 }
 
 // ─── Tests ───
 
-describe('runDoctor', () => {
-  it('passes all checks with valid config and package.json', async () => {
+describe("runDoctor", () => {
+  it("passes all checks with valid config and package.json", async () => {
     const configPath = writeConfig({
-      appName: 'my-cli',
-      currentVersion: '1.0.0',
-      sources: [{ type: 'npm', packageName: 'my-cli' }],
+      appName: "my-cli",
+      currentVersion: "1.0.0",
+      sources: [{ type: "npm", packageName: "my-cli" }],
     });
 
     const report = await runDoctor(configPath, { cwd: tempDir });
 
     expect(report.summary.failed).toBe(0);
-    expect(report.checks.find((c) => c.name === 'Config file')?.status).toBe(
-      'pass',
+    expect(report.checks.find((c) => c.name === "Config file")?.status).toBe(
+      "pass",
     );
   });
 
-  it('fails when config file does not exist', async () => {
-    const report = await runDoctor('/nonexistent/config.json', {
+  it("fails when config file does not exist", async () => {
+    const report = await runDoctor("/nonexistent/config.json", {
       cwd: tempDir,
     });
 
-    const configCheck = report.checks.find((c) => c.name === 'Config file');
-    expect(configCheck?.status).toBe('fail');
-    expect(configCheck?.message).toContain('Not found');
+    const configCheck = report.checks.find((c) => c.name === "Config file");
+    expect(configCheck?.status).toBe("fail");
+    expect(configCheck?.message).toContain("Not found");
     // No further checks should run without config
     expect(report.checks).toHaveLength(2); // config + package.json
   });
 
-  it('fails when config has invalid JSON', async () => {
-    const configPath = join(tempDir, 'update-kit.config.json');
-    writeFileSync(configPath, '{ broken json }');
+  it("fails when config has invalid JSON", async () => {
+    const configPath = join(tempDir, "update-kit.config.json");
+    writeFileSync(configPath, "{ broken json }");
 
     const report = await runDoctor(configPath, { cwd: tempDir });
 
-    const configCheck = report.checks.find((c) => c.name === 'Config file');
-    expect(configCheck?.status).toBe('fail');
-    expect(configCheck?.message).toContain('Invalid JSON');
+    const configCheck = report.checks.find((c) => c.name === "Config file");
+    expect(configCheck?.status).toBe("fail");
+    expect(configCheck?.message).toContain("Invalid JSON");
   });
 
-  it('fails when config is missing appName', async () => {
-    const configPath = writeConfig({ currentVersion: '1.0.0' });
+  it("fails when config is missing appName", async () => {
+    const configPath = writeConfig({ currentVersion: "1.0.0" });
     const report = await runDoctor(configPath, { cwd: tempDir });
 
-    const configCheck = report.checks.find((c) => c.name === 'Config file');
-    expect(configCheck?.status).toBe('fail');
-    expect(configCheck?.message).toContain('missing appName');
+    const configCheck = report.checks.find((c) => c.name === "Config file");
+    expect(configCheck?.status).toBe("fail");
+    expect(configCheck?.message).toContain("missing appName");
   });
 
-  it('fails when config has invalid semver', async () => {
+  it("fails when config has invalid semver", async () => {
     const configPath = writeConfig({
-      appName: 'my-cli',
-      currentVersion: 'not-a-version',
+      appName: "my-cli",
+      currentVersion: "not-a-version",
     });
     const report = await runDoctor(configPath, { cwd: tempDir });
 
-    const configCheck = report.checks.find((c) => c.name === 'Config file');
-    expect(configCheck?.status).toBe('fail');
-    expect(configCheck?.message).toContain('invalid semver');
+    const configCheck = report.checks.find((c) => c.name === "Config file");
+    expect(configCheck?.status).toBe("fail");
+    expect(configCheck?.message).toContain("invalid semver");
   });
 
-  it('warns when package.json has no repository', async () => {
+  it("warns when package.json has no repository", async () => {
     mockFindPkg.mockResolvedValue({
-      name: 'my-cli',
-      version: '1.0.0',
-      path: join(tempDir, 'package.json'),
+      name: "my-cli",
+      version: "1.0.0",
+      path: join(tempDir, "package.json"),
     });
 
     const configPath = writeConfig({
-      appName: 'my-cli',
-      currentVersion: '1.0.0',
+      appName: "my-cli",
+      currentVersion: "1.0.0",
     });
     const report = await runDoctor(configPath, { cwd: tempDir });
 
-    const pkgCheck = report.checks.find((c) => c.name === 'Package.json');
-    expect(pkgCheck?.status).toBe('warn');
-    expect(pkgCheck?.message).toContain('no repository field');
+    const pkgCheck = report.checks.find((c) => c.name === "Package.json");
+    expect(pkgCheck?.status).toBe("warn");
+    expect(pkgCheck?.message).toContain("no repository field");
   });
 
-  it('warns when package.json is not found', async () => {
+  it("warns when package.json is not found", async () => {
     mockFindPkg.mockResolvedValue(null);
 
     const configPath = writeConfig({
-      appName: 'my-cli',
-      currentVersion: '1.0.0',
+      appName: "my-cli",
+      currentVersion: "1.0.0",
     });
     const report = await runDoctor(configPath, { cwd: tempDir });
 
-    const pkgCheck = report.checks.find((c) => c.name === 'Package.json');
-    expect(pkgCheck?.status).toBe('warn');
+    const pkgCheck = report.checks.find((c) => c.name === "Package.json");
+    expect(pkgCheck?.status).toBe("warn");
   });
 
-  it('shows explicit sources when configured', async () => {
+  it("shows explicit sources when configured", async () => {
     const configPath = writeConfig({
-      appName: 'my-cli',
-      currentVersion: '1.0.0',
+      appName: "my-cli",
+      currentVersion: "1.0.0",
       sources: [
-        { type: 'npm', packageName: 'my-cli' },
-        { type: 'github', owner: 'org', repo: 'my-cli' },
+        { type: "npm", packageName: "my-cli" },
+        { type: "github", owner: "org", repo: "my-cli" },
       ],
     });
     const report = await runDoctor(configPath, { cwd: tempDir });
 
-    const sourceCheck = report.checks.find((c) => c.name === 'Sources');
-    expect(sourceCheck?.status).toBe('pass');
-    expect(sourceCheck?.message).toContain('Explicit');
-    expect(sourceCheck?.details?.mode).toBe('explicit');
+    const sourceCheck = report.checks.find((c) => c.name === "Sources");
+    expect(sourceCheck?.status).toBe("pass");
+    expect(sourceCheck?.message).toContain("Explicit");
+    expect(sourceCheck?.details?.mode).toBe("explicit");
   });
 
-  it('shows inferred sources when not configured', async () => {
+  it("shows inferred sources when not configured", async () => {
     const configPath = writeConfig({
-      appName: 'my-cli',
-      currentVersion: '1.0.0',
+      appName: "my-cli",
+      currentVersion: "1.0.0",
     });
     const report = await runDoctor(configPath, { cwd: tempDir });
 
-    const sourceCheck = report.checks.find((c) => c.name === 'Sources');
-    expect(sourceCheck?.status).toBe('pass');
-    expect(sourceCheck?.message).toContain('Auto-inferred');
-    expect(sourceCheck?.details?.mode).toBe('inferred');
+    const sourceCheck = report.checks.find((c) => c.name === "Sources");
+    expect(sourceCheck?.status).toBe("pass");
+    expect(sourceCheck?.message).toContain("Auto-inferred");
+    expect(sourceCheck?.details?.mode).toBe("inferred");
   });
 
-  it('reports detection results', async () => {
+  it("reports detection results", async () => {
     const configPath = writeConfig({
-      appName: 'my-cli',
-      currentVersion: '1.0.0',
+      appName: "my-cli",
+      currentVersion: "1.0.0",
     });
     const report = await runDoctor(configPath, { cwd: tempDir });
 
-    const detectionCheck = report.checks.find((c) => c.name === 'Detection');
-    expect(detectionCheck?.status).toBe('pass');
-    expect(detectionCheck?.details?.channel).toBe('npm-global');
+    const detectionCheck = report.checks.find((c) => c.name === "Detection");
+    expect(detectionCheck?.status).toBe("pass");
+    expect(detectionCheck?.details?.channel).toBe("npm-global");
   });
 
-  it('reports source connectivity', async () => {
+  it("reports source connectivity", async () => {
     const configPath = writeConfig({
-      appName: 'my-cli',
-      currentVersion: '1.0.0',
-      sources: [{ type: 'npm', packageName: 'my-cli' }],
+      appName: "my-cli",
+      currentVersion: "1.0.0",
+      sources: [{ type: "npm", packageName: "my-cli" }],
     });
     const report = await runDoctor(configPath, { cwd: tempDir });
 
     const sourceChecks = report.checks.filter((c) =>
-      c.name.startsWith('Source:'),
+      c.name.startsWith("Source:"),
     );
     expect(sourceChecks.length).toBeGreaterThan(0);
-    expect(sourceChecks[0].status).toBe('pass');
-    expect(sourceChecks[0].message).toContain('v2.0.0');
+    expect(sourceChecks[0].status).toBe("pass");
+    expect(sourceChecks[0].message).toContain("v2.0.0");
   });
 
-  it('reports connectivity failure', async () => {
+  it("reports connectivity failure", async () => {
     mockCreateSource.mockReturnValue({
-      name: 'mock',
+      name: "mock",
       fetchLatest: vi.fn().mockResolvedValue({
-        kind: 'error',
-        reason: 'Network error',
+        kind: "error",
+        reason: "Network error",
       }),
     });
 
     const configPath = writeConfig({
-      appName: 'my-cli',
-      currentVersion: '1.0.0',
-      sources: [{ type: 'npm', packageName: 'my-cli' }],
+      appName: "my-cli",
+      currentVersion: "1.0.0",
+      sources: [{ type: "npm", packageName: "my-cli" }],
     });
     const report = await runDoctor(configPath, { cwd: tempDir });
 
     const sourceChecks = report.checks.filter((c) =>
-      c.name.startsWith('Source:'),
+      c.name.startsWith("Source:"),
     );
-    expect(sourceChecks[0].status).toBe('fail');
-    expect(sourceChecks[0].message).toBe('Network error');
+    expect(sourceChecks[0].status).toBe("fail");
+    expect(sourceChecks[0].message).toBe("Network error");
   });
 
-  it('produces correct summary counts', async () => {
+  it("produces correct summary counts", async () => {
     const configPath = writeConfig({
-      appName: 'my-cli',
-      currentVersion: '1.0.0',
-      sources: [{ type: 'npm', packageName: 'my-cli' }],
+      appName: "my-cli",
+      currentVersion: "1.0.0",
+      sources: [{ type: "npm", packageName: "my-cli" }],
     });
     const report = await runDoctor(configPath, { cwd: tempDir });
 
@@ -259,21 +259,21 @@ describe('runDoctor', () => {
     ).toBe(report.summary.total);
   });
 
-  it('JSON output conforms to DoctorReport shape', async () => {
+  it("JSON output conforms to DoctorReport shape", async () => {
     const configPath = writeConfig({
-      appName: 'my-cli',
-      currentVersion: '1.0.0',
+      appName: "my-cli",
+      currentVersion: "1.0.0",
     });
     const report: DoctorReport = await runDoctor(configPath, { cwd: tempDir });
 
-    expect(report).toHaveProperty('checks');
-    expect(report).toHaveProperty('summary');
+    expect(report).toHaveProperty("checks");
+    expect(report).toHaveProperty("summary");
     expect(Array.isArray(report.checks)).toBe(true);
     for (const check of report.checks) {
-      expect(check).toHaveProperty('name');
-      expect(check).toHaveProperty('status');
-      expect(check).toHaveProperty('message');
-      expect(['pass', 'fail', 'warn', 'skip']).toContain(check.status);
+      expect(check).toHaveProperty("name");
+      expect(check).toHaveProperty("status");
+      expect(check).toHaveProperty("message");
+      expect(["pass", "fail", "warn", "skip"]).toContain(check.status);
     }
   });
 });

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import type { InstallDetection, UpdateStatus } from "../dist/index.mjs";
 import { UpdateKit } from "../dist/index.mjs";
-import type { UpdateStatus, InstallDetection } from "../dist/index.mjs";
 
 describe("UpdateKit instance method shapes", () => {
   let kit: InstanceType<typeof UpdateKit>;

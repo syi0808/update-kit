@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
-import { dirname, join, resolve, sep } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { dirname, join, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
 /**
  * Result of finding and parsing a package.json file.
@@ -30,9 +30,9 @@ export async function findPackageJson(
   let current = resolve(startDir);
 
   for (;;) {
-    const candidate = join(current, 'package.json');
+    const candidate = join(current, "package.json");
     try {
-      const content = await readFile(candidate, 'utf-8');
+      const content = await readFile(candidate, "utf-8");
       const result = parsePackageJson(content, candidate);
       if (result) return result;
     } catch {
@@ -57,9 +57,9 @@ export function findPackageJsonSync(
   let current = resolve(startDir);
 
   for (;;) {
-    const candidate = join(current, 'package.json');
+    const candidate = join(current, "package.json");
     try {
-      const content = readFileSync(candidate, 'utf-8');
+      const content = readFileSync(candidate, "utf-8");
       const result = parsePackageJson(content, candidate);
       if (result) return result;
     } catch {
@@ -119,7 +119,7 @@ export function getCallerFilePath(): string | null {
     let callSites: NodeJS.CallSite[] = [];
     Error.prepareStackTrace = (_, stack) => {
       callSites = stack;
-      return '';
+      return "";
     };
     const err = new Error();
     // Access .stack to trigger prepareStackTrace
@@ -129,16 +129,22 @@ export function getCallerFilePath(): string | null {
     const ownFile = callSites[0]?.getFileName();
     if (!ownFile) return null;
 
-    const ownPath = ownFile.startsWith('file://') ? fileURLToPath(ownFile) : ownFile;
+    const ownPath = ownFile.startsWith("file://")
+      ? fileURLToPath(ownFile)
+      : ownFile;
     const ownPkg = findPackageJsonSync(dirname(ownPath));
-    const ownRoot = ownPkg ? dirname(ownPkg.path) + sep : dirname(ownPath) + sep;
+    const ownRoot = ownPkg
+      ? dirname(ownPkg.path) + sep
+      : dirname(ownPath) + sep;
 
     // Return the first frame whose file is outside update-kit's package root
     for (let i = 1; i < callSites.length; i++) {
       const fileName = callSites[i]?.getFileName();
       if (!fileName) continue;
 
-      const filePath = fileName.startsWith('file://') ? fileURLToPath(fileName) : fileName;
+      const filePath = fileName.startsWith("file://")
+        ? fileURLToPath(fileName)
+        : fileName;
       if (!filePath.startsWith(ownRoot)) return fileName;
     }
     return null;
@@ -158,7 +164,7 @@ export function getCallerFilePath(): string | null {
 export async function resolvePackageJsonFromCaller(
   callerFile: string,
 ): Promise<PackageJsonResult | null> {
-  const filePath = callerFile.startsWith('file://')
+  const filePath = callerFile.startsWith("file://")
     ? fileURLToPath(callerFile)
     : callerFile;
   return findPackageJson(dirname(filePath));
@@ -171,14 +177,14 @@ function parsePackageJson(
   try {
     const parsed: unknown = JSON.parse(content);
     if (
-      typeof parsed === 'object' &&
+      typeof parsed === "object" &&
       parsed !== null &&
-      'name' in parsed &&
-      'version' in parsed &&
-      typeof (parsed as Record<string, unknown>).name === 'string' &&
-      (parsed as Record<string, unknown>).name !== '' &&
-      typeof (parsed as Record<string, unknown>).version === 'string' &&
-      (parsed as Record<string, unknown>).version !== ''
+      "name" in parsed &&
+      "version" in parsed &&
+      typeof (parsed as Record<string, unknown>).name === "string" &&
+      (parsed as Record<string, unknown>).name !== "" &&
+      typeof (parsed as Record<string, unknown>).version === "string" &&
+      (parsed as Record<string, unknown>).version !== ""
     ) {
       const obj = parsed as Record<string, unknown>;
       const result: PackageJsonResult = {
@@ -187,15 +193,15 @@ function parsePackageJson(
         path: filePath,
       };
 
-      if ('repository' in obj && obj.repository != null) {
+      if ("repository" in obj && obj.repository != null) {
         const repo = obj.repository;
-        if (typeof repo === 'string') {
+        if (typeof repo === "string") {
           result.repository = repo;
-        } else if (typeof repo === 'object' && !Array.isArray(repo)) {
+        } else if (typeof repo === "object" && !Array.isArray(repo)) {
           const repoObj = repo as Record<string, unknown>;
           result.repository = {
-            ...(typeof repoObj.type === 'string' ? { type: repoObj.type } : {}),
-            ...(typeof repoObj.url === 'string' ? { url: repoObj.url } : {}),
+            ...(typeof repoObj.type === "string" ? { type: repoObj.type } : {}),
+            ...(typeof repoObj.url === "string" ? { url: repoObj.url } : {}),
           };
         }
       }

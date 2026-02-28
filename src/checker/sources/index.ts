@@ -1,9 +1,9 @@
-import type { VersionSourceConfig } from '../../config.js';
-import { GitHubReleasesSource } from './github.js';
-import { NpmRegistrySource } from './npm-registry.js';
-import { JsrSource } from './jsr.js';
-import { BrewSource } from './brew-api.js';
-import { CustomManifestSource } from './custom-manifest.js';
+import type { VersionSourceConfig } from "../../config.js";
+import { BrewSource } from "./brew-api.js";
+import { CustomManifestSource } from "./custom-manifest.js";
+import { GitHubReleasesSource } from "./github.js";
+import { JsrSource } from "./jsr.js";
+import { NpmRegistrySource } from "./npm-registry.js";
 
 /** Version information returned by a source */
 export interface VersionInfo {
@@ -54,9 +54,9 @@ export interface VersionSource {
 
 /** fetchLatest return result */
 export type VersionSourceResult =
-  | { kind: 'found'; info: VersionInfo; etag?: string }
-  | { kind: 'not-modified'; etag: string }
-  | { kind: 'error'; reason: string; status?: number };
+  | { kind: "found"; info: VersionInfo; etag?: string }
+  | { kind: "not-modified"; etag: string }
+  | { kind: "error"; reason: string; status?: number };
 
 /**
  * Factory function that creates an appropriate VersionSource instance from a config object.
@@ -65,27 +65,31 @@ export type VersionSourceResult =
  * @returns VersionSource implementation
  * @throws Error for unknown source types
  */
-export function createVersionSource(config: VersionSourceConfig): VersionSource {
+export function createVersionSource(
+  config: VersionSourceConfig,
+): VersionSource {
   switch (config.type) {
-    case 'github':
+    case "github":
       return new GitHubReleasesSource(config);
-    case 'npm':
+    case "npm":
       return new NpmRegistrySource(config);
-    case 'jsr':
+    case "jsr":
       return new JsrSource(config);
-    case 'brew':
+    case "brew":
       return new BrewSource(config);
-    case 'custom':
+    case "custom":
       return new CustomManifestSource(config);
     default:
-      throw new Error(`Unknown version source type: ${(config as { type: string }).type}`);
+      throw new Error(
+        `Unknown version source type: ${(config as { type: string }).type}`,
+      );
   }
 }
 
 export type {
-  GitHubSourceConfig,
-  NpmSourceConfig,
-  JsrSourceConfig,
   BrewSourceConfig,
   CustomManifestSourceConfig,
-} from '../../config.js';
+  GitHubSourceConfig,
+  JsrSourceConfig,
+  NpmSourceConfig,
+} from "../../config.js";

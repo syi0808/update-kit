@@ -1,15 +1,15 @@
+import type { AssetInfo } from "../checker/sources/index.js";
+import type { ResolvedUpdateKitConfig } from "../config.js";
 import type {
   Channel,
   Confidence,
+  DelegateMode,
   InstallDetection,
-  UpdateStatus,
   PlanKind,
   PostAction,
   UpdatePlan,
-  DelegateMode,
-} from '../types.js';
-import type { ResolvedUpdateKitConfig } from '../config.js';
-import type { AssetInfo } from '../checker/sources/index.js';
+  UpdateStatus,
+} from "../types.js";
 
 /**
  * Create an update plan based on version status, installation detection, and configuration.
@@ -23,7 +23,7 @@ export function planUpdate(
   config: ResolvedUpdateKitConfig,
   assets?: AssetInfo[],
 ): UpdatePlan | null {
-  if (status.kind !== 'available') {
+  if (status.kind !== "available") {
     return null;
   }
 
@@ -68,23 +68,24 @@ function resolvePlanKind(
   assets?: AssetInfo[],
 ): PlanKind {
   switch (channel) {
-    case 'native':
+    case "native":
       return resolveNativeChannel(confidence, config, assets);
 
-    case 'unmanaged':
+    case "unmanaged":
       return resolveUnmanagedChannel(confidence, config, assets);
 
-    case 'npm-global':
+    case "npm-global":
       return resolveNpmChannel(confidence, toVersion, config);
 
-    case 'brew-cask':
+    case "brew-cask":
       return resolveBrewChannel(confidence, toVersion, config);
 
     default:
       return {
-        type: 'manual-install',
+        type: "manual-install",
         reason: `Unknown install channel: ${channel}`,
-        instructions: 'Please update manually using your original installation method.',
+        instructions:
+          "Please update manually using your original installation method.",
       };
   }
 }
@@ -98,11 +99,11 @@ function resolveNativeChannel(
   config: ResolvedUpdateKitConfig,
   assets?: AssetInfo[],
 ): PlanKind {
-  if (confidence === 'low') {
+  if (confidence === "low") {
     return {
-      type: 'manual-install',
-      reason: 'Low confidence in native channel detection.',
-      instructions: 'Please download and install the update manually.',
+      type: "manual-install",
+      reason: "Low confidence in native channel detection.",
+      instructions: "Please download and install the update manually.",
       downloadUrl: assets?.[0]?.url,
     };
   }
@@ -115,11 +116,12 @@ function resolveUnmanagedChannel(
   config: ResolvedUpdateKitConfig,
   assets?: AssetInfo[],
 ): PlanKind {
-  if (confidence === 'none') {
+  if (confidence === "none") {
     return {
-      type: 'manual-install',
-      reason: 'Unable to detect installation method.',
-      instructions: 'Please reinstall using your preferred installation method.',
+      type: "manual-install",
+      reason: "Unable to detect installation method.",
+      instructions:
+        "Please reinstall using your preferred installation method.",
     };
   }
 
@@ -131,21 +133,21 @@ function resolveNpmChannel(
   toVersion: string,
   config: ResolvedUpdateKitConfig,
 ): PlanKind {
-  if (confidence === 'low') {
+  if (confidence === "low") {
     return {
-      type: 'manual-install',
-      reason: 'Low confidence in npm-global detection.',
+      type: "manual-install",
+      reason: "Low confidence in npm-global detection.",
       instructions: `Please update manually: npm install -g ${config.npmPackageName ?? config.appName}`,
     };
   }
 
   const packageName = config.npmPackageName ?? config.appName;
-  const mode: DelegateMode = config.delegateMode ?? 'print-only';
+  const mode: DelegateMode = config.delegateMode ?? "print-only";
 
   return {
-    type: 'delegate-command',
-    channel: 'npm-global',
-    command: ['npm', 'install', '-g', `${packageName}@${toVersion}`],
+    type: "delegate-command",
+    channel: "npm-global",
+    command: ["npm", "install", "-g", `${packageName}@${toVersion}`],
     mode,
   };
 }
@@ -155,21 +157,21 @@ function resolveBrewChannel(
   toVersion: string,
   config: ResolvedUpdateKitConfig,
 ): PlanKind {
-  if (confidence === 'low') {
+  if (confidence === "low") {
     return {
-      type: 'manual-install',
-      reason: 'Low confidence in brew-cask detection.',
+      type: "manual-install",
+      reason: "Low confidence in brew-cask detection.",
       instructions: `Please update manually: brew upgrade --cask ${config.brewCaskName ?? config.appName}`,
     };
   }
 
   const caskName = config.brewCaskName ?? config.appName;
-  const mode: DelegateMode = config.delegateMode ?? 'print-only';
+  const mode: DelegateMode = config.delegateMode ?? "print-only";
 
   return {
-    type: 'delegate-command',
-    channel: 'brew-cask',
-    command: ['brew', 'upgrade', '--cask', caskName],
+    type: "delegate-command",
+    channel: "brew-cask",
+    command: ["brew", "upgrade", "--cask", caskName],
     mode,
   };
 }
@@ -184,9 +186,10 @@ function resolveNativeInPlace(
 ): PlanKind {
   if (!assets || assets.length === 0) {
     return {
-      type: 'manual-install',
-      reason: 'No release assets available.',
-      instructions: 'Please check the project website for installation instructions.',
+      type: "manual-install",
+      reason: "No release assets available.",
+      instructions:
+        "Please check the project website for installation instructions.",
     };
   }
 
@@ -194,15 +197,16 @@ function resolveNativeInPlace(
 
   if (!selected) {
     return {
-      type: 'manual-install',
+      type: "manual-install",
       reason: `No compatible asset found for ${process.platform}/${process.arch}.`,
-      instructions: 'Please download and install the update manually for your platform.',
+      instructions:
+        "Please download and install the update manually for your platform.",
       downloadUrl: assets[0]?.url,
     };
   }
 
   return {
-    type: 'native-in-place',
+    type: "native-in-place",
     downloadUrl: selected.url,
     checksumUrl: selected.checksumUrl,
   };
@@ -218,17 +222,17 @@ function resolvePostAction(
   config: ResolvedUpdateKitConfig,
 ): PostAction {
   switch (kind.type) {
-    case 'native-in-place':
-      if (confidence === 'high' && config.allowReexec === true) {
-        return 'reexec';
+    case "native-in-place":
+      if (confidence === "high" && config.allowReexec === true) {
+        return "reexec";
       }
-      return 'suggest-restart';
+      return "suggest-restart";
 
-    case 'delegate-command':
-      return 'exit-after-apply';
+    case "delegate-command":
+      return "exit-after-apply";
 
-    case 'manual-install':
-      return 'none';
+    case "manual-install":
+      return "none";
   }
 }
 
@@ -253,7 +257,12 @@ export function selectAsset(
 
   // Priority 1: user-defined placeholder pattern
   if (config.assetPattern) {
-    const regex = expandAssetPattern(config.assetPattern, config, platform, arch);
+    const regex = expandAssetPattern(
+      config.assetPattern,
+      config,
+      platform,
+      arch,
+    );
     const match = assets.find((a) => regex.test(a.name));
     if (match) return match;
   }
@@ -280,28 +289,30 @@ export function expandAssetPattern(
   arch: string,
 ): RegExp {
   if (pattern.length > 256) {
-    throw new Error(`Asset pattern is too long (${pattern.length} chars, max 256)`);
+    throw new Error(
+      `Asset pattern is too long (${pattern.length} chars, max 256)`,
+    );
   }
 
-  const platformGroup = getPlatformAliases(platform).join('|');
-  const archGroup = getArchAliases(arch).join('|');
+  const platformGroup = getPlatformAliases(platform).join("|");
+  const archGroup = getArchAliases(arch).join("|");
   const targetGroup = `(${platformGroup})[_-](${archGroup})`;
 
-  let expanded = pattern
+  const expanded = pattern
     .replace(/[.+?^${}()|[\]\\]/g, (ch) => {
       // Don't escape our own placeholder braces
-      if (ch === '{' || ch === '}') return ch;
+      if (ch === "{" || ch === "}") return ch;
       return `\\${ch}`;
     })
     .replace(/\{app\}/g, escapeRegex(config.appName))
-    .replace(/\{version\}/g, '[\\w.+-]+')
+    .replace(/\{version\}/g, "[\\w.+-]+")
     .replace(/\{target\}/g, targetGroup)
     .replace(/\{platform\}/g, `(${platformGroup})`)
     .replace(/\{arch\}/g, `(${archGroup})`)
-    .replace(/\{ext\}/g, '(tar\\.gz|tgz|zip|gz|dmg|exe|msi|deb|rpm|pkg)');
+    .replace(/\{ext\}/g, "(tar\\.gz|tgz|zip|gz|dmg|exe|msi|deb|rpm|pkg)");
 
   try {
-    return new RegExp(`^${expanded}$`, 'i');
+    return new RegExp(`^${expanded}$`, "i");
   } catch (error) {
     throw new Error(
       `Invalid asset pattern "${pattern}": ${error instanceof Error ? error.message : String(error)}`,
@@ -320,7 +331,9 @@ function autoMatchAsset(
   return (
     assets.find((asset) => {
       const name = asset.name.toLowerCase();
-      const matchesPlatform = platformAliases.some((alias) => name.includes(alias));
+      const matchesPlatform = platformAliases.some((alias) =>
+        name.includes(alias),
+      );
       const matchesArch = archAliases.some((alias) => name.includes(alias));
       return matchesPlatform && matchesArch;
     }) ?? null
@@ -329,12 +342,12 @@ function autoMatchAsset(
 
 export function getPlatformAliases(platform: string): string[] {
   switch (platform) {
-    case 'darwin':
-      return ['darwin', 'macos', 'mac', 'osx', 'apple'];
-    case 'linux':
-      return ['linux'];
-    case 'win32':
-      return ['win32', 'windows', 'win64'];
+    case "darwin":
+      return ["darwin", "macos", "mac", "osx", "apple"];
+    case "linux":
+      return ["linux"];
+    case "win32":
+      return ["win32", "windows", "win64"];
     default:
       return [platform];
   }
@@ -342,17 +355,17 @@ export function getPlatformAliases(platform: string): string[] {
 
 export function getArchAliases(arch: string): string[] {
   switch (arch) {
-    case 'x64':
-      return ['x64', 'x86_64', 'amd64'];
-    case 'arm64':
-      return ['arm64', 'aarch64'];
-    case 'ia32':
-      return ['ia32', 'x86', 'i386', 'i686'];
+    case "x64":
+      return ["x64", "x86_64", "amd64"];
+    case "arm64":
+      return ["arm64", "aarch64"];
+    case "ia32":
+      return ["ia32", "x86", "i386", "i686"];
     default:
       return [arch];
   }
 }
 
 function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

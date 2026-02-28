@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 
-import { UpdateKit } from './index.js';
-import type { UpdateKitConfig, UpdateKitExplicitConfig, VersionSourceConfig } from './config.js';
-import { readCache, clearCache } from './checker/cache.js';
-import { getDefaultCacheDir } from './platform/paths.js';
-import { runDoctor } from './doctor.js';
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { clearCache, readCache } from "./checker/cache.js";
+import type {
+  UpdateKitConfig,
+  UpdateKitExplicitConfig,
+  VersionSourceConfig,
+} from "./config.js";
+import { runDoctor } from "./doctor.js";
+import { UpdateKit } from "./index.js";
+import { getDefaultCacheDir } from "./platform/paths.js";
 
 // ─── Arg Parsing ───
 
@@ -18,17 +22,16 @@ interface ParsedArgs {
 
 function parseArgs(argv: string[]): ParsedArgs {
   const args = argv.slice(2);
-  const command = args[0] && !args[0].startsWith('--') ? args[0] : 'help';
-  const subcommand =
-    args[1] && !args[1].startsWith('--') ? args[1] : undefined;
+  const command = args[0] && !args[0].startsWith("--") ? args[0] : "help";
+  const subcommand = args[1] && !args[1].startsWith("--") ? args[1] : undefined;
 
   const flags: Record<string, string | boolean> = {};
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg.startsWith('--')) {
+    if (arg.startsWith("--")) {
       const key = arg.slice(2);
       const next = args[i + 1];
-      if (next && !next.startsWith('--')) {
+      if (next && !next.startsWith("--")) {
         flags[key] = next;
         i++;
       } else {
@@ -45,7 +48,7 @@ function parseArgs(argv: string[]): ParsedArgs {
 function loadConfig(configPath?: string): UpdateKitExplicitConfig {
   const resolvedPath = configPath
     ? resolve(configPath)
-    : resolve(process.cwd(), 'update-kit.config.json');
+    : resolve(process.cwd(), "update-kit.config.json");
 
   if (!existsSync(resolvedPath)) {
     console.error(`Config file not found: ${resolvedPath}`);
@@ -54,7 +57,7 @@ function loadConfig(configPath?: string): UpdateKitExplicitConfig {
 
   let raw: string;
   try {
-    raw = readFileSync(resolvedPath, 'utf-8');
+    raw = readFileSync(resolvedPath, "utf-8");
   } catch (error) {
     console.error(
       `Failed to read config file: ${resolvedPath}\n${error instanceof Error ? error.message : String(error)}`,
@@ -72,63 +75,75 @@ function loadConfig(configPath?: string): UpdateKitExplicitConfig {
     process.exit(1);
   }
 
-  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     console.error(`Config must be a JSON object: ${resolvedPath}`);
     process.exit(1);
   }
 
   const obj = parsed as Record<string, unknown>;
 
-  if (typeof obj['appName'] !== 'string' || obj['appName'].length === 0) {
-    console.error(`Config missing required field "appName" (string): ${resolvedPath}`);
+  if (typeof obj["appName"] !== "string" || obj["appName"].length === 0) {
+    console.error(
+      `Config missing required field "appName" (string): ${resolvedPath}`,
+    );
     process.exit(1);
   }
 
-  if (typeof obj['currentVersion'] !== 'string' || obj['currentVersion'].length === 0) {
-    console.error(`Config missing required field "currentVersion" (string): ${resolvedPath}`);
+  if (
+    typeof obj["currentVersion"] !== "string" ||
+    obj["currentVersion"].length === 0
+  ) {
+    console.error(
+      `Config missing required field "currentVersion" (string): ${resolvedPath}`,
+    );
     process.exit(1);
   }
 
   const result: UpdateKitExplicitConfig = {
-    appName: obj['appName'] as string,
-    currentVersion: obj['currentVersion'] as string,
+    appName: obj["appName"] as string,
+    currentVersion: obj["currentVersion"] as string,
   };
 
-  if (typeof obj['checkInterval'] === 'number') {
-    result.checkInterval = obj['checkInterval'];
+  if (typeof obj["checkInterval"] === "number") {
+    result.checkInterval = obj["checkInterval"];
   }
-  if (obj['delegateMode'] === 'print-only' || obj['delegateMode'] === 'execute') {
-    result.delegateMode = obj['delegateMode'];
-  }
-  if (typeof obj['npmPackageName'] === 'string') {
-    result.npmPackageName = obj['npmPackageName'];
-  }
-  if (typeof obj['brewCaskName'] === 'string') {
-    result.brewCaskName = obj['brewCaskName'];
-  }
-  if (typeof obj['executablePath'] === 'string') {
-    result.executablePath = obj['executablePath'];
-  }
-  if (typeof obj['cacheDir'] === 'string') {
-    result.cacheDir = obj['cacheDir'];
-  }
-  if (typeof obj['assetPattern'] === 'string') {
-    result.assetPattern = obj['assetPattern'];
-  }
-  if (typeof obj['allowReexec'] === 'boolean') {
-    result.allowReexec = obj['allowReexec'];
-  }
-  if (typeof obj['repository'] === 'string') {
-    result.repository = obj['repository'];
-  } else if (
-    typeof obj['repository'] === 'object' &&
-    obj['repository'] !== null &&
-    typeof (obj['repository'] as Record<string, unknown>)['url'] === 'string'
+  if (
+    obj["delegateMode"] === "print-only" ||
+    obj["delegateMode"] === "execute"
   ) {
-    result.repository = { url: (obj['repository'] as Record<string, unknown>)['url'] as string };
+    result.delegateMode = obj["delegateMode"];
   }
-  if (Array.isArray(obj['sources'])) {
-    result.sources = obj['sources'] as VersionSourceConfig[];
+  if (typeof obj["npmPackageName"] === "string") {
+    result.npmPackageName = obj["npmPackageName"];
+  }
+  if (typeof obj["brewCaskName"] === "string") {
+    result.brewCaskName = obj["brewCaskName"];
+  }
+  if (typeof obj["executablePath"] === "string") {
+    result.executablePath = obj["executablePath"];
+  }
+  if (typeof obj["cacheDir"] === "string") {
+    result.cacheDir = obj["cacheDir"];
+  }
+  if (typeof obj["assetPattern"] === "string") {
+    result.assetPattern = obj["assetPattern"];
+  }
+  if (typeof obj["allowReexec"] === "boolean") {
+    result.allowReexec = obj["allowReexec"];
+  }
+  if (typeof obj["repository"] === "string") {
+    result.repository = obj["repository"];
+  } else if (
+    typeof obj["repository"] === "object" &&
+    obj["repository"] !== null &&
+    typeof (obj["repository"] as Record<string, unknown>)["url"] === "string"
+  ) {
+    result.repository = {
+      url: (obj["repository"] as Record<string, unknown>)["url"] as string,
+    };
+  }
+  if (Array.isArray(obj["sources"])) {
+    result.sources = obj["sources"] as VersionSourceConfig[];
   }
 
   return result;
@@ -144,7 +159,7 @@ async function handleDetect(kit: UpdateKit, isJson: boolean): Promise<void> {
   } else {
     console.log(`Channel:    ${detection.channel}`);
     console.log(`Confidence: ${detection.confidence}`);
-    console.log('Evidence:');
+    console.log("Evidence:");
     for (const e of detection.evidence) {
       console.log(`  - [${e.source}] ${e.detail}`);
     }
@@ -156,27 +171,27 @@ async function handleCheck(
   flags: Record<string, string | boolean>,
   isJson: boolean,
 ): Promise<void> {
-  if (flags['background']) {
-    kit.checkUpdate('non-blocking');
-    console.log('Background check started');
+  if (flags["background"]) {
+    kit.checkUpdate("non-blocking");
+    console.log("Background check started");
     return;
   }
 
-  const mode = flags['blocking'] ? 'blocking' : 'non-blocking';
-  const status = await kit.checkUpdate(mode as 'blocking' | 'non-blocking');
+  const mode = flags["blocking"] ? "blocking" : "non-blocking";
+  const status = await kit.checkUpdate(mode as "blocking" | "non-blocking");
 
   if (isJson) {
     console.log(JSON.stringify(status, null, 2));
   } else {
     switch (status.kind) {
-      case 'available':
+      case "available":
         console.log(`Update available: ${status.current} → ${status.latest}`);
         if (status.releaseUrl) console.log(`Release: ${status.releaseUrl}`);
         break;
-      case 'up-to-date':
+      case "up-to-date":
         console.log(`Up to date: ${status.current}`);
         break;
-      case 'unknown':
+      case "unknown":
         console.log(`Unable to check: ${status.reason}`);
         break;
     }
@@ -185,13 +200,13 @@ async function handleCheck(
 
 async function handlePlan(kit: UpdateKit, isJson: boolean): Promise<void> {
   const detection = await kit.detectInstall();
-  const status = await kit.checkUpdate('blocking');
+  const status = await kit.checkUpdate("blocking");
 
-  if (status.kind !== 'available') {
+  if (status.kind !== "available") {
     console.log(
       isJson
-        ? JSON.stringify({ message: 'No update available' })
-        : 'No update available',
+        ? JSON.stringify({ message: "No update available" })
+        : "No update available",
     );
     return;
   }
@@ -201,8 +216,8 @@ async function handlePlan(kit: UpdateKit, isJson: boolean): Promise<void> {
   if (!plan) {
     console.log(
       isJson
-        ? JSON.stringify({ message: 'No plan could be created' })
-        : 'No plan could be created',
+        ? JSON.stringify({ message: "No plan could be created" })
+        : "No plan could be created",
     );
     return;
   }
@@ -213,16 +228,13 @@ async function handlePlan(kit: UpdateKit, isJson: boolean): Promise<void> {
     console.log(`Plan: ${plan.kind.type}`);
     console.log(`From: ${plan.fromVersion} → To: ${plan.toVersion}`);
     console.log(`Post action: ${plan.postAction}`);
-    if (plan.kind.type === 'delegate-command') {
-      console.log(`Command: ${plan.kind.command.join(' ')}`);
+    if (plan.kind.type === "delegate-command") {
+      console.log(`Command: ${plan.kind.command.join(" ")}`);
     }
   }
 }
 
-async function handleApply(
-  kit: UpdateKit,
-  isJson: boolean,
-): Promise<void> {
+async function handleApply(kit: UpdateKit, isJson: boolean): Promise<void> {
   const result = await kit.autoUpdate();
 
   if (isJson) {
@@ -235,13 +247,13 @@ async function handleApply(
     );
   } else {
     switch (result.kind) {
-      case 'success':
+      case "success":
         console.log(`Updated: ${result.fromVersion} → ${result.toVersion}`);
         break;
-      case 'needs-restart':
+      case "needs-restart":
         console.log(result.message);
         break;
-      case 'failed':
+      case "failed":
         console.error(`Update failed: ${result.error.message}`);
         process.exit(1);
     }
@@ -256,10 +268,12 @@ async function handleCache(
   const cacheDir = config.cacheDir ?? getDefaultCacheDir();
 
   switch (subcommand) {
-    case 'show': {
+    case "show": {
       const entry = await readCache(cacheDir, config.appName);
       if (!entry) {
-        console.log(isJson ? JSON.stringify({ cache: null }) : 'No cache found');
+        console.log(
+          isJson ? JSON.stringify({ cache: null }) : "No cache found",
+        );
         return;
       }
       console.log(
@@ -269,15 +283,13 @@ async function handleCache(
       );
       break;
     }
-    case 'clear': {
+    case "clear": {
       await clearCache(cacheDir, config.appName);
-      console.log(
-        isJson ? JSON.stringify({ cleared: true }) : 'Cache cleared',
-      );
+      console.log(isJson ? JSON.stringify({ cleared: true }) : "Cache cleared");
       break;
     }
     default:
-      console.error('Usage: update-kit cache <show|clear>');
+      console.error("Usage: update-kit cache <show|clear>");
       process.exit(1);
   }
 }
@@ -286,9 +298,10 @@ async function handleDoctor(
   flags: Record<string, string | boolean>,
   isJson: boolean,
 ): Promise<void> {
-  const configPath = typeof flags['config'] === 'string'
-    ? resolve(flags['config'])
-    : resolve(process.cwd(), 'update-kit.config.json');
+  const configPath =
+    typeof flags["config"] === "string"
+      ? resolve(flags["config"])
+      : resolve(process.cwd(), "update-kit.config.json");
 
   const report = await runDoctor(configPath, { cwd: process.cwd() });
 
@@ -299,18 +312,18 @@ async function handleDoctor(
 
   for (const check of report.checks) {
     const icon =
-      check.status === 'pass'
-        ? 'PASS'
-        : check.status === 'fail'
-          ? 'FAIL'
-          : check.status === 'warn'
-            ? 'WARN'
-            : 'SKIP';
+      check.status === "pass"
+        ? "PASS"
+        : check.status === "fail"
+          ? "FAIL"
+          : check.status === "warn"
+            ? "WARN"
+            : "SKIP";
     console.log(`  [${icon}] ${check.name}: ${check.message}`);
     if (check.details) {
       for (const [key, value] of Object.entries(check.details)) {
         const display =
-          typeof value === 'object' ? JSON.stringify(value) : String(value);
+          typeof value === "object" ? JSON.stringify(value) : String(value);
         console.log(`         ${key}: ${display}`);
       }
     }
@@ -321,7 +334,7 @@ async function handleDoctor(
   if (report.summary.failed > 0) parts.push(`${report.summary.failed} failed`);
   if (report.summary.warnings > 0)
     parts.push(`${report.summary.warnings} warnings`);
-  console.log(`  Summary: ${parts.join(', ')}`);
+  console.log(`  Summary: ${parts.join(", ")}`);
 
   if (report.summary.failed > 0) {
     process.exit(1);
@@ -358,44 +371,44 @@ Options:
 async function main(): Promise<void> {
   const { command, subcommand, flags } = parseArgs(process.argv);
 
-  if (flags['help'] || command === 'help') {
+  if (flags["help"] || command === "help") {
     printUsage();
     return;
   }
 
-  const isJson = flags['json'] === true;
+  const isJson = flags["json"] === true;
 
-  if (command === 'doctor') {
+  if (command === "doctor") {
     await handleDoctor(flags, isJson);
     return;
   }
 
-  const config = loadConfig(flags['config'] as string | undefined);
+  const config = loadConfig(flags["config"] as string | undefined);
 
-  if (command === 'cache') {
+  if (command === "cache") {
     await handleCache(subcommand, config, isJson);
     return;
   }
 
   // For apply --execute, override delegateMode in config
   const effectiveConfig =
-    command === 'apply' && flags['execute']
-      ? { ...config, delegateMode: 'execute' as const }
+    command === "apply" && flags["execute"]
+      ? { ...config, delegateMode: "execute" as const }
       : config;
 
   const kit = new UpdateKit(effectiveConfig);
 
   switch (command) {
-    case 'detect':
+    case "detect":
       await handleDetect(kit, isJson);
       break;
-    case 'check':
+    case "check":
       await handleCheck(kit, flags, isJson);
       break;
-    case 'plan':
+    case "plan":
       await handlePlan(kit, isJson);
       break;
-    case 'apply':
+    case "apply":
       await handleApply(kit, isJson);
       break;
     default:

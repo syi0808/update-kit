@@ -1,15 +1,12 @@
-import type { InstallDetection, Evidence } from '../types.js';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { lstat, readlink } from 'node:fs/promises';
+import { execFile } from "node:child_process";
+import { lstat, readlink } from "node:fs/promises";
+import { promisify } from "node:util";
+import type { Evidence, InstallDetection } from "../types.js";
 
 const execFileAsync = promisify(execFile);
 
 /** npm global install path patterns */
-const NPM_PATH_PATTERNS = [
-  'node_modules/.bin/',
-  '/lib/node_modules/',
-];
+const NPM_PATH_PATTERNS = ["node_modules/.bin/", "/lib/node_modules/"];
 
 /**
  * Detect install channel from npm global install indicators.
@@ -28,18 +25,18 @@ export async function detectFromNpm(
 
   if (matchedPattern) {
     evidence.push({
-      source: 'path_pattern',
+      source: "path_pattern",
       detail: `Exec path matches npm pattern: ${matchedPattern}`,
     });
   }
 
   // 2. npm prefix -g comparison
   try {
-    const { stdout } = await execFileAsync('npm', ['prefix', '-g']);
+    const { stdout } = await execFileAsync("npm", ["prefix", "-g"]);
     const globalPrefix = stdout.trim();
     if (execPath.startsWith(globalPrefix)) {
       evidence.push({
-        source: 'npm_prefix',
+        source: "npm_prefix",
         detail: `Exec path is under npm global prefix: ${globalPrefix}`,
       });
     }
@@ -52,9 +49,9 @@ export async function detectFromNpm(
     const stats = await lstat(execPath);
     if (stats.isSymbolicLink()) {
       const target = await readlink(execPath);
-      if (target.includes('node_modules')) {
+      if (target.includes("node_modules")) {
         evidence.push({
-          source: 'symlink',
+          source: "symlink",
           detail: `Symlink target includes node_modules: ${target}`,
         });
       }
@@ -67,10 +64,10 @@ export async function detectFromNpm(
     return null;
   }
 
-  const confidence = evidence.length >= 2 ? 'high' : 'medium';
+  const confidence = evidence.length >= 2 ? "high" : "medium";
 
   return {
-    channel: 'npm-global',
+    channel: "npm-global",
     confidence,
     evidence,
   };

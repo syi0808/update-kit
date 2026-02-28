@@ -1,6 +1,6 @@
-import type { VersionSourceResult } from './index.js';
-import { fetchWithTimeout } from '../../utils/http.js';
-import { DEFAULT_SOURCE_TIMEOUT_MS } from '../../constants.js';
+import { DEFAULT_SOURCE_TIMEOUT_MS } from "../../constants.js";
+import { fetchWithTimeout } from "../../utils/http.js";
+import type { VersionSourceResult } from "./index.js";
 
 export interface FetchOptions {
   etag?: string;
@@ -14,9 +14,9 @@ export interface SourceFetchConfig {
 }
 
 export type SourceFetchResult =
-  | { kind: 'not-modified'; etag: string }
-  | { kind: 'response'; response: Response; etag: string | undefined }
-  | { kind: 'error'; reason: string; status?: number };
+  | { kind: "not-modified"; etag: string }
+  | { kind: "response"; response: Response; etag: string | undefined }
+  | { kind: "error"; reason: string; status?: number };
 
 /**
  * Shared fetch helper that handles ETag/304 logic for all version sources.
@@ -30,7 +30,7 @@ export async function fetchWithEtag(
   const headers: Record<string, string> = { ...config.headers };
 
   if (options?.etag) {
-    headers['If-None-Match'] = options.etag;
+    headers["If-None-Match"] = options.etag;
   }
 
   try {
@@ -41,22 +41,22 @@ export async function fetchWithEtag(
     });
 
     if (response.status === 304 && options?.etag) {
-      return { kind: 'not-modified', etag: options.etag };
+      return { kind: "not-modified", etag: options.etag };
     }
 
     if (!response.ok) {
       return {
-        kind: 'error',
+        kind: "error",
         reason: `HTTP ${response.status} ${response.statusText}`,
         status: response.status,
       };
     }
 
-    const etag = response.headers.get('etag') ?? undefined;
-    return { kind: 'response', response, etag };
+    const etag = response.headers.get("etag") ?? undefined;
+    return { kind: "response", response, etag };
   } catch (error) {
     return {
-      kind: 'error',
+      kind: "error",
       reason: error instanceof Error ? error.message : String(error),
     };
   }

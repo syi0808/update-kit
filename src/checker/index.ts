@@ -1,10 +1,15 @@
-import semver from 'semver';
-import type { CheckMode, UpdateStatus } from '../types.js';
-import type { AssetInfo, VersionSource } from './sources/index.js';
-import type { CacheEntry } from './cache.js';
-import { readCache, writeCache, isCacheStale, createCacheEntry } from './cache.js';
-import { spawnBackgroundCheck } from './background.js';
-import { DEFAULT_CHECK_INTERVAL_MS } from '../constants.js';
+import semver from "semver";
+import { DEFAULT_CHECK_INTERVAL_MS } from "../constants.js";
+import type { CheckMode, UpdateStatus } from "../types.js";
+import { spawnBackgroundCheck } from "./background.js";
+import type { CacheEntry } from "./cache.js";
+import {
+  createCacheEntry,
+  isCacheStale,
+  readCache,
+  writeCache,
+} from "./cache.js";
+import type { AssetInfo, VersionSource } from "./sources/index.js";
 
 /** Options for the version checker. */
 export interface CheckUpdateOptions {
@@ -35,7 +40,7 @@ export async function checkUpdate(
 ): Promise<UpdateStatus> {
   const interval = config.checkInterval ?? DEFAULT_INTERVAL;
 
-  if (mode === 'non-blocking') {
+  if (mode === "non-blocking") {
     return checkNonBlocking(config, interval);
   }
 
@@ -54,7 +59,7 @@ async function checkBlocking(
     const result = await source.fetchLatest({ etag });
 
     switch (result.kind) {
-      case 'not-modified': {
+      case "not-modified": {
         if (cached) {
           const updatedEntry: CacheEntry = {
             ...cached,
@@ -71,20 +76,30 @@ async function checkBlocking(
         // implies a server bug (304 without If-None-Match). Try next source.
         continue;
       }
-      case 'found': {
-        const entry = createCacheEntry(result.info.version, currentVersion, source.name, {
-          etag: result.etag,
-          releaseUrl: result.info.releaseUrl,
-          releaseNotes: result.info.releaseNotes,
-        });
+      case "found": {
+        const entry = createCacheEntry(
+          result.info.version,
+          currentVersion,
+          source.name,
+          {
+            etag: result.etag,
+            releaseUrl: result.info.releaseUrl,
+            releaseNotes: result.info.releaseNotes,
+          },
+        );
         try {
           await writeCache(cacheDir, appName, entry);
         } catch {
           // Cache write failure is non-fatal for blocking checks
         }
-        return buildStatus(currentVersion, result.info.version, entry, result.info.assets);
+        return buildStatus(
+          currentVersion,
+          result.info.version,
+          entry,
+          result.info.assets,
+        );
       }
-      case 'error': {
+      case "error": {
         if (isRateLimitResult(result)) {
           if (cached) {
             return buildStatus(currentVersion, cached.latestVersion, cached);
@@ -101,8 +116,8 @@ async function checkBlocking(
   }
 
   return {
-    kind: 'unknown',
-    reason: 'All version sources failed and no cache is available',
+    kind: "unknown",
+    reason: "All version sources failed and no cache is available",
   };
 }
 
@@ -124,8 +139,8 @@ async function checkNonBlocking(
   }
 
   return {
-    kind: 'unknown',
-    reason: 'No cache available; background check started',
+    kind: "unknown",
+    reason: "No cache available; background check started",
   };
 }
 
@@ -140,7 +155,7 @@ function buildStatus(
 
   if (!current || !latest) {
     return {
-      kind: 'unknown',
+      kind: "unknown",
       reason: `Unable to parse versions: current="${currentVersion}", latest="${latestVersion}"`,
       cachedLatest: latestVersion,
     };
@@ -148,7 +163,7 @@ function buildStatus(
 
   if (semver.gt(latest, current)) {
     return {
-      kind: 'available',
+      kind: "available",
       current: currentVersion,
       latest: latestVersion,
       releaseUrl: entry?.releaseUrl,
@@ -158,7 +173,7 @@ function buildStatus(
   }
 
   return {
-    kind: 'up-to-date',
+    kind: "up-to-date",
     current: currentVersion,
   };
 }
@@ -179,6 +194,10 @@ export function normalizeVersion(version: string): string | null {
   return coerced ? coerced.version : null;
 }
 
-function isRateLimitResult(result: { kind: 'error'; reason: string; status?: number }): boolean {
+function isRateLimitResult(result: {
+  kind: "error";
+  reason: string;
+  status?: number;
+}): boolean {
   return result.status === 429 || result.status === 403;
 }

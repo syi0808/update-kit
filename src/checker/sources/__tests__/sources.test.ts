@@ -1,36 +1,36 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { createVersionSource } from '../index.js';
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createVersionSource } from "../index.js";
 
 // Mock global fetch
 const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+vi.stubGlobal("fetch", mockFetch);
 
 afterEach(() => {
   vi.resetAllMocks();
 });
 
-describe('GitHubReleasesSource', () => {
+describe("GitHubReleasesSource", () => {
   const source = createVersionSource({
-    type: 'github',
-    owner: 'example',
-    repo: 'my-cli',
+    type: "github",
+    owner: "example",
+    repo: "my-cli",
   });
 
-  it('returns the latest release version', async () => {
+  it("returns the latest release version", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
       headers: new Headers({ etag: '"abc123"' }),
       json: async () => ({
-        tag_name: 'v2.1.0',
-        html_url: 'https://github.com/example/my-cli/releases/tag/v2.1.0',
-        body: '## Changes\n- Bug fix',
-        published_at: '2024-01-15T00:00:00Z',
+        tag_name: "v2.1.0",
+        html_url: "https://github.com/example/my-cli/releases/tag/v2.1.0",
+        body: "## Changes\n- Bug fix",
+        published_at: "2024-01-15T00:00:00Z",
         assets: [
           {
-            name: 'my-cli-2.1.0-linux-x64.tar.gz',
+            name: "my-cli-2.1.0-linux-x64.tar.gz",
             browser_download_url:
-              'https://github.com/example/my-cli/releases/download/v2.1.0/my-cli-2.1.0-linux-x64.tar.gz',
+              "https://github.com/example/my-cli/releases/download/v2.1.0/my-cli-2.1.0-linux-x64.tar.gz",
             size: 10485760,
           },
         ],
@@ -38,15 +38,15 @@ describe('GitHubReleasesSource', () => {
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('found');
-    if (result.kind === 'found') {
-      expect(result.info.version).toBe('2.1.0'); // v prefix stripped
+    expect(result.kind).toBe("found");
+    if (result.kind === "found") {
+      expect(result.info.version).toBe("2.1.0"); // v prefix stripped
       expect(result.info.assets).toHaveLength(1);
       expect(result.etag).toBe('"abc123"');
     }
   });
 
-  it('returns not-modified when ETag matches', async () => {
+  it("returns not-modified when ETag matches", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 304,
@@ -54,37 +54,37 @@ describe('GitHubReleasesSource', () => {
     });
 
     const result = await source.fetchLatest({ etag: '"abc123"' });
-    expect(result.kind).toBe('not-modified');
+    expect(result.kind).toBe("not-modified");
   });
 
-  it('returns error on rate limit', async () => {
+  it("returns error on rate limit", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 403,
-      statusText: 'Forbidden',
+      statusText: "Forbidden",
       headers: new Headers(),
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('error');
+    expect(result.kind).toBe("error");
   });
 
-  it('returns error on network failure', async () => {
-    mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+  it("returns error on network failure", async () => {
+    mockFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('error');
-    if (result.kind === 'error') {
-      expect(result.reason).toContain('Failed to fetch');
+    expect(result.kind).toBe("error");
+    if (result.kind === "error") {
+      expect(result.reason).toContain("Failed to fetch");
     }
   });
 
-  it('sends Authorization header when token is provided', async () => {
+  it("sends Authorization header when token is provided", async () => {
     const authedSource = createVersionSource({
-      type: 'github',
-      owner: 'example',
-      repo: 'my-cli',
-      token: 'ghp_test123',
+      type: "github",
+      owner: "example",
+      repo: "my-cli",
+      token: "ghp_test123",
     });
 
     mockFetch.mockResolvedValueOnce({
@@ -92,8 +92,8 @@ describe('GitHubReleasesSource', () => {
       status: 200,
       headers: new Headers(),
       json: async () => ({
-        tag_name: 'v1.0.0',
-        html_url: 'https://github.com/example/my-cli/releases/tag/v1.0.0',
+        tag_name: "v1.0.0",
+        html_url: "https://github.com/example/my-cli/releases/tag/v1.0.0",
         assets: [],
       }),
     });
@@ -104,20 +104,20 @@ describe('GitHubReleasesSource', () => {
       expect.any(String),
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: 'Bearer ghp_test123',
+          Authorization: "Bearer ghp_test123",
         }),
       }),
     );
   });
 
-  it('forwards AbortSignal', async () => {
+  it("forwards AbortSignal", async () => {
     const controller = new AbortController();
 
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
       headers: new Headers(),
-      json: async () => ({ tag_name: 'v1.0.0', assets: [] }),
+      json: async () => ({ tag_name: "v1.0.0", assets: [] }),
     });
 
     await source.fetchLatest({ signal: controller.signal });
@@ -130,27 +130,28 @@ describe('GitHubReleasesSource', () => {
     );
   });
 
-  it('filters out assets with non-HTTPS URLs', async () => {
+  it("filters out assets with non-HTTPS URLs", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
       headers: new Headers(),
       json: async () => ({
-        tag_name: 'v2.0.0',
+        tag_name: "v2.0.0",
         assets: [
           {
-            name: 'safe.tar.gz',
-            browser_download_url: 'https://github.com/example/my-cli/releases/download/v2.0.0/safe.tar.gz',
+            name: "safe.tar.gz",
+            browser_download_url:
+              "https://github.com/example/my-cli/releases/download/v2.0.0/safe.tar.gz",
             size: 1000,
           },
           {
-            name: 'unsafe.tar.gz',
-            browser_download_url: 'http://malicious.example.com/unsafe.tar.gz',
+            name: "unsafe.tar.gz",
+            browser_download_url: "http://malicious.example.com/unsafe.tar.gz",
             size: 2000,
           },
           {
-            name: 'invalid.tar.gz',
-            browser_download_url: 'not-a-url',
+            name: "invalid.tar.gz",
+            browser_download_url: "not-a-url",
             size: 500,
           },
         ],
@@ -158,39 +159,41 @@ describe('GitHubReleasesSource', () => {
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('found');
-    if (result.kind === 'found') {
+    expect(result.kind).toBe("found");
+    if (result.kind === "found") {
       expect(result.info.assets).toHaveLength(1);
-      expect(result.info.assets![0].name).toBe('safe.tar.gz');
+      expect(result.info.assets![0].name).toBe("safe.tar.gz");
     }
   });
 });
 
-describe('NpmRegistrySource', () => {
+describe("NpmRegistrySource", () => {
   const source = createVersionSource({
-    type: 'npm',
-    packageName: 'my-cli',
+    type: "npm",
+    packageName: "my-cli",
   });
 
-  it('returns the latest version from npm registry', async () => {
+  it("returns the latest version from npm registry", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
       headers: new Headers(),
       json: async () => ({
-        version: '3.0.0',
+        version: "3.0.0",
       }),
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('found');
-    if (result.kind === 'found') {
-      expect(result.info.version).toBe('3.0.0');
-      expect(result.info.releaseUrl).toBe('https://www.npmjs.com/package/my-cli');
+    expect(result.kind).toBe("found");
+    if (result.kind === "found") {
+      expect(result.info.version).toBe("3.0.0");
+      expect(result.info.releaseUrl).toBe(
+        "https://www.npmjs.com/package/my-cli",
+      );
     }
   });
 
-  it('returns error for non-existent package', async () => {
+  it("returns error for non-existent package", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 404,
@@ -198,13 +201,13 @@ describe('NpmRegistrySource', () => {
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('error');
-    if (result.kind === 'error') {
-      expect(result.reason).toContain('my-cli');
+    expect(result.kind).toBe("error");
+    if (result.kind === "error") {
+      expect(result.reason).toContain("my-cli");
     }
   });
 
-  it('returns not-modified when ETag matches', async () => {
+  it("returns not-modified when ETag matches", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 304,
@@ -212,81 +215,81 @@ describe('NpmRegistrySource', () => {
     });
 
     const result = await source.fetchLatest({ etag: '"npm-etag"' });
-    expect(result.kind).toBe('not-modified');
+    expect(result.kind).toBe("not-modified");
   });
 
-  it('uses custom registry URL', async () => {
+  it("uses custom registry URL", async () => {
     const customSource = createVersionSource({
-      type: 'npm',
-      packageName: 'my-cli',
-      registryUrl: 'https://custom.registry.example.com',
+      type: "npm",
+      packageName: "my-cli",
+      registryUrl: "https://custom.registry.example.com",
     });
 
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
       headers: new Headers(),
-      json: async () => ({ version: '1.0.0' }),
+      json: async () => ({ version: "1.0.0" }),
     });
 
     await customSource.fetchLatest();
 
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://custom.registry.example.com/my-cli/latest',
+      "https://custom.registry.example.com/my-cli/latest",
       expect.any(Object),
     );
   });
 });
 
-describe('JsrSource', () => {
+describe("JsrSource", () => {
   const source = createVersionSource({
-    type: 'jsr',
-    scope: 'std',
-    name: 'path',
+    type: "jsr",
+    scope: "std",
+    name: "path",
   });
 
-  it('returns the latest version from JSR', async () => {
+  it("returns the latest version from JSR", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
       headers: new Headers({ etag: '"jsr-etag"' }),
       json: async () => ({
-        latest: '0.220.0',
+        latest: "0.220.0",
         versions: {
-          '0.219.0': {},
-          '0.220.0': { createdAt: '2024-01-15T00:00:00Z' },
+          "0.219.0": {},
+          "0.220.0": { createdAt: "2024-01-15T00:00:00Z" },
         },
       }),
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('found');
-    if (result.kind === 'found') {
-      expect(result.info.version).toBe('0.220.0');
-      expect(result.info.releaseUrl).toBe('https://jsr.io/@std/path');
-      expect(result.info.publishedAt).toBe('2024-01-15T00:00:00Z');
+    expect(result.kind).toBe("found");
+    if (result.kind === "found") {
+      expect(result.info.version).toBe("0.220.0");
+      expect(result.info.releaseUrl).toBe("https://jsr.io/@std/path");
+      expect(result.info.publishedAt).toBe("2024-01-15T00:00:00Z");
       expect(result.etag).toBe('"jsr-etag"');
     }
   });
 
-  it('falls back to last version key when latest field is missing', async () => {
+  it("falls back to last version key when latest field is missing", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
       headers: new Headers(),
       json: async () => ({
-        versions: { '0.1.0': {}, '0.2.0': {} },
+        versions: { "0.1.0": {}, "0.2.0": {} },
       }),
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('found');
-    if (result.kind === 'found') {
-      expect(result.info.version).toBe('0.2.0');
+    expect(result.kind).toBe("found");
+    if (result.kind === "found") {
+      expect(result.info.version).toBe("0.2.0");
     }
   });
 
-  it('returns error when no version is available', async () => {
+  it("returns error when no version is available", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
@@ -295,10 +298,10 @@ describe('JsrSource', () => {
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('error');
+    expect(result.kind).toBe("error");
   });
 
-  it('returns error for non-existent package', async () => {
+  it("returns error for non-existent package", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 404,
@@ -306,39 +309,39 @@ describe('JsrSource', () => {
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('error');
-    if (result.kind === 'error') {
-      expect(result.reason).toContain('@std/path');
+    expect(result.kind).toBe("error");
+    if (result.kind === "error") {
+      expect(result.reason).toContain("@std/path");
     }
   });
 });
 
-describe('BrewSource', () => {
+describe("BrewSource", () => {
   const source = createVersionSource({
-    type: 'brew',
-    caskName: 'my-app',
+    type: "brew",
+    caskName: "my-app",
   });
 
-  it('returns the latest version from Homebrew', async () => {
+  it("returns the latest version from Homebrew", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
       headers: new Headers(),
       json: async () => ({
-        version: '4.2.0',
-        homepage: 'https://example.com/my-app',
+        version: "4.2.0",
+        homepage: "https://example.com/my-app",
       }),
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('found');
-    if (result.kind === 'found') {
-      expect(result.info.version).toBe('4.2.0');
-      expect(result.info.releaseUrl).toBe('https://example.com/my-app');
+    expect(result.kind).toBe("found");
+    if (result.kind === "found") {
+      expect(result.info.version).toBe("4.2.0");
+      expect(result.info.releaseUrl).toBe("https://example.com/my-app");
     }
   });
 
-  it('returns error for non-existent cask', async () => {
+  it("returns error for non-existent cask", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 404,
@@ -346,13 +349,13 @@ describe('BrewSource', () => {
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('error');
-    if (result.kind === 'error') {
-      expect(result.reason).toContain('my-app');
+    expect(result.kind).toBe("error");
+    if (result.kind === "error") {
+      expect(result.reason).toContain("my-app");
     }
   });
 
-  it('returns not-modified when ETag matches', async () => {
+  it("returns not-modified when ETag matches", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 304,
@@ -360,25 +363,25 @@ describe('BrewSource', () => {
     });
 
     const result = await source.fetchLatest({ etag: '"brew-etag"' });
-    expect(result.kind).toBe('not-modified');
+    expect(result.kind).toBe("not-modified");
   });
 });
 
-describe('CustomManifestSource', () => {
-  it('rejects non-HTTPS URLs', () => {
+describe("CustomManifestSource", () => {
+  it("rejects non-HTTPS URLs", () => {
     expect(() =>
       createVersionSource({
-        type: 'custom',
-        url: 'http://example.com/manifest.json',
+        type: "custom",
+        url: "http://example.com/manifest.json",
       }),
-    ).toThrow('HTTPS');
+    ).toThrow("HTTPS");
   });
 
-  it('extracts version from nested path', async () => {
+  it("extracts version from nested path", async () => {
     const source = createVersionSource({
-      type: 'custom',
-      url: 'https://example.com/manifest.json',
-      versionField: 'data.latest.version',
+      type: "custom",
+      url: "https://example.com/manifest.json",
+      versionField: "data.latest.version",
     });
 
     mockFetch.mockResolvedValueOnce({
@@ -388,23 +391,23 @@ describe('CustomManifestSource', () => {
       json: async () => ({
         data: {
           latest: {
-            version: '1.5.0',
+            version: "1.5.0",
           },
         },
       }),
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('found');
-    if (result.kind === 'found') {
-      expect(result.info.version).toBe('1.5.0');
+    expect(result.kind).toBe("found");
+    if (result.kind === "found") {
+      expect(result.info.version).toBe("1.5.0");
     }
   });
 
   it('uses default "version" field when versionField is not specified', async () => {
     const source = createVersionSource({
-      type: 'custom',
-      url: 'https://example.com/manifest.json',
+      type: "custom",
+      url: "https://example.com/manifest.json",
     });
 
     mockFetch.mockResolvedValueOnce({
@@ -412,46 +415,46 @@ describe('CustomManifestSource', () => {
       status: 200,
       headers: new Headers(),
       json: async () => ({
-        version: '2.0.0',
-        releaseUrl: 'https://example.com/release',
-        releaseNotes: 'New features',
+        version: "2.0.0",
+        releaseUrl: "https://example.com/release",
+        releaseNotes: "New features",
       }),
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('found');
-    if (result.kind === 'found') {
-      expect(result.info.version).toBe('2.0.0');
-      expect(result.info.releaseUrl).toBe('https://example.com/release');
-      expect(result.info.releaseNotes).toBe('New features');
+    expect(result.kind).toBe("found");
+    if (result.kind === "found") {
+      expect(result.info.version).toBe("2.0.0");
+      expect(result.info.releaseUrl).toBe("https://example.com/release");
+      expect(result.info.releaseNotes).toBe("New features");
     }
   });
 
-  it('returns error when version field is not found', async () => {
+  it("returns error when version field is not found", async () => {
     const source = createVersionSource({
-      type: 'custom',
-      url: 'https://example.com/manifest.json',
-      versionField: 'nonexistent.path',
+      type: "custom",
+      url: "https://example.com/manifest.json",
+      versionField: "nonexistent.path",
     });
 
     mockFetch.mockResolvedValueOnce({
       ok: true,
       status: 200,
       headers: new Headers(),
-      json: async () => ({ other: 'data' }),
+      json: async () => ({ other: "data" }),
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('error');
-    if (result.kind === 'error') {
-      expect(result.reason).toContain('nonexistent.path');
+    expect(result.kind).toBe("error");
+    if (result.kind === "error") {
+      expect(result.reason).toContain("nonexistent.path");
     }
   });
 
-  it('returns error on HTTP failure', async () => {
+  it("returns error on HTTP failure", async () => {
     const source = createVersionSource({
-      type: 'custom',
-      url: 'https://example.com/manifest.json',
+      type: "custom",
+      url: "https://example.com/manifest.json",
     });
 
     mockFetch.mockResolvedValueOnce({
@@ -461,14 +464,14 @@ describe('CustomManifestSource', () => {
     });
 
     const result = await source.fetchLatest();
-    expect(result.kind).toBe('error');
+    expect(result.kind).toBe("error");
   });
 });
 
-describe('createVersionSource', () => {
-  it('throws for unknown source type', () => {
-    expect(() =>
-      createVersionSource({ type: 'unknown' as any }),
-    ).toThrow('Unknown version source type');
+describe("createVersionSource", () => {
+  it("throws for unknown source type", () => {
+    expect(() => createVersionSource({ type: "unknown" as any })).toThrow(
+      "Unknown version source type",
+    );
   });
 });

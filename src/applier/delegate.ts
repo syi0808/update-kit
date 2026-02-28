@@ -1,28 +1,30 @@
-import { spawn } from 'node:child_process';
-
-import type { UpdatePlan, PostAction } from '../types.js';
-import type { DelegateApplyOptions, DelegateApplyResult } from './types.js';
+import { spawn } from "node:child_process";
 import {
-  UpdateKitError,
-  COMMAND_FAILED,
-  COMMAND_TIMEOUT,
+  DEFAULT_DELEGATE_TIMEOUT_MS,
+  MAX_COMMAND_OUTPUT_BYTES,
+} from "../constants.js";
+import {
   COMMAND_ABORTED,
+  COMMAND_FAILED,
   COMMAND_SPAWN_FAILED,
+  COMMAND_TIMEOUT,
   PERMISSION_DENIED,
-} from '../errors.js';
-import { DEFAULT_DELEGATE_TIMEOUT_MS, MAX_COMMAND_OUTPUT_BYTES } from '../constants.js';
+  UpdateKitError,
+} from "../errors.js";
+import type { PostAction, UpdatePlan } from "../types.js";
+import type { DelegateApplyOptions, DelegateApplyResult } from "./types.js";
 
 const ALLOWED_COMMANDS = new Set([
-  'npm',
-  'npx',
-  'brew',
-  'apt',
-  'apt-get',
-  'yum',
-  'dnf',
-  'choco',
-  'winget',
-  'scoop',
+  "npm",
+  "npx",
+  "brew",
+  "apt",
+  "apt-get",
+  "yum",
+  "dnf",
+  "choco",
+  "winget",
+  "scoop",
 ]);
 
 /**
@@ -35,7 +37,7 @@ export async function applyDelegateUpdate(
   plan: UpdatePlan,
   options: DelegateApplyOptions = {},
 ): Promise<DelegateApplyResult> {
-  if (plan.kind.type !== 'delegate-command') {
+  if (plan.kind.type !== "delegate-command") {
     throw new UpdateKitError(
       COMMAND_FAILED,
       `applyDelegateUpdate requires a delegate-command plan, got: ${plan.kind.type}`,
@@ -43,11 +45,11 @@ export async function applyDelegateUpdate(
   }
 
   const { command } = plan.kind;
-  const mode = options.mode ?? plan.kind.mode ?? 'print-only';
+  const mode = options.mode ?? plan.kind.mode ?? "print-only";
 
   validateCommand(command);
 
-  if (mode === 'print-only') {
+  if (mode === "print-only") {
     return applyPrintOnly(plan, command);
   }
 
@@ -56,14 +58,14 @@ export async function applyDelegateUpdate(
 
 function validateCommand(command: string[]): void {
   if (command.length === 0) {
-    throw new UpdateKitError(COMMAND_FAILED, 'Empty command.');
+    throw new UpdateKitError(COMMAND_FAILED, "Empty command.");
   }
 
   const baseCommand = command[0];
   if (!ALLOWED_COMMANDS.has(baseCommand)) {
     throw new UpdateKitError(
       COMMAND_FAILED,
-      `Disallowed command: ${baseCommand}. Allowed: ${[...ALLOWED_COMMANDS].join(', ')}`,
+      `Disallowed command: ${baseCommand}. Allowed: ${[...ALLOWED_COMMANDS].join(", ")}`,
     );
   }
 }
@@ -72,10 +74,10 @@ function applyPrintOnly(
   plan: UpdatePlan,
   command: string[],
 ): DelegateApplyResult {
-  const commandStr = command.join(' ');
+  const commandStr = command.join(" ");
 
   return {
-    kind: 'success',
+    kind: "success",
     fromVersion: plan.fromVersion,
     toVersion: plan.toVersion,
     postAction: plan.postAction,
@@ -94,16 +96,16 @@ async function applyExecute(
   const { onProgress, signal } = options;
 
   return new Promise((resolve, reject) => {
-    const commandStr = command.join(' ');
+    const commandStr = command.join(" ");
     const [cmd, ...args] = command;
 
     const child = spawn(cmd, args, {
-      stdio: ['ignore', 'pipe', 'pipe'],
-      shell: process.platform === 'win32',
+      stdio: ["ignore", "pipe", "pipe"],
+      shell: process.platform === "win32",
     });
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
     let settled = false;
 
     const settle = (fn: () => void) => {
@@ -114,7 +116,7 @@ async function applyExecute(
     };
 
     const timer = setTimeout(() => {
-      child.kill('SIGTERM');
+      child.kill("SIGTERM");
       settle(() =>
         reject(
           new UpdateKitError(
@@ -127,26 +129,23 @@ async function applyExecute(
 
     if (signal) {
       if (signal.aborted) {
-        child.kill('SIGTERM');
+        child.kill("SIGTERM");
         clearTimeout(timer);
         settle(() =>
           reject(
-            new UpdateKitError(COMMAND_ABORTED, 'Command execution aborted.'),
+            new UpdateKitError(COMMAND_ABORTED, "Command execution aborted."),
           ),
         );
         return;
       }
       signal.addEventListener(
-        'abort',
+        "abort",
         () => {
-          child.kill('SIGTERM');
+          child.kill("SIGTERM");
           clearTimeout(timer);
           settle(() =>
             reject(
-              new UpdateKitError(
-                COMMAND_ABORTED,
-                'Command execution aborted.',
-              ),
+              new UpdateKitError(COMMAND_ABORTED, "Command execution aborted."),
             ),
           );
         },
@@ -154,31 +153,31 @@ async function applyExecute(
       );
     }
 
-    child.stdout?.on('data', (chunk: Buffer) => {
+    child.stdout?.on("data", (chunk: Buffer) => {
       const text = chunk.toString();
       if (stdout.length < MAX_COMMAND_OUTPUT_BYTES) {
         stdout += text;
       }
       onProgress?.({
-        phase: 'executing',
+        phase: "executing",
         output: text,
-        stream: 'stdout',
+        stream: "stdout",
       });
     });
 
-    child.stderr?.on('data', (chunk: Buffer) => {
+    child.stderr?.on("data", (chunk: Buffer) => {
       const text = chunk.toString();
       if (stderr.length < MAX_COMMAND_OUTPUT_BYTES) {
         stderr += text;
       }
       onProgress?.({
-        phase: 'executing',
+        phase: "executing",
         output: text,
-        stream: 'stderr',
+        stream: "stderr",
       });
     });
 
-    child.on('close', (exitCode) => {
+    child.on("close", (exitCode) => {
       clearTimeout(timer);
       settle(() => {
         try {
@@ -197,7 +196,7 @@ async function applyExecute(
       });
     });
 
-    child.on('error', (error) => {
+    child.on("error", (error) => {
       clearTimeout(timer);
       settle(() =>
         reject(
@@ -219,11 +218,11 @@ function normalizeResult(
   plan: UpdatePlan,
   postAction: PostAction,
 ): DelegateApplyResult {
-  const commandStr = command.join(' ');
+  const commandStr = command.join(" ");
 
   if (exitCode === 0) {
     return {
-      kind: 'success',
+      kind: "success",
       postAction,
       fromVersion: plan.fromVersion,
       toVersion: plan.toVersion,
@@ -242,7 +241,7 @@ function normalizeResult(
 
   if (isBrewAlreadyInstalled(stdout, stderr)) {
     return {
-      kind: 'success',
+      kind: "success",
       postAction,
       fromVersion: plan.fromVersion,
       toVersion: plan.toVersion,
@@ -260,17 +259,17 @@ function normalizeResult(
 
 function isNpmPermissionError(stderr: string): boolean {
   return (
-    stderr.includes('EACCES') ||
-    stderr.includes('permission denied') ||
-    stderr.includes('Missing write access')
+    stderr.includes("EACCES") ||
+    stderr.includes("permission denied") ||
+    stderr.includes("Missing write access")
   );
 }
 
 function isBrewAlreadyInstalled(stdout: string, stderr: string): boolean {
   const combined = stdout + stderr;
   return (
-    combined.includes('already installed') ||
-    combined.includes('already up-to-date') ||
-    combined.includes('is already the latest version')
+    combined.includes("already installed") ||
+    combined.includes("already up-to-date") ||
+    combined.includes("is already the latest version")
   );
 }

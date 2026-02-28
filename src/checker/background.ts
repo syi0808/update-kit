@@ -1,6 +1,6 @@
-import type { VersionSource } from './sources/index.js';
-import { writeCache, createCacheEntry } from './cache.js';
-import { DEFAULT_BACKGROUND_TIMEOUT_MS } from '../constants.js';
+import { DEFAULT_BACKGROUND_TIMEOUT_MS } from "../constants.js";
+import { createCacheEntry, writeCache } from "./cache.js";
+import type { VersionSource } from "./sources/index.js";
 
 /** Configuration for background version check. */
 export interface BackgroundCheckConfig {
@@ -46,8 +46,8 @@ export function spawnBackgroundCheck(
   backgroundFetch(config, sources, controller.signal)
     .catch((error: unknown) => {
       callbacks?.onError?.(error);
-      if (process.env['UPDATE_KIT_DEBUG']) {
-        console.error('[update-kit] Background check failed:', error);
+      if (process.env["UPDATE_KIT_DEBUG"]) {
+        console.error("[update-kit] Background check failed:", error);
       }
     })
     .finally(() => {
@@ -68,14 +68,19 @@ async function backgroundFetch(
 
     const result = await source.fetchLatest({ signal });
 
-    if (result.kind === 'not-modified') return;
-    if (result.kind === 'error') continue;
+    if (result.kind === "not-modified") return;
+    if (result.kind === "error") continue;
 
-    const entry = createCacheEntry(result.info.version, currentVersion, source.name, {
-      etag: result.etag,
-      releaseUrl: result.info.releaseUrl,
-      releaseNotes: result.info.releaseNotes,
-    });
+    const entry = createCacheEntry(
+      result.info.version,
+      currentVersion,
+      source.name,
+      {
+        etag: result.etag,
+        releaseUrl: result.info.releaseUrl,
+        releaseNotes: result.info.releaseNotes,
+      },
+    );
     await writeCache(cacheDir, appName, entry);
     return;
   }

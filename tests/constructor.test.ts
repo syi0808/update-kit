@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { UpdateKit } from "../dist/index.mjs";
 
 describe("UpdateKit Constructor Validation", () => {
@@ -127,7 +127,10 @@ describe("UpdateKit.create() static factory", () => {
 
   it("throws when auto-detect fails and no identity info is provided", async () => {
     await expect(
-      UpdateKit.create({ sources: [] }, { moduleUrl: 'file:///nonexistent/path/index.js' }),
+      UpdateKit.create(
+        { sources: [] },
+        { moduleUrl: "file:///nonexistent/path/index.js" },
+      ),
     ).rejects.toThrow("auto-detect");
   });
 

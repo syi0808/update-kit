@@ -1,5 +1,9 @@
-export { applyNativeUpdate } from './native.js';
-export { applyDelegateUpdate } from './delegate.js';
-export type { ApplyOptions, DelegateApplyOptions, DelegateApplyResult } from './types.js';
-export { verifyChecksum, computeSha256 } from './verify.js';
-export type { ChecksumInfo } from './verify.js';
+export { applyDelegateUpdate } from "./delegate.js";
+export { applyNativeUpdate } from "./native.js";
+export type {
+  ApplyOptions,
+  DelegateApplyOptions,
+  DelegateApplyResult,
+} from "./types.js";
+export type { ChecksumInfo } from "./verify.js";
+export { computeSha256, verifyChecksum } from "./verify.js";

@@ -1,5 +1,5 @@
-import { UpdateKitError, NETWORK_ERROR } from '../errors.js';
-import { DEFAULT_FETCH_TIMEOUT_MS } from '../constants.js';
+import { DEFAULT_FETCH_TIMEOUT_MS } from "../constants.js";
+import { NETWORK_ERROR, UpdateKitError } from "../errors.js";
 
 export interface FetchWithTimeoutOptions extends RequestInit {
   timeoutMs?: number;
@@ -14,14 +14,18 @@ export async function fetchWithTimeout(
   url: string,
   options: FetchWithTimeoutOptions = {},
 ): Promise<Response> {
-  const { timeoutMs = DEFAULT_FETCH_TIMEOUT_MS, signal: externalSignal, ...fetchOptions } = options;
+  const {
+    timeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
+    signal: externalSignal,
+    ...fetchOptions
+  } = options;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   // Forward external abort to our controller
   const onExternalAbort = () => controller.abort();
-  externalSignal?.addEventListener('abort', onExternalAbort, { once: true });
+  externalSignal?.addEventListener("abort", onExternalAbort, { once: true });
 
   try {
     const response = await fetch(url, {
@@ -44,7 +48,7 @@ export async function fetchWithTimeout(
     throw error;
   } finally {
     clearTimeout(timeoutId);
-    externalSignal?.removeEventListener('abort', onExternalAbort);
+    externalSignal?.removeEventListener("abort", onExternalAbort);
   }
 }
 
@@ -58,16 +62,16 @@ export interface ProxyConfig {
  */
 export function getProxyConfig(url: string): ProxyConfig | undefined {
   const parsedUrl = new URL(url);
-  const noProxy = process.env['NO_PROXY'] || process.env['no_proxy'];
+  const noProxy = process.env["NO_PROXY"] || process.env["no_proxy"];
 
   if (noProxy && shouldBypassProxy(parsedUrl.hostname, noProxy)) {
     return undefined;
   }
 
   const proxyUrl =
-    parsedUrl.protocol === 'https:'
-      ? process.env['HTTPS_PROXY'] || process.env['https_proxy']
-      : process.env['HTTP_PROXY'] || process.env['http_proxy'];
+    parsedUrl.protocol === "https:"
+      ? process.env["HTTPS_PROXY"] || process.env["https_proxy"]
+      : process.env["HTTP_PROXY"] || process.env["http_proxy"];
 
   if (!proxyUrl) return undefined;
 
@@ -86,14 +90,14 @@ export function getProxyConfig(url: string): ProxyConfig | undefined {
  * Supports: wildcard '*', exact match, '.domain' suffix, bare domain suffix.
  */
 function shouldBypassProxy(hostname: string, noProxy: string): boolean {
-  const entries = noProxy.split(',').map((e) => e.trim().toLowerCase());
+  const entries = noProxy.split(",").map((e) => e.trim().toLowerCase());
   const host = hostname.toLowerCase();
 
   for (const entry of entries) {
-    if (entry === '*') return true;
+    if (entry === "*") return true;
     if (host === entry) return true;
-    if (entry.startsWith('.') && host.endsWith(entry)) return true;
-    if (!entry.startsWith('.') && host.endsWith(`.${entry}`)) return true;
+    if (entry.startsWith(".") && host.endsWith(entry)) return true;
+    if (!entry.startsWith(".") && host.endsWith(`.${entry}`)) return true;
   }
   return false;
 }

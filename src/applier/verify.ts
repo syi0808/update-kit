@@ -1,15 +1,15 @@
-import crypto from 'node:crypto';
-import { createReadStream } from 'node:fs';
+import crypto from "node:crypto";
+import { createReadStream } from "node:fs";
 import {
-  UpdateKitError,
+  CHECKSUM_FETCH_FAILED,
   CHECKSUM_MISMATCH,
   CHECKSUM_MISSING,
-  CHECKSUM_FETCH_FAILED,
   CHECKSUM_PARSE_FAILED,
   INSECURE_URL,
-} from '../errors.js';
-import { fetchWithTimeout } from '../utils/http.js';
-import { timingSafeEqual } from '../utils/security.js';
+  UpdateKitError,
+} from "../errors.js";
+import { fetchWithTimeout } from "../utils/http.js";
+import { timingSafeEqual } from "../utils/security.js";
 
 /** Source of the expected checksum. Maps directly to PlanKind fields. */
 export interface ChecksumInfo {
@@ -36,7 +36,7 @@ export async function verifyChecksum(
   if (checksumInfo.expectedChecksum) {
     expectedHash = checksumInfo.expectedChecksum.toLowerCase();
   } else if (checksumInfo.checksumUrl) {
-    const filename = options?.filename ?? 'artifact';
+    const filename = options?.filename ?? "artifact";
     expectedHash = await fetchChecksumFromUrl(
       checksumInfo.checksumUrl,
       filename,
@@ -45,7 +45,7 @@ export async function verifyChecksum(
   } else {
     throw new UpdateKitError(
       CHECKSUM_MISSING,
-      'No checksum provided. Use skipChecksum option or provide a checksum.',
+      "No checksum provided. Use skipChecksum option or provide a checksum.",
     );
   }
 
@@ -62,12 +62,12 @@ export async function verifyChecksum(
 /** Compute the SHA-256 hash of a file using streaming. */
 export async function computeSha256(filePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const hash = crypto.createHash('sha256');
+    const hash = crypto.createHash("sha256");
     const stream = createReadStream(filePath);
 
-    stream.on('data', (chunk) => hash.update(chunk));
-    stream.on('end', () => resolve(hash.digest('hex')));
-    stream.on('error', (err) => {
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+    stream.on("error", (err) => {
       stream.destroy();
       reject(err);
     });
@@ -86,14 +86,17 @@ export async function fetchChecksumFromUrl(
   filename: string,
   signal?: AbortSignal,
 ): Promise<string> {
-  if (!checksumUrl.startsWith('https://')) {
+  if (!checksumUrl.startsWith("https://")) {
     throw new UpdateKitError(
       INSECURE_URL,
-      'HTTPS is required for checksum URL.',
+      "HTTPS is required for checksum URL.",
     );
   }
 
-  const response = await fetchWithTimeout(checksumUrl, { signal, timeoutMs: 30_000 });
+  const response = await fetchWithTimeout(checksumUrl, {
+    signal,
+    timeoutMs: 30_000,
+  });
 
   if (!response.ok) {
     throw new UpdateKitError(
@@ -103,7 +106,7 @@ export async function fetchChecksumFromUrl(
   }
 
   const text = await response.text();
-  const lines = text.trim().split('\n');
+  const lines = text.trim().split("\n");
 
   for (const line of lines) {
     // "sha256hash  filename" or "sha256hash filename" format

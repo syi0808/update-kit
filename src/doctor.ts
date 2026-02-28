@@ -1,21 +1,21 @@
-import type { VersionSourceConfig, ResolvedUpdateKitConfig } from './config.js';
-import type { Channel } from './types.js';
-import { createVersionSource } from './checker/sources/index.js';
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { normalizeVersion } from "./checker/index.js";
 import {
   inferSourceConfigs,
   orderSourcesByChannel,
   parseGitHubRepository,
-} from './checker/infer-sources.js';
-import { detectInstall } from './detection/index.js';
-import { findPackageJson } from './utils/package-json.js';
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { normalizeVersion } from './checker/index.js';
+} from "./checker/infer-sources.js";
+import { createVersionSource } from "./checker/sources/index.js";
+import type { ResolvedUpdateKitConfig, VersionSourceConfig } from "./config.js";
+import { detectInstall } from "./detection/index.js";
+import type { Channel } from "./types.js";
+import { findPackageJson } from "./utils/package-json.js";
 
 /** Result of a single diagnostic check */
 export interface DiagnosticCheck {
   name: string;
-  status: 'pass' | 'fail' | 'warn' | 'skip';
+  status: "pass" | "fail" | "warn" | "skip";
   message: string;
   details?: Record<string, unknown>;
 }
@@ -85,8 +85,8 @@ function checkConfigFile(configPath: string): {
   if (!existsSync(fullPath)) {
     return {
       check: {
-        name: 'Config file',
-        status: 'fail',
+        name: "Config file",
+        status: "fail",
         message: `Not found: ${fullPath}`,
       },
       config: null,
@@ -95,23 +95,23 @@ function checkConfigFile(configPath: string): {
 
   let raw: unknown;
   try {
-    raw = JSON.parse(readFileSync(fullPath, 'utf-8'));
+    raw = JSON.parse(readFileSync(fullPath, "utf-8"));
   } catch {
     return {
       check: {
-        name: 'Config file',
-        status: 'fail',
+        name: "Config file",
+        status: "fail",
         message: `Invalid JSON: ${fullPath}`,
       },
       config: null,
     };
   }
 
-  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     return {
       check: {
-        name: 'Config file',
-        status: 'fail',
+        name: "Config file",
+        status: "fail",
         message: `Config must be a JSON object: ${fullPath}`,
       },
       config: null,
@@ -121,11 +121,11 @@ function checkConfigFile(configPath: string): {
   const obj = raw as Record<string, unknown>;
   const issues: string[] = [];
 
-  if (!obj.appName || typeof obj.appName !== 'string') {
-    issues.push('missing appName');
+  if (!obj.appName || typeof obj.appName !== "string") {
+    issues.push("missing appName");
   }
-  if (!obj.currentVersion || typeof obj.currentVersion !== 'string') {
-    issues.push('missing currentVersion');
+  if (!obj.currentVersion || typeof obj.currentVersion !== "string") {
+    issues.push("missing currentVersion");
   } else if (!normalizeVersion(obj.currentVersion as string)) {
     issues.push(`invalid semver: ${obj.currentVersion}`);
   }
@@ -133,9 +133,9 @@ function checkConfigFile(configPath: string): {
   if (issues.length > 0) {
     return {
       check: {
-        name: 'Config file',
-        status: 'fail',
-        message: `Validation errors: ${issues.join(', ')}`,
+        name: "Config file",
+        status: "fail",
+        message: `Validation errors: ${issues.join(", ")}`,
         details: { path: fullPath },
       },
       config: null,
@@ -146,23 +146,29 @@ function checkConfigFile(configPath: string): {
   const config: ResolvedUpdateKitConfig = {
     appName: obj.appName as string,
     currentVersion: obj.currentVersion as string,
-    checkInterval: typeof obj.checkInterval === 'number' ? obj.checkInterval : 72_000_000,
+    checkInterval:
+      typeof obj.checkInterval === "number" ? obj.checkInterval : 72_000_000,
     delegateMode:
-      obj.delegateMode === 'print-only' || obj.delegateMode === 'execute'
+      obj.delegateMode === "print-only" || obj.delegateMode === "execute"
         ? obj.delegateMode
-        : 'print-only',
-    allowReexec: typeof obj.allowReexec === 'boolean' ? obj.allowReexec : false,
-    sources: Array.isArray(obj.sources) ? (obj.sources as VersionSourceConfig[]) : undefined,
-    npmPackageName: typeof obj.npmPackageName === 'string' ? obj.npmPackageName : undefined,
-    brewCaskName: typeof obj.brewCaskName === 'string' ? obj.brewCaskName : undefined,
+        : "print-only",
+    allowReexec: typeof obj.allowReexec === "boolean" ? obj.allowReexec : false,
+    sources: Array.isArray(obj.sources)
+      ? (obj.sources as VersionSourceConfig[])
+      : undefined,
+    npmPackageName:
+      typeof obj.npmPackageName === "string" ? obj.npmPackageName : undefined,
+    brewCaskName:
+      typeof obj.brewCaskName === "string" ? obj.brewCaskName : undefined,
     repository: parseRepositoryField(obj.repository),
-    executablePath: typeof obj.executablePath === 'string' ? obj.executablePath : undefined,
+    executablePath:
+      typeof obj.executablePath === "string" ? obj.executablePath : undefined,
   };
 
   return {
     check: {
-      name: 'Config file',
-      status: 'pass',
+      name: "Config file",
+      status: "pass",
       message: `Loaded: ${fullPath}`,
       details: {
         appName: config.appName,
@@ -174,15 +180,13 @@ function checkConfigFile(configPath: string): {
   };
 }
 
-async function checkPackageJson(
-  cwd: string,
-): Promise<DiagnosticCheck> {
+async function checkPackageJson(cwd: string): Promise<DiagnosticCheck> {
   const result = await findPackageJson(cwd);
   if (!result) {
     return {
-      name: 'Package.json',
-      status: 'warn',
-      message: 'Not found in current directory tree',
+      name: "Package.json",
+      status: "warn",
+      message: "Not found in current directory tree",
     };
   }
 
@@ -202,24 +206,28 @@ async function checkPackageJson(
       details.githubOwner = github.owner;
       details.githubRepo = github.repo;
     } else {
-      warnings.push('repository is not a GitHub URL (GitHub source cannot be auto-inferred)');
+      warnings.push(
+        "repository is not a GitHub URL (GitHub source cannot be auto-inferred)",
+      );
     }
   } else {
-    warnings.push('no repository field (GitHub source cannot be auto-inferred)');
+    warnings.push(
+      "no repository field (GitHub source cannot be auto-inferred)",
+    );
   }
 
   if (warnings.length > 0) {
     return {
-      name: 'Package.json',
-      status: 'warn',
-      message: warnings.join('; '),
+      name: "Package.json",
+      status: "warn",
+      message: warnings.join("; "),
       details,
     };
   }
 
   return {
-    name: 'Package.json',
-    status: 'pass',
+    name: "Package.json",
+    status: "pass",
     message: `${result.name}@${result.version}`,
     details,
   };
@@ -235,10 +243,10 @@ function checkSourceResolution(
     const sources = config.sources ?? [];
     const types = sources.map((s) => s.type);
     return {
-      name: 'Sources',
-      status: 'pass',
-      message: `Explicit: ${types.join(', ')}`,
-      details: { mode: 'explicit', sources },
+      name: "Sources",
+      status: "pass",
+      message: `Explicit: ${types.join(", ")}`,
+      details: { mode: "explicit", sources },
     };
   }
 
@@ -251,18 +259,18 @@ function checkSourceResolution(
   const inferred = inferSourceConfigs(effectiveConfig);
   if (inferred.length === 0) {
     return {
-      name: 'Sources',
-      status: 'fail',
-      message: 'No sources could be inferred and none were configured',
+      name: "Sources",
+      status: "fail",
+      message: "No sources could be inferred and none were configured",
     };
   }
 
   const types = inferred.map((s) => s.type);
   return {
-    name: 'Sources',
-    status: 'pass',
-    message: `Auto-inferred: ${types.join(', ')}`,
-    details: { mode: 'inferred', sources: inferred },
+    name: "Sources",
+    status: "pass",
+    message: `Auto-inferred: ${types.join(", ")}`,
+    details: { mode: "inferred", sources: inferred },
   };
 }
 
@@ -273,8 +281,8 @@ async function checkDetection(
     const execPath = config.executablePath ?? process.argv[1];
     const detection = await detectInstall(execPath, config);
     return {
-      name: 'Detection',
-      status: 'pass',
+      name: "Detection",
+      status: "pass",
       message: `${detection.channel} (${detection.confidence})`,
       details: {
         channel: detection.channel,
@@ -284,8 +292,8 @@ async function checkDetection(
     };
   } catch (err) {
     return {
-      name: 'Detection',
-      status: 'fail',
+      name: "Detection",
+      status: "fail",
       message: `Detection failed: ${err instanceof Error ? err.message : String(err)}`,
     };
   }
@@ -315,9 +323,9 @@ async function checkSourceConnectivity(
   if (sourceConfigs.length === 0) {
     return [
       {
-        name: 'Connectivity',
-        status: 'skip',
-        message: 'No sources to check',
+        name: "Connectivity",
+        status: "skip",
+        message: "No sources to check",
       },
     ];
   }
@@ -345,26 +353,26 @@ async function checkSingleSource(
       clearTimeout(timeout);
 
       switch (result.kind) {
-        case 'found':
+        case "found":
           return {
             name: label,
-            status: 'pass',
+            status: "pass",
             message: `v${result.info.version}`,
             details: {
               version: result.info.version,
               releaseUrl: result.info.releaseUrl,
             },
           };
-        case 'not-modified':
+        case "not-modified":
           return {
             name: label,
-            status: 'pass',
-            message: 'Reachable (not-modified)',
+            status: "pass",
+            message: "Reachable (not-modified)",
           };
-        case 'error':
+        case "error":
           return {
             name: label,
-            status: 'fail',
+            status: "fail",
             message: result.reason,
           };
       }
@@ -374,7 +382,7 @@ async function checkSingleSource(
   } catch (err) {
     return {
       name: label,
-      status: 'fail',
+      status: "fail",
       message: err instanceof Error ? err.message : String(err),
     };
   }
@@ -383,10 +391,10 @@ async function checkSingleSource(
 function parseRepositoryField(
   value: unknown,
 ): string | { url: string } | undefined {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'object' && value !== null) {
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && value !== null) {
     const url = (value as Record<string, unknown>).url;
-    if (typeof url === 'string') return { url };
+    if (typeof url === "string") return { url };
   }
   return undefined;
 }
@@ -394,10 +402,10 @@ function parseRepositoryField(
 function buildReport(checks: DiagnosticCheck[]): DoctorReport {
   const summary = {
     total: checks.length,
-    passed: checks.filter((c) => c.status === 'pass').length,
-    failed: checks.filter((c) => c.status === 'fail').length,
-    warnings: checks.filter((c) => c.status === 'warn').length,
-    skipped: checks.filter((c) => c.status === 'skip').length,
+    passed: checks.filter((c) => c.status === "pass").length,
+    failed: checks.filter((c) => c.status === "fail").length,
+    warnings: checks.filter((c) => c.status === "warn").length,
+    skipped: checks.filter((c) => c.status === "skip").length,
   };
 
   return { checks, summary };

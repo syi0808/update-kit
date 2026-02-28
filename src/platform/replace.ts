@@ -1,5 +1,5 @@
-import fs from 'node:fs/promises';
-import { UpdateKitError, PERMISSION_DENIED, APPLY_FAILED } from '../errors.js';
+import fs from "node:fs/promises";
+import { APPLY_FAILED, PERMISSION_DENIED, UpdateKitError } from "../errors.js";
 
 /**
  * Atomically replace the target binary with a new file.
@@ -22,7 +22,7 @@ export async function atomicReplace(
     );
   }
 
-  if (process.platform === 'win32') {
+  if (process.platform === "win32") {
     await windowsReplace(newPath, targetPath);
   } else {
     await unixReplace(newPath, targetPath);
@@ -47,8 +47,11 @@ async function unixReplace(newPath: string, targetPath: string): Promise<void> {
   }
 }
 
-async function windowsReplace(newPath: string, targetPath: string): Promise<void> {
-  const backupPath = targetPath + '.old';
+async function windowsReplace(
+  newPath: string,
+  targetPath: string,
+): Promise<void> {
+  const backupPath = targetPath + ".old";
 
   // Clean up previous backup
   try {

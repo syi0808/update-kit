@@ -1,5 +1,8 @@
-import type { VersionSourceConfig, ResolvedUpdateKitConfig } from '../config.js';
-import type { Channel } from '../types.js';
+import type {
+  ResolvedUpdateKitConfig,
+  VersionSourceConfig,
+} from "../config.js";
+import type { Channel } from "../types.js";
 
 /**
  * Parse a GitHub repository field into owner/repo.
@@ -19,7 +22,7 @@ export function parseGitHubRepository(
 ): { owner: string; repo: string } | null {
   if (!repository) return null;
 
-  const url = typeof repository === 'string' ? repository : repository.url;
+  const url = typeof repository === "string" ? repository : repository.url;
   if (!url) return null;
 
   // Handle "github:owner/repo" shorthand
@@ -29,7 +32,9 @@ export function parseGitHubRepository(
   }
 
   // Handle full GitHub URLs (https, git+https, git://, ssh)
-  const urlMatch = url.match(/github\.com[/:]([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/|$)/);
+  const urlMatch = url.match(
+    /github\.com[/:]([\w.-]+)\/([\w.-]+?)(?:\.git)?(?:\/|$)/,
+  );
   if (urlMatch) {
     return { owner: urlMatch[1], repo: urlMatch[2] };
   }
@@ -39,13 +44,13 @@ export function parseGitHubRepository(
 
 /** Channel-based source type priority */
 const CHANNEL_PRIORITY: Record<string, string[]> = {
-  'npm-global': ['npm', 'github', 'brew'],
-  'brew-cask': ['brew', 'github', 'npm'],
-  native: ['github', 'npm', 'brew'],
-  unmanaged: ['github', 'npm', 'brew'],
+  "npm-global": ["npm", "github", "brew"],
+  "brew-cask": ["brew", "github", "npm"],
+  native: ["github", "npm", "brew"],
+  unmanaged: ["github", "npm", "brew"],
 };
 
-const DEFAULT_PRIORITY = ['npm', 'github', 'brew'];
+const DEFAULT_PRIORITY = ["npm", "github", "brew"];
 
 /**
  * Infer version source configs from the resolved config.
@@ -62,7 +67,7 @@ export function inferSourceConfigs(
 
   // npm source — always available since appName is required
   sources.push({
-    type: 'npm',
+    type: "npm",
     packageName: config.npmPackageName ?? config.appName,
   });
 
@@ -70,7 +75,7 @@ export function inferSourceConfigs(
   const github = parseGitHubRepository(config.repository);
   if (github) {
     sources.push({
-      type: 'github',
+      type: "github",
       owner: github.owner,
       repo: github.repo,
     });
@@ -79,7 +84,7 @@ export function inferSourceConfigs(
   // brew source — only if brewCaskName is explicitly set
   if (config.brewCaskName) {
     sources.push({
-      type: 'brew',
+      type: "brew",
       caskName: config.brewCaskName,
     });
   }

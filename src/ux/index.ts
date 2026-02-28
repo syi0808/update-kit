@@ -1,14 +1,19 @@
-import type { UpdateStatus, InstallDetection, ApplyProgress, ApplyResult } from '../types.js';
-import type { MessageTemplates } from './templates.js';
-import { defaultTemplates } from './templates.js';
-import { bold, green, yellow, red } from './colors.js';
+import type {
+  ApplyProgress,
+  ApplyResult,
+  InstallDetection,
+  UpdateStatus,
+} from "../types.js";
+import { bold, green, red, yellow } from "./colors.js";
+import type { MessageTemplates } from "./templates.js";
+import { defaultTemplates } from "./templates.js";
 
 export function renderBanner(
   status: UpdateStatus,
   detection: InstallDetection,
   config?: Partial<MessageTemplates>,
 ): string | null {
-  if (status.kind !== 'available') return null;
+  if (status.kind !== "available") return null;
 
   const templates = { ...defaultTemplates, ...config };
   const command = resolveUpdateCommand(detection);
@@ -25,26 +30,31 @@ export function renderBanner(
 }
 
 export function renderProgress(progress: ApplyProgress): string {
-  if (progress.phase === 'downloading') {
+  if (progress.phase === "downloading") {
     const pct = progress.totalBytes
       ? progress.bytesDownloaded / progress.totalBytes
       : undefined;
-    return defaultTemplates.updateInProgress({ phase: 'downloading', progress: pct });
+    return defaultTemplates.updateInProgress({
+      phase: "downloading",
+      progress: pct,
+    });
   }
   return defaultTemplates.updateInProgress({ phase: progress.phase });
 }
 
 export function renderResult(result: ApplyResult): string {
-  if (result.kind === 'success') {
-    return green(defaultTemplates.updateSuccess({
-      version: result.toVersion,
-      postAction: result.postAction,
-    }));
+  if (result.kind === "success") {
+    return green(
+      defaultTemplates.updateSuccess({
+        version: result.toVersion,
+        postAction: result.postAction,
+      }),
+    );
   }
-  if (result.kind === 'up-to-date') {
+  if (result.kind === "up-to-date") {
     return green(`Already up to date (${result.current}).`);
   }
-  if (result.kind === 'needs-restart') {
+  if (result.kind === "needs-restart") {
     return yellow(result.message);
   }
   return red(defaultTemplates.updateFailed({ error: result.error.message }));
@@ -52,15 +62,23 @@ export function renderResult(result: ApplyResult): string {
 
 function resolveUpdateCommand(detection: InstallDetection): string | undefined {
   switch (detection.channel) {
-    case 'npm-global':
-      return 'npm update -g <package>';
-    case 'brew-cask':
-      return 'brew upgrade --cask <package>';
+    case "npm-global":
+      return "npm update -g <package>";
+    case "brew-cask":
+      return "brew upgrade --cask <package>";
     default:
       return undefined;
   }
 }
 
-export { defaultTemplates } from './templates.js';
-export type { MessageTemplates } from './templates.js';
-export { supportsColor, bold, red, green, yellow, dim, stripAnsi } from './colors.js';
+export {
+  bold,
+  dim,
+  green,
+  red,
+  stripAnsi,
+  supportsColor,
+  yellow,
+} from "./colors.js";
+export type { MessageTemplates } from "./templates.js";
+export { defaultTemplates } from "./templates.js";

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { InstallDetection, UpdateStatus } from "../dist/index.mjs";
 import { renderBanner, stripAnsi } from "../dist/index.mjs";
-import type { UpdateStatus, InstallDetection } from "../dist/index.mjs";
 
 let savedNoColor: string | undefined;
 

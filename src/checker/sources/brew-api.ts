@@ -1,11 +1,15 @@
-import type { VersionSource, VersionSourceResult, VersionInfo } from './index.js';
-import type { BrewSourceConfig } from '../../config.js';
-import { fetchWithEtag } from './base.js';
+import type { BrewSourceConfig } from "../../config.js";
+import { fetchWithEtag } from "./base.js";
+import type {
+  VersionInfo,
+  VersionSource,
+  VersionSourceResult,
+} from "./index.js";
 
-export type { BrewSourceConfig } from '../../config.js';
+export type { BrewSourceConfig } from "../../config.js";
 
 export class BrewSource implements VersionSource {
-  readonly name = 'brew';
+  readonly name = "brew";
   private readonly config: BrewSourceConfig;
 
   constructor(config: BrewSourceConfig) {
@@ -20,19 +24,23 @@ export class BrewSource implements VersionSource {
 
     const result = await fetchWithEtag({ url }, options);
 
-    if (result.kind !== 'response') {
-      if (result.kind === 'error' && result.status === 404) {
-        return { kind: 'error', reason: `Homebrew cask not found: ${this.config.caskName}`, status: 404 };
+    if (result.kind !== "response") {
+      if (result.kind === "error" && result.status === 404) {
+        return {
+          kind: "error",
+          reason: `Homebrew cask not found: ${this.config.caskName}`,
+          status: 404,
+        };
       }
       return result;
     }
 
     const data = await result.response.json();
 
-    if (typeof data.version !== 'string' || !data.version) {
+    if (typeof data.version !== "string" || !data.version) {
       return {
-        kind: 'error',
-        reason: 'Homebrew API response missing version field',
+        kind: "error",
+        reason: "Homebrew API response missing version field",
       };
     }
 
@@ -41,6 +49,6 @@ export class BrewSource implements VersionSource {
       releaseUrl: data.homepage,
     };
 
-    return { kind: 'found', info, etag: result.etag };
+    return { kind: "found", info, etag: result.etag };
   }
 }

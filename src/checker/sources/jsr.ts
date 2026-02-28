@@ -1,12 +1,16 @@
-import type { VersionSource, VersionSourceResult, VersionInfo } from './index.js';
-import type { JsrSourceConfig } from '../../config.js';
-import { fetchWithEtag } from './base.js';
-import semver from 'semver';
+import semver from "semver";
+import type { JsrSourceConfig } from "../../config.js";
+import { fetchWithEtag } from "./base.js";
+import type {
+  VersionInfo,
+  VersionSource,
+  VersionSourceResult,
+} from "./index.js";
 
-export type { JsrSourceConfig } from '../../config.js';
+export type { JsrSourceConfig } from "../../config.js";
 
 export class JsrSource implements VersionSource {
-  readonly name = 'jsr';
+  readonly name = "jsr";
   private readonly config: JsrSourceConfig;
 
   constructor(config: JsrSourceConfig) {
@@ -21,10 +25,10 @@ export class JsrSource implements VersionSource {
 
     const result = await fetchWithEtag({ url }, options);
 
-    if (result.kind !== 'response') {
-      if (result.kind === 'error' && result.status === 404) {
+    if (result.kind !== "response") {
+      if (result.kind === "error" && result.status === 404) {
         return {
-          kind: 'error',
+          kind: "error",
           reason: `JSR package not found: @${this.config.scope}/${this.config.name}`,
           status: 404,
         };
@@ -37,8 +41,8 @@ export class JsrSource implements VersionSource {
 
     if (!latest) {
       return {
-        kind: 'error',
-        reason: 'Could not find latest version in JSR metadata',
+        kind: "error",
+        reason: "Could not find latest version in JSR metadata",
       };
     }
 
@@ -49,15 +53,17 @@ export class JsrSource implements VersionSource {
       publishedAt: versionMeta?.createdAt,
     };
 
-    return { kind: 'found', info, etag: result.etag };
+    return { kind: "found", info, etag: result.etag };
   }
 }
 
-function extractLatestVersion(data: Record<string, unknown>): string | undefined {
-  if (typeof data.latest === 'string') return data.latest;
+function extractLatestVersion(
+  data: Record<string, unknown>,
+): string | undefined {
+  if (typeof data.latest === "string") return data.latest;
 
   const versions = data.versions;
-  if (!versions || typeof versions !== 'object') return undefined;
+  if (!versions || typeof versions !== "object") return undefined;
 
   const keys = Object.keys(versions as Record<string, unknown>);
   if (keys.length === 0) return undefined;

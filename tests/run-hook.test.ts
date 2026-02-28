@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
-import { runHook, UpdateKitError, NETWORK_ERROR } from "../dist/index.mjs";
-import type { UpdatePlan, ApplyResult } from "../dist/index.mjs";
+import { describe, expect, it, vi } from "vitest";
+import type { ApplyResult, UpdatePlan } from "../dist/index.mjs";
+import { NETWORK_ERROR, runHook, UpdateKitError } from "../dist/index.mjs";
 
 describe("runHook", () => {
   it("returns true when hooks object is undefined", async () => {

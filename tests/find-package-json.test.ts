@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
-import { writeFileSync, mkdtempSync, mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   findPackageJson,
-  findPackageJsonSync,
   findPackageJsonFromModule,
   findPackageJsonFromModuleSync,
+  findPackageJsonSync,
 } from "../dist/index.mjs";
 
 let tmpDir: string;

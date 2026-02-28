@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { writeFileSync, mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  verifyChecksum,
-  CHECKSUM_MISSING,
   CHECKSUM_MISMATCH,
+  CHECKSUM_MISSING,
   INSECURE_URL,
+  verifyChecksum,
 } from "../dist/index.mjs";
 
 let tmpDir: string;

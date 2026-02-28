@@ -1,15 +1,15 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { tmpdir } from 'node:os';
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-const distPath = resolve('dist/index.mjs');
+const distPath = resolve("dist/index.mjs");
 
 let tmpDir: string;
 
 beforeAll(() => {
-  tmpDir = mkdtempSync(join(tmpdir(), 'update-kit-auto-detect-'));
+  tmpDir = mkdtempSync(join(tmpdir(), "update-kit-auto-detect-"));
 });
 
 afterAll(() => {
@@ -18,11 +18,11 @@ afterAll(() => {
 
 function setupExternalPackage(name: string, version: string) {
   const pkgDir = join(tmpDir, name);
-  const srcDir = join(pkgDir, 'src');
+  const srcDir = join(pkgDir, "src");
   mkdirSync(srcDir, { recursive: true });
 
   writeFileSync(
-    join(pkgDir, 'package.json'),
+    join(pkgDir, "package.json"),
     JSON.stringify({ name, version }),
   );
 
@@ -36,19 +36,19 @@ function writeScript(dir: string, filename: string, code: string) {
 }
 
 function runScript(scriptPath: string): string {
-  return execFileSync('node', [scriptPath], {
-    encoding: 'utf-8',
+  return execFileSync("node", [scriptPath], {
+    encoding: "utf-8",
     timeout: 10_000,
   });
 }
 
-describe('UpdateKit.create() auto-detection via child process', () => {
-  it('detects the external package, not update-kit itself', () => {
-    const { srcDir } = setupExternalPackage('test-external-app', '9.9.9');
+describe("UpdateKit.create() auto-detection via child process", () => {
+  it("detects the external package, not update-kit itself", () => {
+    const { srcDir } = setupExternalPackage("test-external-app", "9.9.9");
 
     const script = writeScript(
       srcDir,
-      'test.mjs',
+      "test.mjs",
       `
 import { UpdateKit } from ${JSON.stringify(distPath)};
 
@@ -64,16 +64,16 @@ console.log(JSON.stringify({
     const output = runScript(script);
     const result = JSON.parse(output.trim());
 
-    expect(result.appName).toBe('test-external-app');
-    expect(result.currentVersion).toBe('9.9.9');
+    expect(result.appName).toBe("test-external-app");
+    expect(result.currentVersion).toBe("9.9.9");
   });
 
-  it('detects correctly with explicit moduleUrl as well', () => {
-    const { srcDir } = setupExternalPackage('test-module-url-app', '3.2.1');
+  it("detects correctly with explicit moduleUrl as well", () => {
+    const { srcDir } = setupExternalPackage("test-module-url-app", "3.2.1");
 
     const script = writeScript(
       srcDir,
-      'test.mjs',
+      "test.mjs",
       `
 import { UpdateKit } from ${JSON.stringify(distPath)};
 
@@ -91,16 +91,16 @@ console.log(JSON.stringify({
     const output = runScript(script);
     const result = JSON.parse(output.trim());
 
-    expect(result.appName).toBe('test-module-url-app');
-    expect(result.currentVersion).toBe('3.2.1');
+    expect(result.appName).toBe("test-module-url-app");
+    expect(result.currentVersion).toBe("3.2.1");
   });
 
-  it('does not resolve to update-kit own package.json', () => {
-    const { srcDir } = setupExternalPackage('not-update-kit', '1.0.0');
+  it("does not resolve to update-kit own package.json", () => {
+    const { srcDir } = setupExternalPackage("not-update-kit", "1.0.0");
 
     const script = writeScript(
       srcDir,
-      'test.mjs',
+      "test.mjs",
       `
 import { UpdateKit } from ${JSON.stringify(distPath)};
 
@@ -114,7 +114,7 @@ console.log(JSON.stringify({
     const output = runScript(script);
     const result = JSON.parse(output.trim());
 
-    expect(result.appName).not.toBe('update-kit');
-    expect(result.appName).toBe('not-update-kit');
+    expect(result.appName).not.toBe("update-kit");
+    expect(result.appName).toBe("not-update-kit");
   });
 });

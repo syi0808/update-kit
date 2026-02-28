@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  supportsColor,
   bold,
-  red,
-  green,
-  yellow,
   dim,
+  green,
+  red,
   stripAnsi,
+  supportsColor,
+  yellow,
 } from "../dist/index.mjs";
 
 let savedNoColor: string | undefined;

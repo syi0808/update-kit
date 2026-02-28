@@ -1,5 +1,11 @@
-import type { ApplyResult, DelegateMode, InstallDetection, PlanKind, UpdatePlan } from './types.js';
-import type { UpdateKitError } from './errors.js';
+import type { UpdateKitError } from "./errors.js";
+import type {
+  ApplyResult,
+  DelegateMode,
+  InstallDetection,
+  PlanKind,
+  UpdatePlan,
+} from "./types.js";
 
 /**
  * Package identity, typically from package.json.
@@ -102,7 +108,11 @@ export interface ApplyConfig {
  * Composed from semantic sub-groups: {@link DetectionConfig}, {@link CheckConfig},
  * {@link PlanConfig}, and {@link ApplyConfig}.
  */
-export interface UpdateKitBaseConfig extends DetectionConfig, CheckConfig, PlanConfig, ApplyConfig {
+export interface UpdateKitBaseConfig
+  extends DetectionConfig,
+    CheckConfig,
+    PlanConfig,
+    ApplyConfig {
   /** Lifecycle hooks */
   hooks?: Hooks;
 }
@@ -112,18 +122,20 @@ export interface UpdateKitBaseConfig extends DetectionConfig, CheckConfig, PlanC
  */
 export interface CustomDetector {
   name: string;
-  detect: (execPath: string) => Promise<InstallDetection | null> | InstallDetection | null;
+  detect: (
+    execPath: string,
+  ) => Promise<InstallDetection | null> | InstallDetection | null;
 }
 
 /**
  * Context provided to a custom plan resolver.
  */
 export interface PlanResolverContext {
-  channel: import('./types.js').Channel;
-  confidence: import('./types.js').Confidence;
+  channel: import("./types.js").Channel;
+  confidence: import("./types.js").Confidence;
   toVersion: string;
   config: ResolvedUpdateKitConfig;
-  assets?: import('./checker/sources/index.js').AssetInfo[];
+  assets?: import("./checker/sources/index.js").AssetInfo[];
   defaultPlan: PlanKind;
 }
 
@@ -205,7 +217,7 @@ export interface Hooks {
 // ──────────────────────────────────────────────
 
 export interface GitHubSourceConfig {
-  type: 'github';
+  type: "github";
   /** Repository owner */
   owner: string;
   /** Repository name */
@@ -217,7 +229,7 @@ export interface GitHubSourceConfig {
 }
 
 export interface NpmSourceConfig {
-  type: 'npm';
+  type: "npm";
   /** npm package name */
   packageName: string;
   /** Registry URL (default: https://registry.npmjs.org) */
@@ -225,7 +237,7 @@ export interface NpmSourceConfig {
 }
 
 export interface JsrSourceConfig {
-  type: 'jsr';
+  type: "jsr";
   /** Scope (without @, e.g. "std") */
   scope: string;
   /** Package name */
@@ -233,13 +245,13 @@ export interface JsrSourceConfig {
 }
 
 export interface BrewSourceConfig {
-  type: 'brew';
+  type: "brew";
   /** Homebrew cask name */
   caskName: string;
 }
 
 export interface CustomManifestSourceConfig {
-  type: 'custom';
+  type: "custom";
   /** Manifest JSON URL */
   url: string;
   /** Version field name (default: "version"). Supports dot-notation for nested paths (e.g. "data.latest.version") */

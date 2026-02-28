@@ -1,20 +1,20 @@
-import { describe, it, expect, afterEach, beforeEach } from 'vitest';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import os from 'node:os';
-import { atomicReplace } from '../replace.js';
-import { PERMISSION_DENIED, APPLY_FAILED } from '../../errors.js';
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { APPLY_FAILED, PERMISSION_DENIED } from "../../errors.js";
+import { atomicReplace } from "../replace.js";
 
 const originalPlatform = process.platform;
 
 let tmpDir: string;
 
 beforeEach(async () => {
-  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'replace-test-'));
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "replace-test-"));
 });
 
 afterEach(async () => {
-  Object.defineProperty(process, 'platform', { value: originalPlatform });
+  Object.defineProperty(process, "platform", { value: originalPlatform });
   await fs.rm(tmpDir, { recursive: true, force: true });
 });
 
@@ -22,13 +22,13 @@ afterEach(async () => {
 // Permission check
 // ──────────────────────────────────────────────
 
-describe('atomicReplace — permission check', () => {
-  it('throws PERMISSION_DENIED when target is not writable', async () => {
-    const targetPath = path.join(tmpDir, 'readonly-binary');
-    const newPath = path.join(tmpDir, 'new-binary');
+describe("atomicReplace — permission check", () => {
+  it("throws PERMISSION_DENIED when target is not writable", async () => {
+    const targetPath = path.join(tmpDir, "readonly-binary");
+    const newPath = path.join(tmpDir, "new-binary");
 
-    await fs.writeFile(targetPath, 'old');
-    await fs.writeFile(newPath, 'new');
+    await fs.writeFile(targetPath, "old");
+    await fs.writeFile(newPath, "new");
     await fs.chmod(targetPath, 0o444);
 
     await expect(atomicReplace(newPath, targetPath)).rejects.toThrow(
@@ -44,31 +44,31 @@ describe('atomicReplace — permission check', () => {
 // Unix replace
 // ──────────────────────────────────────────────
 
-describe('atomicReplace — Unix', () => {
-  it('atomically replaces the target file', async () => {
-    Object.defineProperty(process, 'platform', { value: 'linux' });
+describe("atomicReplace — Unix", () => {
+  it("atomically replaces the target file", async () => {
+    Object.defineProperty(process, "platform", { value: "linux" });
 
-    const targetPath = path.join(tmpDir, 'binary');
-    const newPath = path.join(tmpDir, 'new-binary');
+    const targetPath = path.join(tmpDir, "binary");
+    const newPath = path.join(tmpDir, "new-binary");
 
-    await fs.writeFile(targetPath, 'old content');
-    await fs.writeFile(newPath, 'new content');
+    await fs.writeFile(targetPath, "old content");
+    await fs.writeFile(newPath, "new content");
 
     await atomicReplace(newPath, targetPath);
 
-    const result = await fs.readFile(targetPath, 'utf-8');
-    expect(result).toBe('new content');
+    const result = await fs.readFile(targetPath, "utf-8");
+    expect(result).toBe("new content");
   });
 
-  it('preserves executable permission on the new file', async () => {
-    Object.defineProperty(process, 'platform', { value: 'linux' });
+  it("preserves executable permission on the new file", async () => {
+    Object.defineProperty(process, "platform", { value: "linux" });
 
-    const targetPath = path.join(tmpDir, 'binary');
-    const newPath = path.join(tmpDir, 'new-binary');
+    const targetPath = path.join(tmpDir, "binary");
+    const newPath = path.join(tmpDir, "new-binary");
 
-    await fs.writeFile(targetPath, 'old');
+    await fs.writeFile(targetPath, "old");
     await fs.chmod(targetPath, 0o755);
-    await fs.writeFile(newPath, 'new');
+    await fs.writeFile(newPath, "new");
 
     await atomicReplace(newPath, targetPath);
 
@@ -77,21 +77,21 @@ describe('atomicReplace — Unix', () => {
     expect(stat.mode & 0o111).not.toBe(0);
   });
 
-  it('leaves no temp files on success', async () => {
-    Object.defineProperty(process, 'platform', { value: 'linux' });
+  it("leaves no temp files on success", async () => {
+    Object.defineProperty(process, "platform", { value: "linux" });
 
-    const targetPath = path.join(tmpDir, 'binary');
-    const newPath = path.join(tmpDir, 'new-binary');
+    const targetPath = path.join(tmpDir, "binary");
+    const newPath = path.join(tmpDir, "new-binary");
 
-    await fs.writeFile(targetPath, 'old');
-    await fs.writeFile(newPath, 'new');
+    await fs.writeFile(targetPath, "old");
+    await fs.writeFile(newPath, "new");
 
     await atomicReplace(newPath, targetPath);
 
     const files = await fs.readdir(tmpDir);
     // Should only have the target file and the source file
-    expect(files).toEqual(expect.arrayContaining(['binary', 'new-binary']));
-    expect(files.filter((f) => f.startsWith('binary.new.'))).toHaveLength(0);
+    expect(files).toEqual(expect.arrayContaining(["binary", "new-binary"]));
+    expect(files.filter((f) => f.startsWith("binary.new."))).toHaveLength(0);
   });
 });
 
@@ -99,46 +99,44 @@ describe('atomicReplace — Unix', () => {
 // Windows replace
 // ──────────────────────────────────────────────
 
-describe('atomicReplace — Windows', () => {
-  it('replaces the target file via backup strategy', async () => {
-    Object.defineProperty(process, 'platform', { value: 'win32' });
+describe("atomicReplace — Windows", () => {
+  it("replaces the target file via backup strategy", async () => {
+    Object.defineProperty(process, "platform", { value: "win32" });
 
-    const targetPath = path.join(tmpDir, 'app.exe');
-    const newPath = path.join(tmpDir, 'new-app.exe');
+    const targetPath = path.join(tmpDir, "app.exe");
+    const newPath = path.join(tmpDir, "new-app.exe");
 
-    await fs.writeFile(targetPath, 'old exe');
-    await fs.writeFile(newPath, 'new exe');
+    await fs.writeFile(targetPath, "old exe");
+    await fs.writeFile(newPath, "new exe");
 
     await atomicReplace(newPath, targetPath);
 
-    const result = await fs.readFile(targetPath, 'utf-8');
-    expect(result).toBe('new exe');
+    const result = await fs.readFile(targetPath, "utf-8");
+    expect(result).toBe("new exe");
   });
 
-  it('cleans up .old file on success', async () => {
-    Object.defineProperty(process, 'platform', { value: 'win32' });
+  it("cleans up .old file on success", async () => {
+    Object.defineProperty(process, "platform", { value: "win32" });
 
-    const targetPath = path.join(tmpDir, 'app.exe');
-    const newPath = path.join(tmpDir, 'new-app.exe');
+    const targetPath = path.join(tmpDir, "app.exe");
+    const newPath = path.join(tmpDir, "new-app.exe");
 
-    await fs.writeFile(targetPath, 'old exe');
-    await fs.writeFile(newPath, 'new exe');
+    await fs.writeFile(targetPath, "old exe");
+    await fs.writeFile(newPath, "new exe");
 
     await atomicReplace(newPath, targetPath);
 
     // .old should be cleaned up
-    await expect(
-      fs.access(targetPath + '.old'),
-    ).rejects.toThrow();
+    await expect(fs.access(targetPath + ".old")).rejects.toThrow();
   });
 
-  it('throws APPLY_FAILED when both copy and rollback fail', async () => {
-    Object.defineProperty(process, 'platform', { value: 'win32' });
+  it("throws APPLY_FAILED when both copy and rollback fail", async () => {
+    Object.defineProperty(process, "platform", { value: "win32" });
 
-    const targetPath = path.join(tmpDir, 'app.exe');
-    const newPath = path.join(tmpDir, 'nonexistent-source');
+    const targetPath = path.join(tmpDir, "app.exe");
+    const newPath = path.join(tmpDir, "nonexistent-source");
 
-    await fs.writeFile(targetPath, 'original');
+    await fs.writeFile(targetPath, "original");
 
     // newPath does not exist → copyFile will fail.
     // After rename(target → .old), rollback rename(.old → target) should work,
@@ -148,7 +146,7 @@ describe('atomicReplace — Windows', () => {
     await expect(atomicReplace(newPath, targetPath)).rejects.toThrow();
 
     // Verify the original file was restored (rollback succeeded)
-    const content = await fs.readFile(targetPath, 'utf-8');
-    expect(content).toBe('original');
+    const content = await fs.readFile(targetPath, "utf-8");
+    expect(content).toBe("original");
   });
 });

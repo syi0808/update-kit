@@ -1,10 +1,10 @@
-import type { InstallDetection } from '../types.js';
-import type { ResolvedUpdateKitConfig } from '../config.js';
-import { realpath } from 'node:fs/promises';
-import { detectFromReceipt } from './receipt.js';
-import { detectFromBrew } from './brew.js';
-import { detectFromNpm } from './npm.js';
-import { collectPathHeuristics } from './heuristics.js';
+import { realpath } from "node:fs/promises";
+import type { ResolvedUpdateKitConfig } from "../config.js";
+import type { InstallDetection } from "../types.js";
+import { detectFromBrew } from "./brew.js";
+import { collectPathHeuristics } from "./heuristics.js";
+import { detectFromNpm } from "./npm.js";
+import { detectFromReceipt } from "./receipt.js";
 
 /**
  * Detect the installation channel of the running CLI app.
@@ -21,7 +21,10 @@ import { collectPathHeuristics } from './heuristics.js';
  */
 export async function detectInstall(
   execPath: string,
-  config: Pick<ResolvedUpdateKitConfig, 'appName' | 'brewCaskName' | 'customDetectors'>,
+  config: Pick<
+    ResolvedUpdateKitConfig,
+    "appName" | "brewCaskName" | "customDetectors"
+  >,
 ): Promise<InstallDetection> {
   // Resolve symlinks to get the real path
   let resolvedPath: string;
@@ -64,19 +67,19 @@ export async function detectInstall(
   // 4. Fallback: unmanaged
   const heuristicEvidence = collectPathHeuristics(resolvedPath);
   return {
-    channel: 'unmanaged',
-    confidence: heuristicEvidence.length > 0 ? 'low' : 'none',
+    channel: "unmanaged",
+    confidence: heuristicEvidence.length > 0 ? "low" : "none",
     evidence: [
       {
-        source: 'fallback',
-        detail: 'No known install channel pattern matched',
+        source: "fallback",
+        detail: "No known install channel pattern matched",
       },
       ...heuristicEvidence,
     ],
   };
 }
 
-export { detectFromReceipt } from './receipt.js';
-export { detectFromBrew } from './brew.js';
-export { detectFromNpm } from './npm.js';
-export { collectPathHeuristics } from './heuristics.js';
+export { detectFromBrew } from "./brew.js";
+export { collectPathHeuristics } from "./heuristics.js";
+export { detectFromNpm } from "./npm.js";
+export { detectFromReceipt } from "./receipt.js";

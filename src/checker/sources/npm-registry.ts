@@ -1,11 +1,15 @@
-import type { VersionSource, VersionSourceResult, VersionInfo } from './index.js';
-import type { NpmSourceConfig } from '../../config.js';
-import { fetchWithEtag } from './base.js';
+import type { NpmSourceConfig } from "../../config.js";
+import { fetchWithEtag } from "./base.js";
+import type {
+  VersionInfo,
+  VersionSource,
+  VersionSourceResult,
+} from "./index.js";
 
-export type { NpmSourceConfig } from '../../config.js';
+export type { NpmSourceConfig } from "../../config.js";
 
 export class NpmRegistrySource implements VersionSource {
-  readonly name = 'npm';
+  readonly name = "npm";
   private readonly config: NpmSourceConfig;
 
   constructor(config: NpmSourceConfig) {
@@ -16,28 +20,32 @@ export class NpmRegistrySource implements VersionSource {
     etag?: string;
     signal?: AbortSignal;
   }): Promise<VersionSourceResult> {
-    const registry = this.config.registryUrl ?? 'https://registry.npmjs.org';
+    const registry = this.config.registryUrl ?? "https://registry.npmjs.org";
     const url = `${registry}/${this.config.packageName}/latest`;
 
     const result = await fetchWithEtag(
-      { url, headers: { Accept: 'application/json' } },
+      { url, headers: { Accept: "application/json" } },
       options,
     );
 
-    if (result.kind !== 'response') {
+    if (result.kind !== "response") {
       // Enrich 404 error message
-      if (result.kind === 'error' && result.status === 404) {
-        return { kind: 'error', reason: `npm package not found: ${this.config.packageName}`, status: 404 };
+      if (result.kind === "error" && result.status === 404) {
+        return {
+          kind: "error",
+          reason: `npm package not found: ${this.config.packageName}`,
+          status: 404,
+        };
       }
       return result;
     }
 
     const data = await result.response.json();
 
-    if (typeof data.version !== 'string' || !data.version) {
+    if (typeof data.version !== "string" || !data.version) {
       return {
-        kind: 'error',
-        reason: 'npm registry response missing version field',
+        kind: "error",
+        reason: "npm registry response missing version field",
       };
     }
 
@@ -47,6 +55,6 @@ export class NpmRegistrySource implements VersionSource {
       publishedAt: data.time?.[data.version],
     };
 
-    return { kind: 'found', info, etag: result.etag };
+    return { kind: "found", info, etag: result.etag };
   }
 }

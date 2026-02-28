@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { renderResult, stripAnsi } from "../dist/index.mjs";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ApplyResult } from "../dist/index.mjs";
+import { renderResult, stripAnsi } from "../dist/index.mjs";
 
 let savedNoColor: string | undefined;
 
