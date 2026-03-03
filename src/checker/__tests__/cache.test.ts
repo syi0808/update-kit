@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CACHE_ERROR, UpdateKitError } from "../../errors.js";
+import { CACHE_ERROR } from "../../errors.js";
 import {
   type CacheEntry,
   clearCache,
@@ -42,9 +42,9 @@ describe("readCache", () => {
 
     const result = await readCache(tmpDir, "myapp");
     expect(result).not.toBeNull();
-    expect(result!.latestVersion).toBe("2.0.0");
-    expect(result!.source).toBe("github");
-    expect(result!.etag).toBe('"abc"');
+    expect(result?.latestVersion).toBe("2.0.0");
+    expect(result?.source).toBe("github");
+    expect(result?.etag).toBe('"abc"');
   });
 
   it("returns null when file does not exist", async () => {
@@ -110,7 +110,7 @@ describe("writeCache", () => {
 
     const result = await readCache(nested, "myapp");
     expect(result).not.toBeNull();
-    expect(result!.latestVersion).toBe("2.0.0");
+    expect(result?.latestVersion).toBe("2.0.0");
   });
 
   it("overwrites existing cache atomically", async () => {
@@ -123,7 +123,7 @@ describe("writeCache", () => {
     await writeCache(tmpDir, "myapp", updated);
 
     const result = await readCache(tmpDir, "myapp");
-    expect(result!.latestVersion).toBe("3.0.0");
+    expect(result?.latestVersion).toBe("3.0.0");
   });
 
   it("does not leave temp files on success", async () => {
@@ -188,9 +188,7 @@ describe("writeCache — error handling", () => {
     // Use a null byte in path to cause fs.mkdir to fail
     const invalidDir = path.join(tmpDir, "nonexistent\x00illegal");
 
-    await expect(
-      writeCache(invalidDir, "myapp", validEntry),
-    ).rejects.toThrow();
+    await expect(writeCache(invalidDir, "myapp", validEntry)).rejects.toThrow();
   });
 
   it("throws CACHE_ERROR with proper code when rename fails", async () => {
@@ -198,13 +196,11 @@ describe("writeCache — error handling", () => {
     await writeCache(tmpDir, "myapp", validEntry);
 
     // Now spy on fs.rename to make it fail
-    const renameSpy = vi.spyOn(fs, "rename").mockRejectedValueOnce(
-      new Error("rename failed"),
-    );
+    const renameSpy = vi
+      .spyOn(fs, "rename")
+      .mockRejectedValueOnce(new Error("rename failed"));
 
-    await expect(
-      writeCache(tmpDir, "myapp", validEntry),
-    ).rejects.toThrow(
+    await expect(writeCache(tmpDir, "myapp", validEntry)).rejects.toThrow(
       expect.objectContaining({ code: CACHE_ERROR }),
     );
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type {
   ApplyResult,
   InstallDetection,
@@ -21,23 +21,23 @@ import { defaultTemplates } from "../templates.js";
 // ──────────────────────────────────────────────
 
 describe("supportsColor", () => {
-  const originalNoColor = process.env["NO_COLOR"];
+  const originalNoColor = process.env.NO_COLOR;
 
   afterEach(() => {
     if (originalNoColor === undefined) {
-      delete process.env["NO_COLOR"];
+      delete process.env.NO_COLOR;
     } else {
-      process.env["NO_COLOR"] = originalNoColor;
+      process.env.NO_COLOR = originalNoColor;
     }
   });
 
   it("returns false when NO_COLOR is set", () => {
-    process.env["NO_COLOR"] = "1";
+    process.env.NO_COLOR = "1";
     expect(supportsColor()).toBe(false);
   });
 
   it("behavior depends on TTY status in current environment", () => {
-    delete process.env["NO_COLOR"];
+    delete process.env.NO_COLOR;
     // In non-TTY (e.g., CI), supportsColor returns false
     // In TTY (terminal), supportsColor returns true
     const result = supportsColor();
@@ -178,8 +178,8 @@ describe("renderBanner", () => {
     };
     const banner = renderBanner(status, detection);
     expect(banner).not.toBeNull();
-    expect(stripAnsi(banner!)).toContain("1.0.0");
-    expect(stripAnsi(banner!)).toContain("2.0.0");
+    expect(stripAnsi(banner as string)).toContain("1.0.0");
+    expect(stripAnsi(banner as string)).toContain("2.0.0");
   });
 
   it("includes update command for npm-global", () => {
@@ -189,7 +189,7 @@ describe("renderBanner", () => {
       latest: "2.0.0",
     };
     const banner = renderBanner(status, detection);
-    expect(stripAnsi(banner!)).toContain("npm update -g");
+    expect(stripAnsi(banner as string)).toContain("npm update -g");
   });
 
   it("includes brew command for brew-cask", () => {
@@ -204,7 +204,7 @@ describe("renderBanner", () => {
       evidence: [],
     };
     const banner = renderBanner(status, brewDetection);
-    expect(stripAnsi(banner!)).toContain("brew upgrade");
+    expect(stripAnsi(banner as string)).toContain("brew upgrade");
   });
 
   it("no command for native channel", () => {
@@ -219,7 +219,7 @@ describe("renderBanner", () => {
       evidence: [],
     };
     const banner = renderBanner(status, nativeDetection);
-    expect(stripAnsi(banner!)).not.toContain("Run ");
+    expect(stripAnsi(banner as string)).not.toContain("Run ");
   });
 });
 

@@ -1,14 +1,5 @@
 import { describe, expectTypeOf, it } from "vitest";
-import type {
-  ApplyResult,
-  Channel,
-  Confidence,
-  Evidence,
-  InstallDetection,
-  UpdateKitConfig,
-  UpdatePlan,
-  UpdateStatus,
-} from "../index.js";
+import type { Channel, UpdateStatus } from "../index.js";
 import { NETWORK_ERROR, UpdateKitError } from "../index.js";
 
 describe("core types", () => {

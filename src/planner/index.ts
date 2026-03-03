@@ -1,3 +1,4 @@
+import { normalizeVersion } from "../checker/index.js";
 import type { AssetInfo } from "../checker/sources/index.js";
 import type { ResolvedUpdateKitConfig } from "../config.js";
 import type {
@@ -10,7 +11,6 @@ import type {
   UpdatePlan,
   UpdateStatus,
 } from "../types.js";
-import { normalizeVersion } from "../checker/index.js";
 
 /** Options for planUpdate */
 export interface PlanUpdateOptions {
@@ -207,7 +207,7 @@ function resolveNpmChannel(
 
 function resolveBrewChannel(
   confidence: Confidence,
-  toVersion: string,
+  _toVersion: string,
   config: ResolvedUpdateKitConfig,
 ): PlanKind {
   if (confidence === "low") {

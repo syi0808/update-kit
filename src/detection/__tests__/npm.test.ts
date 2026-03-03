@@ -9,13 +9,13 @@ vi.mock("node:fs/promises", () => ({
 
 // vi.hoisted runs before vi.mock hoisting, so it's safe to reference in factory
 const { execFilePromisified } = vi.hoisted(() => ({
-  execFilePromisified: vi.fn<any>(() =>
-    Promise.reject(new Error("mock: command not found")),
+  execFilePromisified: vi.fn<[], Promise<{ stdout: string; stderr: string }>>(
+    () => Promise.reject(new Error("mock: command not found")),
   ),
 }));
 
 vi.mock("node:child_process", () => {
-  const fn: any = vi.fn();
+  const fn: ReturnType<typeof vi.fn> & { [key: symbol]: unknown } = vi.fn();
   fn[Symbol.for("nodejs.util.promisify.custom")] = execFilePromisified;
   return { execFile: fn };
 });
@@ -32,8 +32,8 @@ describe("detectFromNpm", () => {
       "/usr/local/lib/node_modules/.bin/my-app",
     );
     expect(result).not.toBeNull();
-    expect(result!.channel).toBe("npm-global");
-    expect(result!.evidence[0].source).toBe("path_pattern");
+    expect(result?.channel).toBe("npm-global");
+    expect(result?.evidence[0].source).toBe("path_pattern");
   });
 
   it("returns npm-global for /lib/node_modules/ path", async () => {
@@ -41,7 +41,7 @@ describe("detectFromNpm", () => {
       "/usr/local/lib/node_modules/my-app/bin/cli.js",
     );
     expect(result).not.toBeNull();
-    expect(result!.channel).toBe("npm-global");
+    expect(result?.channel).toBe("npm-global");
   });
 
   it("adds npm_prefix evidence when npm prefix -g matches", async () => {
@@ -54,7 +54,7 @@ describe("detectFromNpm", () => {
       "/usr/local/lib/node_modules/.bin/my-app",
     );
     expect(result).not.toBeNull();
-    const npmPrefixEvidence = result!.evidence.find(
+    const npmPrefixEvidence = result?.evidence.find(
       (e) => e.source === "npm_prefix",
     );
     expect(npmPrefixEvidence).toBeDefined();
@@ -63,14 +63,14 @@ describe("detectFromNpm", () => {
   it("adds symlink evidence when target includes node_modules", async () => {
     vi.mocked(lstat).mockResolvedValueOnce({
       isSymbolicLink: () => true,
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof lstat>>);
     vi.mocked(readlink).mockResolvedValueOnce(
       "/usr/local/lib/node_modules/my-app/bin/cli.js",
     );
 
     const result = await detectFromNpm("/usr/local/bin/my-app");
     expect(result).not.toBeNull();
-    const symlinkEvidence = result!.evidence.find(
+    const symlinkEvidence = result?.evidence.find(
       (e) => e.source === "symlink",
     );
     expect(symlinkEvidence).toBeDefined();
@@ -85,16 +85,16 @@ describe("detectFromNpm", () => {
     const result = await detectFromNpm(
       "/usr/local/lib/node_modules/.bin/my-app",
     );
-    expect(result!.confidence).toBe("high");
-    expect(result!.evidence.length).toBeGreaterThanOrEqual(2);
+    expect(result?.confidence).toBe("high");
+    expect(result?.evidence.length).toBeGreaterThanOrEqual(2);
   });
 
   it("returns medium confidence with 1 evidence item", async () => {
     const result = await detectFromNpm(
       "/usr/local/lib/node_modules/.bin/my-app",
     );
-    expect(result!.confidence).toBe("medium");
-    expect(result!.evidence).toHaveLength(1);
+    expect(result?.confidence).toBe("medium");
+    expect(result?.evidence).toHaveLength(1);
   });
 
   it("returns null for non-npm path", async () => {
@@ -119,8 +119,8 @@ describe("detectFromNpm", () => {
       "C:\\Users\\user\\AppData\\Roaming\\npm\\node_modules\\.bin\\my-app",
     );
     expect(result).not.toBeNull();
-    expect(result!.channel).toBe("npm-global");
-    expect(result!.evidence[0].source).toBe("path_pattern");
+    expect(result?.channel).toBe("npm-global");
+    expect(result?.evidence[0].source).toBe("path_pattern");
   });
 
   it("returns npm-global for Windows backslash lib/node_modules path", async () => {
@@ -128,7 +128,7 @@ describe("detectFromNpm", () => {
       "C:\\Users\\user\\AppData\\Roaming\\npm\\lib\\node_modules\\my-app\\bin\\cli.js",
     );
     expect(result).not.toBeNull();
-    expect(result!.channel).toBe("npm-global");
+    expect(result?.channel).toBe("npm-global");
   });
 
   it("adds npm_prefix evidence with Windows backslash prefix", async () => {
@@ -141,16 +141,14 @@ describe("detectFromNpm", () => {
       "C:\\Users\\user\\AppData\\Roaming\\npm\\node_modules\\.bin\\my-app",
     );
     expect(result).not.toBeNull();
-    const npmPrefixEvidence = result!.evidence.find(
+    const npmPrefixEvidence = result?.evidence.find(
       (e) => e.source === "npm_prefix",
     );
     expect(npmPrefixEvidence).toBeDefined();
   });
 
   it("returns null for Windows non-npm path", async () => {
-    const result = await detectFromNpm(
-      "C:\\Program Files\\my-app\\my-app.exe",
-    );
+    const result = await detectFromNpm("C:\\Program Files\\my-app\\my-app.exe");
     expect(result).toBeNull();
   });
 
@@ -165,17 +163,17 @@ describe("detectFromNpm", () => {
     );
     expect(result).not.toBeNull();
     // Only path_pattern evidence, not npm_prefix
-    const npmPrefixEvidence = result!.evidence.find(
+    const npmPrefixEvidence = result?.evidence.find(
       (e) => e.source === "npm_prefix",
     );
     expect(npmPrefixEvidence).toBeUndefined();
-    expect(result!.confidence).toBe("medium");
+    expect(result?.confidence).toBe("medium");
   });
 
   it("does not add symlink evidence when symlink target does not include node_modules", async () => {
     vi.mocked(lstat).mockResolvedValueOnce({
       isSymbolicLink: () => true,
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof lstat>>);
     vi.mocked(readlink).mockResolvedValueOnce("/opt/my-app/bin/cli.js");
 
     // Use a path that matches npm pattern so we get at least one evidence
@@ -183,7 +181,7 @@ describe("detectFromNpm", () => {
       "/usr/local/lib/node_modules/.bin/my-app",
     );
     expect(result).not.toBeNull();
-    const symlinkEvidence = result!.evidence.find(
+    const symlinkEvidence = result?.evidence.find(
       (e) => e.source === "symlink",
     );
     expect(symlinkEvidence).toBeUndefined();
@@ -192,13 +190,13 @@ describe("detectFromNpm", () => {
   it("does not add symlink evidence when file is not a symlink", async () => {
     vi.mocked(lstat).mockResolvedValueOnce({
       isSymbolicLink: () => false,
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof lstat>>);
 
     const result = await detectFromNpm(
       "/usr/local/lib/node_modules/.bin/my-app",
     );
     expect(result).not.toBeNull();
-    const symlinkEvidence = result!.evidence.find(
+    const symlinkEvidence = result?.evidence.find(
       (e) => e.source === "symlink",
     );
     expect(symlinkEvidence).toBeUndefined();

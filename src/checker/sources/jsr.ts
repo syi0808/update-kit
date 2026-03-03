@@ -58,12 +58,16 @@ export class JsrSource implements VersionSource {
     return { kind: "found", info, etag: result.etag };
   }
 
-  async fetchVersions(options?: FetchVersionsOptions): Promise<VersionListResult> {
+  async fetchVersions(
+    options?: FetchVersionsOptions,
+  ): Promise<VersionListResult> {
     const limit = options?.limit ?? 20;
     const cursorStr = options?.cursor;
-    const offset = cursorStr ? parseInt(cursorStr.replace('offset:', ''), 10) : 0;
-    if (isNaN(offset) || offset < 0) {
-      return { kind: 'error', reason: 'Invalid pagination cursor' };
+    const offset = cursorStr
+      ? parseInt(cursorStr.replace("offset:", ""), 10)
+      : 0;
+    if (Number.isNaN(offset) || offset < 0) {
+      return { kind: "error", reason: "Invalid pagination cursor" };
     }
 
     const url = `https://jsr.io/@${this.config.scope}/${this.config.name}/meta.json`;
@@ -75,7 +79,7 @@ export class JsrSource implements VersionSource {
 
       if (!response.ok) {
         return {
-          kind: 'error',
+          kind: "error",
           reason: `JSR responded with failure: ${response.status}`,
         };
       }
@@ -83,24 +87,25 @@ export class JsrSource implements VersionSource {
       const data = await response.json();
       const allVersions = Object.keys(data.versions ?? {});
       const sorted = allVersions
-        .filter(v => semver.valid(v))
+        .filter((v) => semver.valid(v))
         .sort((a, b) => semver.rcompare(a, b));
 
       const totalCount = sorted.length;
       const sliced = sorted.slice(offset, offset + limit);
 
-      const versions: VersionInfo[] = sliced.map(v => ({
+      const versions: VersionInfo[] = sliced.map((v) => ({
         version: v,
         releaseUrl: `https://jsr.io/@${this.config.scope}/${this.config.name}@${v}`,
       }));
 
       const nextOffset = offset + limit;
-      const nextCursor = nextOffset < totalCount ? `offset:${nextOffset}` : undefined;
+      const nextCursor =
+        nextOffset < totalCount ? `offset:${nextOffset}` : undefined;
 
-      return { kind: 'success', versions, nextCursor, totalCount };
+      return { kind: "success", versions, nextCursor, totalCount };
     } catch (error) {
       return {
-        kind: 'error',
+        kind: "error",
         reason: `JSR request failed: ${error instanceof Error ? error.message : String(error)}`,
       };
     }

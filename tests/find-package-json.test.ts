@@ -34,8 +34,8 @@ describe("findPackageJson (Real I/O)", () => {
       );
       const result = await findPackageJson(pkgDir);
       expect(result).not.toBeNull();
-      expect(result!.name).toBe("test-pkg");
-      expect(result!.version).toBe("1.0.0");
+      expect(result?.name).toBe("test-pkg");
+      expect(result?.version).toBe("1.0.0");
     });
 
     it("walks up directories to find package.json", async () => {
@@ -48,7 +48,7 @@ describe("findPackageJson (Real I/O)", () => {
 
       const result = await findPackageJson(childDir);
       expect(result).not.toBeNull();
-      expect(result!.name).toBe("parent-pkg");
+      expect(result?.name).toBe("parent-pkg");
     });
 
     it("skips package.json without name field", async () => {
@@ -66,7 +66,7 @@ describe("findPackageJson (Real I/O)", () => {
 
       const result = await findPackageJson(childDir);
       expect(result).not.toBeNull();
-      expect(result!.name).toBe("valid-pkg");
+      expect(result?.name).toBe("valid-pkg");
     });
 
     it("skips package.json without version field", async () => {
@@ -84,8 +84,8 @@ describe("findPackageJson (Real I/O)", () => {
 
       const result = await findPackageJson(childDir);
       expect(result).not.toBeNull();
-      expect(result!.name).toBe("valid-pkg");
-      expect(result!.version).toBe("3.0.0");
+      expect(result?.name).toBe("valid-pkg");
+      expect(result?.version).toBe("3.0.0");
     });
 
     it("skips invalid JSON and walks up", async () => {
@@ -100,7 +100,7 @@ describe("findPackageJson (Real I/O)", () => {
 
       const result = await findPackageJson(childDir);
       expect(result).not.toBeNull();
-      expect(result!.name).toBe("valid");
+      expect(result?.name).toBe("valid");
     });
 
     it("skips package.json with empty name", async () => {
@@ -118,7 +118,7 @@ describe("findPackageJson (Real I/O)", () => {
 
       const result = await findPackageJson(childDir);
       expect(result).not.toBeNull();
-      expect(result!.name).toBe("non-empty");
+      expect(result?.name).toBe("non-empty");
     });
   });
 
@@ -130,7 +130,7 @@ describe("findPackageJson (Real I/O)", () => {
       );
       const result = findPackageJsonSync(pkgDir);
       expect(result).not.toBeNull();
-      expect(result!.name).toBe("sync-pkg");
+      expect(result?.name).toBe("sync-pkg");
     });
 
     it("walks up directories to find package.json", () => {
@@ -143,7 +143,7 @@ describe("findPackageJson (Real I/O)", () => {
 
       const result = findPackageJsonSync(childDir);
       expect(result).not.toBeNull();
-      expect(result!.name).toBe("parent-sync");
+      expect(result?.name).toBe("parent-sync");
     });
 
     it("skips invalid JSON and walks up", () => {
@@ -158,7 +158,7 @@ describe("findPackageJson (Real I/O)", () => {
 
       const result = findPackageJsonSync(childDir);
       expect(result).not.toBeNull();
-      expect(result!.name).toBe("valid-sync");
+      expect(result?.name).toBe("valid-sync");
     });
   });
 });
@@ -182,8 +182,8 @@ describe("findPackageJsonFromModule", () => {
 
     const result = await findPackageJsonFromModule(fakeModuleUrl);
     expect(result).not.toBeNull();
-    expect(result!.name).toBe("module-pkg");
-    expect(result!.version).toBe("1.0.0");
+    expect(result?.name).toBe("module-pkg");
+    expect(result?.version).toBe("1.0.0");
   });
 
   it("sync resolves from a valid file:// URL", () => {
@@ -196,7 +196,7 @@ describe("findPackageJsonFromModule", () => {
 
     const result = findPackageJsonFromModuleSync(fakeModuleUrl);
     expect(result).not.toBeNull();
-    expect(result!.name).toBe("sync-module-pkg");
-    expect(result!.version).toBe("2.0.0");
+    expect(result?.name).toBe("sync-module-pkg");
+    expect(result?.version).toBe("2.0.0");
   });
 });

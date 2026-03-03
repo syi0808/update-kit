@@ -115,7 +115,7 @@ describe("checkUpdate — blocking mode", () => {
     );
 
     expect(mockWriteCache).toHaveBeenCalledOnce();
-    const writtenEntry = mockWriteCache.mock.calls[0]![2] as CacheEntry;
+    const writtenEntry = mockWriteCache.mock.calls[0]?.[2] as CacheEntry;
     expect(writtenEntry.latestVersion).toBe("3.0.0");
     expect(writtenEntry.source).toBe("npm");
     expect(writtenEntry.etag).toBe('"npm-etag"');
@@ -162,7 +162,7 @@ describe("checkUpdate — blocking mode", () => {
 
     expect(status.kind).toBe("available");
     expect(mockWriteCache).toHaveBeenCalledOnce();
-    const writtenEntry = mockWriteCache.mock.calls[0]![2] as CacheEntry;
+    const writtenEntry = mockWriteCache.mock.calls[0]?.[2] as CacheEntry;
     expect(writtenEntry.latestVersion).toBe("1.5.0");
   });
 

@@ -46,7 +46,7 @@ export function spawnBackgroundCheck(
   backgroundFetch(config, sources, controller.signal)
     .catch((error: unknown) => {
       callbacks?.onError?.(error);
-      if (process.env["UPDATE_KIT_DEBUG"]) {
+      if (process.env.UPDATE_KIT_DEBUG) {
         console.error("[update-kit] Background check failed:", error);
       }
     })

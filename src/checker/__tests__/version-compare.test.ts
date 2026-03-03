@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { checkUpdate, normalizeVersion } from "../index.js";
-import type { VersionSource, VersionSourceResult } from "../sources/index.js";
+import type { VersionSource } from "../sources/index.js";
 
 vi.mock("../cache.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../cache.js")>();

@@ -118,19 +118,19 @@ describe("selectAsset — auto-match", () => {
       "arm64",
     );
     expect(result).not.toBeNull();
-    expect(result!.name).toBe("test-app-darwin-arm64.tar.gz");
+    expect(result?.name).toBe("test-app-darwin-arm64.tar.gz");
   });
 
   it("matches linux/x64 asset", () => {
     const result = selectAsset(multiPlatformAssets(), config(), "linux", "x64");
     expect(result).not.toBeNull();
-    expect(result!.name).toBe("test-app-linux-x64.tar.gz");
+    expect(result?.name).toBe("test-app-linux-x64.tar.gz");
   });
 
   it("matches windows/x64 asset", () => {
     const result = selectAsset(multiPlatformAssets(), config(), "win32", "x64");
     expect(result).not.toBeNull();
-    expect(result!.name).toBe("test-app-windows-x64.zip");
+    expect(result?.name).toBe("test-app-windows-x64.zip");
   });
 
   it("matches asset with macos alias", () => {
@@ -139,7 +139,7 @@ describe("selectAsset — auto-match", () => {
     ];
     const result = selectAsset(assetList, config(), "darwin", "arm64");
     expect(result).not.toBeNull();
-    expect(result!.name).toBe("test-app-macos-arm64.tar.gz");
+    expect(result?.name).toBe("test-app-macos-arm64.tar.gz");
   });
 
   it("matches asset with x86_64 alias", () => {
@@ -196,7 +196,7 @@ describe("selectAsset — auto-match", () => {
       "arm64",
     );
     expect(result).not.toBeNull();
-    expect(result!.checksumUrl).toBe("https://dl.example.com/SHA256SUMS");
+    expect(result?.checksumUrl).toBe("https://dl.example.com/SHA256SUMS");
   });
 });
 
@@ -217,7 +217,7 @@ describe("selectAsset — assetPattern", () => {
       "arm64",
     );
     expect(result).not.toBeNull();
-    expect(result!.name).toBe("test-app-darwin-arm64.tar.gz");
+    expect(result?.name).toBe("test-app-darwin-arm64.tar.gz");
   });
 
   it("matches using {version} placeholder", () => {
@@ -297,7 +297,7 @@ describe("selectAsset — assetPattern", () => {
       "arm64",
     );
     expect(result).not.toBeNull();
-    expect(result!.url).toBe("https://example.com/pattern");
+    expect(result?.url).toBe("https://example.com/pattern");
   });
 
   it("falls back to auto-match when pattern does not match", () => {
@@ -311,7 +311,7 @@ describe("selectAsset — assetPattern", () => {
       "arm64",
     );
     expect(result).not.toBeNull();
-    expect(result!.url).toBe("https://example.com/auto");
+    expect(result?.url).toBe("https://example.com/auto");
   });
 });
 

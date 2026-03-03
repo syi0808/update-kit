@@ -94,94 +94,94 @@ describe("getProxyConfig", () => {
   });
 
   it("returns undefined when no proxy env vars set", () => {
-    delete process.env["HTTPS_PROXY"];
-    delete process.env["https_proxy"];
-    delete process.env["HTTP_PROXY"];
-    delete process.env["http_proxy"];
+    delete process.env.HTTPS_PROXY;
+    delete process.env.https_proxy;
+    delete process.env.HTTP_PROXY;
+    delete process.env.http_proxy;
 
     expect(getProxyConfig("https://example.com")).toBeUndefined();
   });
 
   it("returns HTTPS_PROXY for https URLs", () => {
-    process.env["HTTPS_PROXY"] = "http://proxy:8080";
+    process.env.HTTPS_PROXY = "http://proxy:8080";
 
     const config = getProxyConfig("https://example.com");
     expect(config).toEqual({ proxyUrl: "http://proxy:8080" });
   });
 
   it("returns HTTP_PROXY for http URLs", () => {
-    process.env["HTTP_PROXY"] = "http://proxy:8080";
+    process.env.HTTP_PROXY = "http://proxy:8080";
 
     const config = getProxyConfig("http://example.com");
     expect(config).toEqual({ proxyUrl: "http://proxy:8080" });
   });
 
   it("respects lowercase env vars", () => {
-    process.env["https_proxy"] = "http://proxy:3128";
+    process.env.https_proxy = "http://proxy:3128";
 
     const config = getProxyConfig("https://example.com");
     expect(config).toEqual({ proxyUrl: "http://proxy:3128" });
   });
 
   it("returns undefined when NO_PROXY matches hostname exactly", () => {
-    process.env["HTTPS_PROXY"] = "http://proxy:8080";
-    process.env["NO_PROXY"] = "example.com";
+    process.env.HTTPS_PROXY = "http://proxy:8080";
+    process.env.NO_PROXY = "example.com";
 
     expect(getProxyConfig("https://example.com")).toBeUndefined();
   });
 
   it("returns undefined when NO_PROXY is wildcard", () => {
-    process.env["HTTPS_PROXY"] = "http://proxy:8080";
-    process.env["NO_PROXY"] = "*";
+    process.env.HTTPS_PROXY = "http://proxy:8080";
+    process.env.NO_PROXY = "*";
 
     expect(getProxyConfig("https://example.com")).toBeUndefined();
   });
 
   it("returns undefined when NO_PROXY matches .domain suffix", () => {
-    process.env["HTTPS_PROXY"] = "http://proxy:8080";
-    process.env["NO_PROXY"] = ".example.com";
+    process.env.HTTPS_PROXY = "http://proxy:8080";
+    process.env.NO_PROXY = ".example.com";
 
     expect(getProxyConfig("https://api.example.com")).toBeUndefined();
   });
 
   it("returns undefined when NO_PROXY matches bare domain suffix", () => {
-    process.env["HTTPS_PROXY"] = "http://proxy:8080";
-    process.env["NO_PROXY"] = "example.com";
+    process.env.HTTPS_PROXY = "http://proxy:8080";
+    process.env.NO_PROXY = "example.com";
 
     expect(getProxyConfig("https://api.example.com")).toBeUndefined();
   });
 
   it("returns undefined for malformed proxy URL", () => {
-    process.env["HTTPS_PROXY"] = "not-a-valid-url";
+    process.env.HTTPS_PROXY = "not-a-valid-url";
 
     expect(getProxyConfig("https://example.com")).toBeUndefined();
   });
 
   it("respects lowercase no_proxy env var", () => {
-    process.env["HTTPS_PROXY"] = "http://proxy:8080";
-    process.env["no_proxy"] = "example.com";
+    process.env.HTTPS_PROXY = "http://proxy:8080";
+    process.env.no_proxy = "example.com";
 
     expect(getProxyConfig("https://example.com")).toBeUndefined();
   });
 
   it("does not match unrelated domains in NO_PROXY", () => {
-    process.env["HTTPS_PROXY"] = "http://proxy:8080";
-    process.env["NO_PROXY"] = "other.com";
+    process.env.HTTPS_PROXY = "http://proxy:8080";
+    process.env.NO_PROXY = "other.com";
 
     const config = getProxyConfig("https://example.com");
     expect(config).toEqual({ proxyUrl: "http://proxy:8080" });
   });
 
   it("handles comma-separated NO_PROXY entries", () => {
-    process.env["HTTPS_PROXY"] = "http://proxy:8080";
-    process.env["NO_PROXY"] = "foo.com, example.com, bar.com";
+    process.env.HTTPS_PROXY = "http://proxy:8080";
+    process.env.NO_PROXY = "foo.com, example.com, bar.com";
 
     expect(getProxyConfig("https://example.com")).toBeUndefined();
   });
 
   it("prefers HTTPS_PROXY over https_proxy", () => {
-    process.env["HTTPS_PROXY"] = "http://proxy-upper:8080";
-    process.env["https_proxy"] = "http://proxy-lower:8080";
+    process.env.HTTPS_PROXY = "http://proxy-upper:8080";
+    process.env.https_proxy = "http://proxy-lower:8080";
 
     const config = getProxyConfig("https://example.com");
     expect(config).toEqual({ proxyUrl: "http://proxy-upper:8080" });
@@ -201,8 +201,8 @@ describe("fetchWithTimeout — error propagation", () => {
     const networkError = new TypeError("Failed to fetch");
     vi.mocked(fetch).mockRejectedValue(networkError);
 
-    await expect(
-      fetchWithTimeout("https://example.com"),
-    ).rejects.toThrow("Failed to fetch");
+    await expect(fetchWithTimeout("https://example.com")).rejects.toThrow(
+      "Failed to fetch",
+    );
   });
 });

@@ -3,11 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { clearCache, readCache } from "./checker/cache.js";
-import type {
-  UpdateKitConfig,
-  UpdateKitExplicitConfig,
-  VersionSourceConfig,
-} from "./config.js";
+import type { UpdateKitExplicitConfig, VersionSourceConfig } from "./config.js";
 import { runDoctor } from "./doctor.js";
 import { UpdateKit } from "./index.js";
 import { getDefaultCacheDir } from "./platform/paths.js";
@@ -82,7 +78,7 @@ function loadConfig(configPath?: string): UpdateKitExplicitConfig {
 
   const obj = parsed as Record<string, unknown>;
 
-  if (typeof obj["appName"] !== "string" || obj["appName"].length === 0) {
+  if (typeof obj.appName !== "string" || obj.appName.length === 0) {
     console.error(
       `Config missing required field "appName" (string): ${resolvedPath}`,
     );
@@ -90,8 +86,8 @@ function loadConfig(configPath?: string): UpdateKitExplicitConfig {
   }
 
   if (
-    typeof obj["currentVersion"] !== "string" ||
-    obj["currentVersion"].length === 0
+    typeof obj.currentVersion !== "string" ||
+    obj.currentVersion.length === 0
   ) {
     console.error(
       `Config missing required field "currentVersion" (string): ${resolvedPath}`,
@@ -100,50 +96,47 @@ function loadConfig(configPath?: string): UpdateKitExplicitConfig {
   }
 
   const result: UpdateKitExplicitConfig = {
-    appName: obj["appName"] as string,
-    currentVersion: obj["currentVersion"] as string,
+    appName: obj.appName as string,
+    currentVersion: obj.currentVersion as string,
   };
 
-  if (typeof obj["checkInterval"] === "number") {
-    result.checkInterval = obj["checkInterval"];
+  if (typeof obj.checkInterval === "number") {
+    result.checkInterval = obj.checkInterval;
   }
-  if (
-    obj["delegateMode"] === "print-only" ||
-    obj["delegateMode"] === "execute"
-  ) {
-    result.delegateMode = obj["delegateMode"];
+  if (obj.delegateMode === "print-only" || obj.delegateMode === "execute") {
+    result.delegateMode = obj.delegateMode;
   }
-  if (typeof obj["npmPackageName"] === "string") {
-    result.npmPackageName = obj["npmPackageName"];
+  if (typeof obj.npmPackageName === "string") {
+    result.npmPackageName = obj.npmPackageName;
   }
-  if (typeof obj["brewCaskName"] === "string") {
-    result.brewCaskName = obj["brewCaskName"];
+  if (typeof obj.brewCaskName === "string") {
+    result.brewCaskName = obj.brewCaskName;
   }
-  if (typeof obj["executablePath"] === "string") {
-    result.executablePath = obj["executablePath"];
+  if (typeof obj.executablePath === "string") {
+    result.executablePath = obj.executablePath;
   }
-  if (typeof obj["cacheDir"] === "string") {
-    result.cacheDir = obj["cacheDir"];
+  if (typeof obj.cacheDir === "string") {
+    result.cacheDir = obj.cacheDir;
   }
-  if (typeof obj["assetPattern"] === "string") {
-    result.assetPattern = obj["assetPattern"];
+  if (typeof obj.assetPattern === "string") {
+    result.assetPattern = obj.assetPattern;
   }
-  if (typeof obj["allowReexec"] === "boolean") {
-    result.allowReexec = obj["allowReexec"];
+  if (typeof obj.allowReexec === "boolean") {
+    result.allowReexec = obj.allowReexec;
   }
-  if (typeof obj["repository"] === "string") {
-    result.repository = obj["repository"];
+  if (typeof obj.repository === "string") {
+    result.repository = obj.repository;
   } else if (
-    typeof obj["repository"] === "object" &&
-    obj["repository"] !== null &&
-    typeof (obj["repository"] as Record<string, unknown>)["url"] === "string"
+    typeof obj.repository === "object" &&
+    obj.repository !== null &&
+    typeof (obj.repository as Record<string, unknown>).url === "string"
   ) {
     result.repository = {
-      url: (obj["repository"] as Record<string, unknown>)["url"] as string,
+      url: (obj.repository as Record<string, unknown>).url as string,
     };
   }
-  if (Array.isArray(obj["sources"])) {
-    result.sources = obj["sources"] as VersionSourceConfig[];
+  if (Array.isArray(obj.sources)) {
+    result.sources = obj.sources as VersionSourceConfig[];
   }
 
   return result;
@@ -171,13 +164,13 @@ async function handleCheck(
   flags: Record<string, string | boolean>,
   isJson: boolean,
 ): Promise<void> {
-  if (flags["background"]) {
+  if (flags.background) {
     kit.checkUpdate("non-blocking");
     console.log("Background check started");
     return;
   }
 
-  const mode = flags["blocking"] ? "blocking" : "non-blocking";
+  const mode = flags.blocking ? "blocking" : "non-blocking";
   const status = await kit.checkUpdate(mode as "blocking" | "non-blocking");
 
   if (isJson) {
@@ -299,8 +292,8 @@ async function handleDoctor(
   isJson: boolean,
 ): Promise<void> {
   const configPath =
-    typeof flags["config"] === "string"
-      ? resolve(flags["config"])
+    typeof flags.config === "string"
+      ? resolve(flags.config)
       : resolve(process.cwd(), "update-kit.config.json");
 
   const report = await runDoctor(configPath, { cwd: process.cwd() });
@@ -371,19 +364,19 @@ Options:
 async function main(): Promise<void> {
   const { command, subcommand, flags } = parseArgs(process.argv);
 
-  if (flags["help"] || command === "help") {
+  if (flags.help || command === "help") {
     printUsage();
     return;
   }
 
-  const isJson = flags["json"] === true;
+  const isJson = flags.json === true;
 
   if (command === "doctor") {
     await handleDoctor(flags, isJson);
     return;
   }
 
-  const config = loadConfig(flags["config"] as string | undefined);
+  const config = loadConfig(flags.config as string | undefined);
 
   if (command === "cache") {
     await handleCache(subcommand, config, isJson);
@@ -392,7 +385,7 @@ async function main(): Promise<void> {
 
   // For apply --execute, override delegateMode in config
   const effectiveConfig =
-    command === "apply" && flags["execute"]
+    command === "apply" && flags.execute
       ? { ...config, delegateMode: "execute" as const }
       : config;
 

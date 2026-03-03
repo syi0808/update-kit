@@ -7,5 +7,9 @@ export async function runHook<K extends keyof Hooks>(
 ): Promise<ReturnType<NonNullable<Hooks[K]>> | true> {
   const hook = hooks?.[name];
   if (!hook) return true as ReturnType<NonNullable<Hooks[K]>> | true;
-  return (hook as Function)(...args);
+  return (
+    hook as (
+      ...a: Parameters<NonNullable<Hooks[K]>>
+    ) => ReturnType<NonNullable<Hooks[K]>>
+  )(...args);
 }

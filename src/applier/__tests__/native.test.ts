@@ -288,24 +288,27 @@ describe("findBinaryInDir", () => {
     expect(result).toBeTruthy();
   });
 
-  it.skipIf(process.platform === "win32")("skips files that resolve outside the extraction directory (symlink escape)", async () => {
-    const dir = path.join(tmpDir, "extracted");
-    const outsideDir = path.join(tmpDir, "outside");
-    await fs.mkdir(dir, { recursive: true });
-    await fs.mkdir(outsideDir, { recursive: true });
+  it.skipIf(process.platform === "win32")(
+    "skips files that resolve outside the extraction directory (symlink escape)",
+    async () => {
+      const dir = path.join(tmpDir, "extracted");
+      const outsideDir = path.join(tmpDir, "outside");
+      await fs.mkdir(dir, { recursive: true });
+      await fs.mkdir(outsideDir, { recursive: true });
 
-    // Create a legitimate file and a symlink pointing outside
-    await fs.writeFile(path.join(dir, "app"), "binary");
-    await fs.writeFile(path.join(outsideDir, "malicious"), "evil");
-    await fs.symlink(
-      path.join(outsideDir, "malicious"),
-      path.join(dir, "escaped"),
-    );
+      // Create a legitimate file and a symlink pointing outside
+      await fs.writeFile(path.join(dir, "app"), "binary");
+      await fs.writeFile(path.join(outsideDir, "malicious"), "evil");
+      await fs.symlink(
+        path.join(outsideDir, "malicious"),
+        path.join(dir, "escaped"),
+      );
 
-    const result = await findBinaryInDir(dir);
-    // Should only return the legitimate file, not the symlink
-    expect(path.basename(result)).toBe("app");
-  });
+      const result = await findBinaryInDir(dir);
+      // Should only return the legitimate file, not the symlink
+      expect(path.basename(result)).toBe("app");
+    },
+  );
 
   it("skips directories in readdir results", async () => {
     const dir = path.join(tmpDir, "extracted");
@@ -358,22 +361,29 @@ describe("extractBinary", () => {
     expect(content).toBe("binary content");
   });
 
-  it.skipIf(process.platform === "win32")("extracts .zip archives on Unix", async () => {
-    const { execFile: execFileCb } = await import("node:child_process");
-    const { promisify } = await import("node:util");
-    const execFileAsync = promisify(execFileCb);
+  it.skipIf(process.platform === "win32")(
+    "extracts .zip archives on Unix",
+    async () => {
+      const { execFile: execFileCb } = await import("node:child_process");
+      const { promisify } = await import("node:util");
+      const execFileAsync = promisify(execFileCb);
 
-    const archiveDir = path.join(tmpDir, "zip-src");
-    await fs.mkdir(archiveDir, { recursive: true });
-    await fs.writeFile(path.join(archiveDir, "my-app"), "zip binary content");
+      const archiveDir = path.join(tmpDir, "zip-src");
+      await fs.mkdir(archiveDir, { recursive: true });
+      await fs.writeFile(path.join(archiveDir, "my-app"), "zip binary content");
 
-    const archivePath = path.join(tmpDir, "app.zip");
-    await execFileAsync("zip", ["-j", archivePath, path.join(archiveDir, "my-app")]);
+      const archivePath = path.join(tmpDir, "app.zip");
+      await execFileAsync("zip", [
+        "-j",
+        archivePath,
+        path.join(archiveDir, "my-app"),
+      ]);
 
-    const result = await extractBinary(archivePath, tmpDir);
-    const content = await fs.readFile(result, "utf-8");
-    expect(content).toBe("zip binary content");
-  });
+      const result = await extractBinary(archivePath, tmpDir);
+      const content = await fs.readFile(result, "utf-8");
+      expect(content).toBe("zip binary content");
+    },
+  );
 
   it("throws EXTRACT_FAILED for corrupted tar.gz", async () => {
     const archivePath = path.join(tmpDir, "bad.tar.gz");
@@ -543,7 +553,6 @@ describe("applyNativeUpdate — pipeline", () => {
     await fs.chmod(targetPath, 0o755);
 
     // Mock atomicReplace to throw a generic Error (not UpdateKitError)
-    const { atomicReplace } = await import("../../platform/replace.js");
     vi.spyOn(
       await import("../../platform/replace.js"),
       "atomicReplace",

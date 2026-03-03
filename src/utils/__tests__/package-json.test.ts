@@ -424,9 +424,7 @@ describe("resolvePackageJsonFromCaller", () => {
   it("resolves from file:// URL", async () => {
     // This test calls resolvePackageJsonFromCaller with import.meta.url
     // which should find the update-kit package.json
-    const { resolvePackageJsonFromCaller } = await import(
-      "../package-json.js"
-    );
+    const { resolvePackageJsonFromCaller } = await import("../package-json.js");
     const result = await resolvePackageJsonFromCaller(import.meta.url);
     // Should find the update-kit package.json
     expect(result).not.toBeNull();
@@ -436,9 +434,7 @@ describe("resolvePackageJsonFromCaller", () => {
   });
 
   it("resolves from absolute path", async () => {
-    const { resolvePackageJsonFromCaller } = await import(
-      "../package-json.js"
-    );
+    const { resolvePackageJsonFromCaller } = await import("../package-json.js");
     const result = await resolvePackageJsonFromCaller(__filename);
     // Should find the update-kit package.json
     expect(result).not.toBeNull();

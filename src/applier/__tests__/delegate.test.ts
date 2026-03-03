@@ -7,7 +7,7 @@ import {
   COMMAND_SPAWN_FAILED,
   COMMAND_TIMEOUT,
 } from "../../errors.js";
-import type { UpdatePlan } from "../../types.js";
+import type { ApplyProgress, UpdatePlan } from "../../types.js";
 import { applyDelegateUpdate } from "../delegate.js";
 
 // Mock child_process.spawn
@@ -51,8 +51,8 @@ function delegatePlan(
 
 function createMockChildProcess(): ChildProcess & EventEmitter {
   const child = new EventEmitter() as ChildProcess & EventEmitter;
-  child.stdout = new EventEmitter() as any;
-  child.stderr = new EventEmitter() as any;
+  child.stdout = new EventEmitter() as unknown as NodeJS.ReadableStream;
+  child.stderr = new EventEmitter() as unknown as NodeJS.ReadableStream;
   child.kill = vi.fn().mockReturnValue(true);
   child.pid = 12345;
   return child;
@@ -155,8 +155,8 @@ describe("applyDelegateUpdate — execute mode", () => {
     const promise = applyDelegateUpdate(plan, { mode: "execute" });
 
     // Simulate output
-    child.stdout!.emit("data", Buffer.from("output line 1\n"));
-    child.stderr!.emit("data", Buffer.from("warning\n"));
+    child.stdout?.emit("data", Buffer.from("output line 1\n"));
+    child.stderr?.emit("data", Buffer.from("warning\n"));
     child.emit("close", 0);
 
     const result = await promise;
@@ -192,14 +192,14 @@ describe("applyDelegateUpdate — execute mode", () => {
     mockSpawn.mockReturnValue(child);
 
     const plan = delegatePlan();
-    const progressEvents: any[] = [];
+    const progressEvents: ApplyProgress[] = [];
     const promise = applyDelegateUpdate(plan, {
       mode: "execute",
       onProgress: (p) => progressEvents.push(p),
     });
 
-    child.stdout!.emit("data", Buffer.from("downloading..."));
-    child.stderr!.emit("data", Buffer.from("warn: something"));
+    child.stdout?.emit("data", Buffer.from("downloading..."));
+    child.stderr?.emit("data", Buffer.from("warn: something"));
     child.emit("close", 0);
 
     await promise;
@@ -361,7 +361,7 @@ describe("applyDelegateUpdate — null exit code", () => {
     const plan = delegatePlan();
     const promise = applyDelegateUpdate(plan, { mode: "execute" });
 
-    child.stderr!.emit("data", Buffer.from("unexpected failure"));
+    child.stderr?.emit("data", Buffer.from("unexpected failure"));
     child.emit("close", null);
 
     await expect(promise).rejects.toThrow(

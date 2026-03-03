@@ -1,6 +1,5 @@
 import { DEFAULT_SOURCE_TIMEOUT_MS } from "../../constants.js";
 import { fetchWithTimeout } from "../../utils/http.js";
-import type { VersionSourceResult } from "./index.js";
 
 export interface FetchOptions {
   etag?: string;

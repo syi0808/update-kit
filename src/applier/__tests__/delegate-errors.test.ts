@@ -8,6 +8,7 @@ import {
 } from "../../errors.js";
 import type { UpdatePlan } from "../../types.js";
 import { applyDelegateUpdate } from "../delegate.js";
+import type { DelegateApplyResult } from "../types.js";
 
 // Mock child_process.spawn
 vi.mock("node:child_process", () => ({
@@ -44,8 +45,8 @@ function delegatePlan(
 
 function createMockChildProcess(): ChildProcess & EventEmitter {
   const child = new EventEmitter() as ChildProcess & EventEmitter;
-  child.stdout = new EventEmitter() as any;
-  child.stderr = new EventEmitter() as any;
+  child.stdout = new EventEmitter() as unknown as NodeJS.ReadableStream;
+  child.stderr = new EventEmitter() as unknown as NodeJS.ReadableStream;
   child.kill = vi.fn().mockReturnValue(true);
   child.pid = 12345;
   return child;
@@ -56,14 +57,14 @@ function executeWithOutput(
   exitCode: number,
   stdout: string,
   stderr: string,
-): Promise<any> {
+): Promise<DelegateApplyResult> {
   const child = createMockChildProcess();
   mockSpawn.mockReturnValue(child);
 
   const promise = applyDelegateUpdate(plan, { mode: "execute" });
 
-  if (stdout) child.stdout!.emit("data", Buffer.from(stdout));
-  if (stderr) child.stderr!.emit("data", Buffer.from(stderr));
+  if (stdout) child.stdout?.emit("data", Buffer.from(stdout));
+  if (stderr) child.stderr?.emit("data", Buffer.from(stderr));
   child.emit("close", exitCode);
 
   return promise;
@@ -221,7 +222,7 @@ describe("command validation", () => {
 
     const plan = delegatePlan(["npm", "--version"]);
     const promise = applyDelegateUpdate(plan, { mode: "execute" });
-    child.stdout!.emit("data", Buffer.from("10.0.0"));
+    child.stdout?.emit("data", Buffer.from("10.0.0"));
     child.emit("close", 0);
 
     const result = await promise;

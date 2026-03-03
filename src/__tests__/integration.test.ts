@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { UpdateKitConfig } from "../config.js";
 import { UpdateKit } from "../index.js";
 import type {
   ApplyResult,
@@ -126,7 +127,7 @@ const mockPlan: UpdatePlan = {
   postAction: "exit-after-apply",
 };
 
-const mockSuccessResult: ApplyResult = {
+const _mockSuccessResult: ApplyResult = {
   kind: "success",
   fromVersion: "1.0.0",
   toVersion: "2.0.0",
@@ -223,7 +224,9 @@ describe("UpdateKit", () => {
 
       const status = await kit.checkUpdate();
       expect(status.kind).toBe("unknown");
-      expect((status as any).reason).toBe("skipped by hook");
+      if (status.kind === "unknown") {
+        expect(status.reason).toBe("skipped by hook");
+      }
       expect(mockCheckUpdate).not.toHaveBeenCalled();
     });
 
@@ -317,9 +320,9 @@ describe("UpdateKit", () => {
       const result = await kit.applyUpdate(manualPlan);
 
       expect(result.kind).toBe("needs-restart");
-      expect((result as any).message).toBe(
-        "Please download from https://example.com",
-      );
+      if (result.kind === "needs-restart") {
+        expect(result.message).toBe("Please download from https://example.com");
+      }
     });
 
     it("skips apply when beforeApply hook returns false", async () => {
@@ -332,7 +335,9 @@ describe("UpdateKit", () => {
 
       const result = await kit.applyUpdate(mockPlan);
       expect(result.kind).toBe("failed");
-      expect((result as any).rollbackSucceeded).toBe(true);
+      if (result.kind === "failed") {
+        expect(result.rollbackSucceeded).toBe(true);
+      }
       expect(mockApplyDelegate).not.toHaveBeenCalled();
     });
 
@@ -439,9 +444,9 @@ describe("UpdateKit", () => {
       const result = await kit.autoUpdate();
 
       expect(result.kind).toBe("failed");
-      expect((result as any).error.message).toBe(
-        "No update plan could be created",
-      );
+      if (result.kind === "failed") {
+        expect(result.error.message).toBe("No update plan could be created");
+      }
     });
 
     it("calls onError hook on pipeline failure", async () => {
@@ -472,7 +477,8 @@ describe("UpdateKit", () => {
   describe("constructor — validation", () => {
     it("throws for invalid semver currentVersion", () => {
       expect(
-        () => new UpdateKit({ appName: "test", currentVersion: "not-a-version" }),
+        () =>
+          new UpdateKit({ appName: "test", currentVersion: "not-a-version" }),
       ).toThrow("Invalid semver version");
     });
   });
@@ -612,15 +618,18 @@ describe("UpdateKit", () => {
     });
 
     it("throws when neither appName nor pkg is provided", () => {
-      expect(() => new UpdateKit({ currentVersion: "1.0.0" } as any)).toThrow(
-        "appName is required",
-      );
+      expect(
+        () =>
+          new UpdateKit({
+            currentVersion: "1.0.0",
+          } as unknown as UpdateKitConfig),
+      ).toThrow("appName is required");
     });
 
     it("throws when neither currentVersion nor pkg is provided", () => {
-      expect(() => new UpdateKit({ appName: "test" } as any)).toThrow(
-        "currentVersion is required",
-      );
+      expect(
+        () => new UpdateKit({ appName: "test" } as unknown as UpdateKitConfig),
+      ).toThrow("currentVersion is required");
     });
   });
 

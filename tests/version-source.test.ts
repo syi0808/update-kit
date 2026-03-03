@@ -44,6 +44,7 @@ describe("createVersionSource", () => {
   });
 
   it("throws for unknown source type", () => {
+    // biome-ignore lint/suspicious/noExplicitAny: intentionally testing invalid source type
     expect(() => createVersionSource({ type: "unknown" as any })).toThrow();
   });
 });

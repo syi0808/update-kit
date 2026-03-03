@@ -82,8 +82,8 @@ describe("planUpdate — early return", () => {
       config(),
     );
     expect(result).not.toBeNull();
-    expect(result!.fromVersion).toBe("1.5.0");
-    expect(result!.toVersion).toBe("3.0.0");
+    expect(result?.fromVersion).toBe("1.5.0");
+    expect(result?.toVersion).toBe("3.0.0");
   });
 });
 
@@ -100,8 +100,8 @@ describe("planUpdate — native channel", () => {
       assets(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("native-in-place");
-    expect(result!.postAction).toBe("reexec");
+    expect(result?.kind.type).toBe("native-in-place");
+    expect(result?.postAction).toBe("reexec");
   });
 
   it("high confidence without allowReexec → native-in-place + suggest-restart", () => {
@@ -112,8 +112,8 @@ describe("planUpdate — native channel", () => {
       assets(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("native-in-place");
-    expect(result!.postAction).toBe("suggest-restart");
+    expect(result?.kind.type).toBe("native-in-place");
+    expect(result?.postAction).toBe("suggest-restart");
   });
 
   it("medium confidence → native-in-place + suggest-restart", () => {
@@ -124,8 +124,8 @@ describe("planUpdate — native channel", () => {
       assets(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("native-in-place");
-    expect(result!.postAction).toBe("suggest-restart");
+    expect(result?.kind.type).toBe("native-in-place");
+    expect(result?.postAction).toBe("suggest-restart");
   });
 
   it("low confidence → manual-install + none", () => {
@@ -136,8 +136,8 @@ describe("planUpdate — native channel", () => {
       assets(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("manual-install");
-    expect(result!.postAction).toBe("none");
+    expect(result?.kind.type).toBe("manual-install");
+    expect(result?.postAction).toBe("none");
   });
 
   it("no assets → manual-install", () => {
@@ -147,9 +147,9 @@ describe("planUpdate — native channel", () => {
       config(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("manual-install");
-    if (result!.kind.type === "manual-install") {
-      expect(result!.kind.reason).toContain("No release assets");
+    expect(result?.kind.type).toBe("manual-install");
+    if (result?.kind.type === "manual-install") {
+      expect(result?.kind.reason).toContain("No release assets");
     }
   });
 
@@ -167,9 +167,9 @@ describe("planUpdate — native channel", () => {
       unmatchedAssets,
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("manual-install");
-    if (result!.kind.type === "manual-install") {
-      expect(result!.kind.downloadUrl).toBe("https://example.com/freebsd");
+    expect(result?.kind.type).toBe("manual-install");
+    if (result?.kind.type === "manual-install") {
+      expect(result?.kind.downloadUrl).toBe("https://example.com/freebsd");
     }
   });
 
@@ -181,8 +181,8 @@ describe("planUpdate — native channel", () => {
       assets(),
     );
     expect(result).not.toBeNull();
-    if (result!.kind.type === "native-in-place") {
-      expect(result!.kind.downloadUrl).toMatch(/^https:\/\//);
+    if (result?.kind.type === "native-in-place") {
+      expect(result?.kind.downloadUrl).toMatch(/^https:\/\//);
     }
   });
 });
@@ -200,8 +200,8 @@ describe("planUpdate — unmanaged channel", () => {
       assets(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("native-in-place");
-    expect(result!.postAction).toBe("suggest-restart");
+    expect(result?.kind.type).toBe("native-in-place");
+    expect(result?.postAction).toBe("suggest-restart");
   });
 
   it("low confidence → native-in-place (still above none)", () => {
@@ -212,7 +212,7 @@ describe("planUpdate — unmanaged channel", () => {
       assets(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("native-in-place");
+    expect(result?.kind.type).toBe("native-in-place");
   });
 
   it("none confidence → manual-install", () => {
@@ -222,8 +222,8 @@ describe("planUpdate — unmanaged channel", () => {
       config(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("manual-install");
-    expect(result!.postAction).toBe("none");
+    expect(result?.kind.type).toBe("manual-install");
+    expect(result?.postAction).toBe("none");
   });
 
   it("no assets → manual-install", () => {
@@ -233,7 +233,7 @@ describe("planUpdate — unmanaged channel", () => {
       config(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("manual-install");
+    expect(result?.kind.type).toBe("manual-install");
   });
 });
 
@@ -249,16 +249,16 @@ describe("planUpdate — npm-global channel", () => {
       config(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("delegate-command");
-    expect(result!.postAction).toBe("exit-after-apply");
-    if (result!.kind.type === "delegate-command") {
-      expect(result!.kind.command).toEqual([
+    expect(result?.kind.type).toBe("delegate-command");
+    expect(result?.postAction).toBe("exit-after-apply");
+    if (result?.kind.type === "delegate-command") {
+      expect(result?.kind.command).toEqual([
         "npm",
         "install",
         "-g",
         "test-app@2.0.0",
       ]);
-      expect(result!.kind.channel).toBe("npm-global");
+      expect(result?.kind.channel).toBe("npm-global");
     }
   });
 
@@ -269,7 +269,7 @@ describe("planUpdate — npm-global channel", () => {
       config(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("delegate-command");
+    expect(result?.kind.type).toBe("delegate-command");
   });
 
   it("low confidence → manual-install", () => {
@@ -279,8 +279,8 @@ describe("planUpdate — npm-global channel", () => {
       config(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("manual-install");
-    expect(result!.postAction).toBe("none");
+    expect(result?.kind.type).toBe("manual-install");
+    expect(result?.postAction).toBe("none");
   });
 
   it("uses npmPackageName when configured", () => {
@@ -290,8 +290,8 @@ describe("planUpdate — npm-global channel", () => {
       config({ npmPackageName: "@scope/my-pkg" }),
     );
     expect(result).not.toBeNull();
-    if (result!.kind.type === "delegate-command") {
-      expect(result!.kind.command).toEqual([
+    if (result?.kind.type === "delegate-command") {
+      expect(result?.kind.command).toEqual([
         "npm",
         "install",
         "-g",
@@ -307,8 +307,8 @@ describe("planUpdate — npm-global channel", () => {
       config({ delegateMode: "execute" }),
     );
     expect(result).not.toBeNull();
-    if (result!.kind.type === "delegate-command") {
-      expect(result!.kind.mode).toBe("execute");
+    if (result?.kind.type === "delegate-command") {
+      expect(result?.kind.mode).toBe("execute");
     }
   });
 
@@ -319,8 +319,8 @@ describe("planUpdate — npm-global channel", () => {
       config(),
     );
     expect(result).not.toBeNull();
-    if (result!.kind.type === "delegate-command") {
-      expect(result!.kind.mode).toBe("print-only");
+    if (result?.kind.type === "delegate-command") {
+      expect(result?.kind.mode).toBe("print-only");
     }
   });
 });
@@ -337,16 +337,16 @@ describe("planUpdate — brew-cask channel", () => {
       config(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("delegate-command");
-    expect(result!.postAction).toBe("exit-after-apply");
-    if (result!.kind.type === "delegate-command") {
-      expect(result!.kind.command).toEqual([
+    expect(result?.kind.type).toBe("delegate-command");
+    expect(result?.postAction).toBe("exit-after-apply");
+    if (result?.kind.type === "delegate-command") {
+      expect(result?.kind.command).toEqual([
         "brew",
         "upgrade",
         "--cask",
         "test-app",
       ]);
-      expect(result!.kind.channel).toBe("brew-cask");
+      expect(result?.kind.channel).toBe("brew-cask");
     }
   });
 
@@ -357,7 +357,7 @@ describe("planUpdate — brew-cask channel", () => {
       config(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("delegate-command");
+    expect(result?.kind.type).toBe("delegate-command");
   });
 
   it("low confidence → manual-install", () => {
@@ -367,8 +367,8 @@ describe("planUpdate — brew-cask channel", () => {
       config(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("manual-install");
-    expect(result!.postAction).toBe("none");
+    expect(result?.kind.type).toBe("manual-install");
+    expect(result?.postAction).toBe("none");
   });
 
   it("uses brewCaskName when configured", () => {
@@ -378,8 +378,8 @@ describe("planUpdate — brew-cask channel", () => {
       config({ brewCaskName: "my-custom-cask" }),
     );
     expect(result).not.toBeNull();
-    if (result!.kind.type === "delegate-command") {
-      expect(result!.kind.command).toEqual([
+    if (result?.kind.type === "delegate-command") {
+      expect(result?.kind.command).toEqual([
         "brew",
         "upgrade",
         "--cask",
@@ -401,10 +401,10 @@ describe("planUpdate — unknown channel", () => {
       config(),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("manual-install");
-    expect(result!.postAction).toBe("none");
-    if (result!.kind.type === "manual-install") {
-      expect(result!.kind.reason).toContain("custom-channel");
+    expect(result?.kind.type).toBe("manual-install");
+    expect(result?.postAction).toBe("none");
+    if (result?.kind.type === "manual-install") {
+      expect(result?.kind.reason).toContain("custom-channel");
     }
   });
 });
@@ -419,7 +419,7 @@ describe("planUpdate — customPlanResolver", () => {
       available(),
       detection("npm-global", "high"),
       config({
-        customPlanResolver: ({ defaultPlan }) => ({
+        customPlanResolver: ({ defaultPlan: _defaultPlan }) => ({
           type: "manual-install",
           reason: "Custom override",
           instructions: "Do it this way instead",
@@ -427,9 +427,9 @@ describe("planUpdate — customPlanResolver", () => {
       }),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("manual-install");
-    if (result!.kind.type === "manual-install") {
-      expect(result!.kind.reason).toBe("Custom override");
+    expect(result?.kind.type).toBe("manual-install");
+    if (result?.kind.type === "manual-install") {
+      expect(result?.kind.reason).toBe("Custom override");
     }
   });
 
@@ -438,11 +438,12 @@ describe("planUpdate — customPlanResolver", () => {
       available(),
       detection("npm-global", "high"),
       config({
+        // biome-ignore lint/suspicious/noExplicitAny: testing resolver returning null
         customPlanResolver: () => null as any,
       }),
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("delegate-command");
+    expect(result?.kind.type).toBe("delegate-command");
   });
 
   it("receives correct context in resolver arguments", () => {
@@ -479,9 +480,9 @@ describe("planUpdate — empty assets array", () => {
       [],
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe("manual-install");
-    if (result!.kind.type === "manual-install") {
-      expect(result!.kind.reason).toContain("No release assets");
+    expect(result?.kind.type).toBe("manual-install");
+    if (result?.kind.type === "manual-install") {
+      expect(result?.kind.reason).toContain("No release assets");
     }
   });
 });
@@ -498,8 +499,8 @@ describe("planUpdate — brew low confidence instructions", () => {
       config({ brewCaskName: "my-special-cask" }),
     );
     expect(result).not.toBeNull();
-    if (result!.kind.type === "manual-install") {
-      expect(result!.kind.instructions).toContain("my-special-cask");
+    if (result?.kind.type === "manual-install") {
+      expect(result?.kind.instructions).toContain("my-special-cask");
     }
   });
 });
@@ -516,8 +517,8 @@ describe("planUpdate — npm low confidence instructions", () => {
       config({ npmPackageName: "@scope/my-pkg" }),
     );
     expect(result).not.toBeNull();
-    if (result!.kind.type === "manual-install") {
-      expect(result!.kind.instructions).toContain("@scope/my-pkg");
+    if (result?.kind.type === "manual-install") {
+      expect(result?.kind.instructions).toContain("@scope/my-pkg");
     }
   });
 });
@@ -535,8 +536,8 @@ describe("planUpdate — native low confidence with assets", () => {
       assets(),
     );
     expect(result).not.toBeNull();
-    if (result!.kind.type === "manual-install") {
-      expect(result!.kind.downloadUrl).toBe(
+    if (result?.kind.type === "manual-install") {
+      expect(result?.kind.downloadUrl).toBe(
         "https://dl.example.com/darwin-arm64.tar.gz",
       );
     }
@@ -547,87 +548,97 @@ describe("planUpdate — native low confidence with assets", () => {
 // Downgrade / targetVersion
 // ──────────────────────────────────────────────
 
-describe('planUpdate — targetVersion option', () => {
-  it('uses targetVersion instead of status.latest', () => {
+describe("planUpdate — targetVersion option", () => {
+  it("uses targetVersion instead of status.latest", () => {
     const result = planUpdate(
-      available('2.0.0', '3.0.0'),
-      detection('npm-global', 'high'),
+      available("2.0.0", "3.0.0"),
+      detection("npm-global", "high"),
       config(),
-      { targetVersion: '1.0.0' },
+      { targetVersion: "1.0.0" },
     );
     expect(result).not.toBeNull();
-    expect(result!.toVersion).toBe('1.0.0');
-    expect(result!.fromVersion).toBe('2.0.0');
+    expect(result?.toVersion).toBe("1.0.0");
+    expect(result?.fromVersion).toBe("2.0.0");
   });
 
-  it('creates delegate-command with target version for npm downgrade', () => {
+  it("creates delegate-command with target version for npm downgrade", () => {
     const result = planUpdate(
-      available('2.0.0', '3.0.0'),
-      detection('npm-global', 'high'),
+      available("2.0.0", "3.0.0"),
+      detection("npm-global", "high"),
       config(),
-      { targetVersion: '1.5.0' },
+      { targetVersion: "1.5.0" },
     );
     expect(result).not.toBeNull();
-    if (result!.kind.type === 'delegate-command') {
-      expect(result!.kind.command).toEqual(['npm', 'install', '-g', 'test-app@1.5.0']);
+    if (result?.kind.type === "delegate-command") {
+      expect(result?.kind.command).toEqual([
+        "npm",
+        "install",
+        "-g",
+        "test-app@1.5.0",
+      ]);
     }
   });
 
-  it('creates native-in-place plan for native channel downgrade', () => {
+  it("creates native-in-place plan for native channel downgrade", () => {
     const result = planUpdate(
-      available('2.0.0', '3.0.0'),
-      detection('native', 'high'),
+      available("2.0.0", "3.0.0"),
+      detection("native", "high"),
       config(),
-      { targetVersion: '1.0.0', assets: assets() },
+      { targetVersion: "1.0.0", assets: assets() },
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe('native-in-place');
-    expect(result!.toVersion).toBe('1.0.0');
+    expect(result?.kind.type).toBe("native-in-place");
+    expect(result?.toVersion).toBe("1.0.0");
   });
 
-  it('creates plan even when status is up-to-date (for explicit downgrade)', () => {
+  it("creates plan even when status is up-to-date (for explicit downgrade)", () => {
     const result = planUpdate(
-      { kind: 'up-to-date', current: '2.0.0' },
-      detection('npm-global', 'high'),
+      { kind: "up-to-date", current: "2.0.0" },
+      detection("npm-global", "high"),
       config(),
-      { targetVersion: '1.0.0' },
+      { targetVersion: "1.0.0" },
     );
     expect(result).not.toBeNull();
-    expect(result!.toVersion).toBe('1.0.0');
-    expect(result!.fromVersion).toBe('2.0.0');
+    expect(result?.toVersion).toBe("1.0.0");
+    expect(result?.fromVersion).toBe("2.0.0");
   });
 
-  it('returns null when targetVersion equals current version', () => {
+  it("returns null when targetVersion equals current version", () => {
     const result = planUpdate(
-      { kind: 'up-to-date', current: '2.0.0' },
-      detection('npm-global', 'high'),
-      config({ currentVersion: '2.0.0' }),
-      { targetVersion: '2.0.0' },
+      { kind: "up-to-date", current: "2.0.0" },
+      detection("npm-global", "high"),
+      config({ currentVersion: "2.0.0" }),
+      { targetVersion: "2.0.0" },
     );
     expect(result).toBeNull();
   });
 
-  it('passes assets from options to plan resolution', () => {
+  it("passes assets from options to plan resolution", () => {
     const result = planUpdate(
-      available('1.0.0', '3.0.0'),
-      detection('native', 'high'),
+      available("1.0.0", "3.0.0"),
+      detection("native", "high"),
       config(),
-      { targetVersion: '2.0.0', assets: assets() },
+      { targetVersion: "2.0.0", assets: assets() },
     );
     expect(result).not.toBeNull();
-    expect(result!.kind.type).toBe('native-in-place');
+    expect(result?.kind.type).toBe("native-in-place");
   });
 
-  it('works with brew-cask channel downgrade', () => {
+  it("works with brew-cask channel downgrade", () => {
     const result = planUpdate(
-      available('2.0.0', '3.0.0'),
-      detection('brew-cask', 'high'),
-      config({ brewCaskName: 'my-cask' }),
-      { targetVersion: '1.0.0' },
+      available("2.0.0", "3.0.0"),
+      detection("brew-cask", "high"),
+      config({ brewCaskName: "my-cask" }),
+      { targetVersion: "1.0.0" },
     );
     expect(result).not.toBeNull();
-    if (result!.kind.type === 'delegate-command') {
-      expect(result!.kind.command).toEqual(['brew', 'upgrade', '--cask', 'my-cask']);
+    if (result?.kind.type === "delegate-command") {
+      expect(result?.kind.command).toEqual([
+        "brew",
+        "upgrade",
+        "--cask",
+        "my-cask",
+      ]);
     }
   });
 });

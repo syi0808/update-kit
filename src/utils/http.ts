@@ -62,7 +62,7 @@ export interface ProxyConfig {
  */
 export function getProxyConfig(url: string): ProxyConfig | undefined {
   const parsedUrl = new URL(url);
-  const noProxy = process.env["NO_PROXY"] || process.env["no_proxy"];
+  const noProxy = process.env.NO_PROXY || process.env.no_proxy;
 
   if (noProxy && shouldBypassProxy(parsedUrl.hostname, noProxy)) {
     return undefined;
@@ -70,8 +70,8 @@ export function getProxyConfig(url: string): ProxyConfig | undefined {
 
   const proxyUrl =
     parsedUrl.protocol === "https:"
-      ? process.env["HTTPS_PROXY"] || process.env["https_proxy"]
-      : process.env["HTTP_PROXY"] || process.env["http_proxy"];
+      ? process.env.HTTPS_PROXY || process.env.https_proxy
+      : process.env.HTTP_PROXY || process.env.http_proxy;
 
   if (!proxyUrl) return undefined;
 

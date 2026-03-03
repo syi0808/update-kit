@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   ApplyProgress,
   ApplyResult,
@@ -25,7 +25,7 @@ describe("UX 레이어", () => {
       };
       const result = renderBanner(status, detection);
       expect(result).not.toBeNull();
-      const plain = stripAnsi(result!);
+      const plain = stripAnsi(result as string);
       expect(plain).toContain("1.0.0");
       expect(plain).toContain("2.0.0");
     });
@@ -50,7 +50,7 @@ describe("UX 레이어", () => {
         updateAvailable: ({ current, latest }) =>
           `새 버전 ${latest} (현재: ${current})`,
       });
-      const plain = stripAnsi(result!);
+      const plain = stripAnsi(result as string);
       expect(plain).toContain("새 버전");
     });
 
@@ -61,7 +61,7 @@ describe("UX 레이어", () => {
         latest: "2.0.0",
       };
       const result = renderBanner(status, detection);
-      const plain = stripAnsi(result!);
+      const plain = stripAnsi(result as string);
       expect(plain).toContain("npm update -g");
     });
 
@@ -77,7 +77,7 @@ describe("UX 레이어", () => {
         evidence: [{ source: "brew", detail: "installed via brew" }],
       };
       const result = renderBanner(status, brewDetection);
-      const plain = stripAnsi(result!);
+      const plain = stripAnsi(result as string);
       expect(plain).toContain("brew upgrade --cask");
     });
 
@@ -93,7 +93,7 @@ describe("UX 레이어", () => {
         evidence: [{ source: "receipt", detail: "native install" }],
       };
       const result = renderBanner(status, nativeDetection);
-      const plain = stripAnsi(result!);
+      const plain = stripAnsi(result as string);
       expect(plain).not.toContain("Run `");
     });
   });

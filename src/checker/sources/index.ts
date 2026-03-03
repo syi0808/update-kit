@@ -76,8 +76,13 @@ export interface FetchVersionsOptions {
 
 /** Result of fetching a version list */
 export type VersionListResult =
-  | { kind: 'success'; versions: VersionInfo[]; nextCursor?: string; totalCount?: number }
-  | { kind: 'error'; reason: string };
+  | {
+      kind: "success";
+      versions: VersionInfo[];
+      nextCursor?: string;
+      totalCount?: number;
+    }
+  | { kind: "error"; reason: string };
 
 /**
  * Factory function that creates an appropriate VersionSource instance from a config object.
@@ -116,7 +121,10 @@ export async function listVersions(
   options?: FetchVersionsOptions,
 ): Promise<VersionListResult> {
   if (!source.fetchVersions) {
-    return { kind: 'error', reason: `Source "${source.name}" does not support version listing` };
+    return {
+      kind: "error",
+      reason: `Source "${source.name}" does not support version listing`,
+    };
   }
   return source.fetchVersions(options);
 }

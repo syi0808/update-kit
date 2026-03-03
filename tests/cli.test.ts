@@ -45,11 +45,12 @@ describe("CLI E2E via dist/cli.mjs", () => {
         timeout: 10_000,
       });
       return { stdout, stderr: "", status: 0 };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const e = error as { stdout?: string; stderr?: string; status?: number };
       return {
-        stdout: error.stdout ?? "",
-        stderr: error.stderr ?? "",
-        status: error.status ?? 1,
+        stdout: e.stdout ?? "",
+        stderr: e.stderr ?? "",
+        status: e.status ?? 1,
       };
     }
   }

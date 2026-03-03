@@ -74,7 +74,7 @@ export async function writeCache(
   const tmpPath = `${filePath}.${process.pid}-${Date.now()}.tmp`;
 
   try {
-    const data = JSON.stringify(entry, null, 2) + "\n";
+    const data = `${JSON.stringify(entry, null, 2)}\n`;
     await fs.writeFile(tmpPath, data, "utf-8");
     await fs.rename(tmpPath, filePath);
   } catch (error) {

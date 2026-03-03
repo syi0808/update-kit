@@ -1,5 +1,5 @@
 export function supportsColor(): boolean {
-  if (process.env["NO_COLOR"] !== undefined) return false;
+  if (process.env.NO_COLOR !== undefined) return false;
   return process.stdout.isTTY === true;
 }
 
@@ -16,5 +16,6 @@ export const yellow = (text: string) => wrap("33", text);
 export const dim = (text: string) => wrap("2", text);
 
 export function stripAnsi(text: string): string {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences require control characters
   return text.replace(/\x1b\[\d+m/g, "");
 }

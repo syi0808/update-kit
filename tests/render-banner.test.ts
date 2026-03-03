@@ -5,15 +5,15 @@ import { renderBanner, stripAnsi } from "../dist/index.mjs";
 let savedNoColor: string | undefined;
 
 beforeAll(() => {
-  savedNoColor = process.env["NO_COLOR"];
-  process.env["NO_COLOR"] = "1";
+  savedNoColor = process.env.NO_COLOR;
+  process.env.NO_COLOR = "1";
 });
 
 afterAll(() => {
   if (savedNoColor === undefined) {
-    delete process.env["NO_COLOR"];
+    delete process.env.NO_COLOR;
   } else {
-    process.env["NO_COLOR"] = savedNoColor;
+    process.env.NO_COLOR = savedNoColor;
   }
 });
 
@@ -55,26 +55,26 @@ describe("renderBanner", () => {
   it("returns banner string when update is available", () => {
     const result = renderBanner(availableStatus, nativeDetection);
     expect(result).not.toBeNull();
-    const plain = stripAnsi(result!);
+    const plain = stripAnsi(result as string);
     expect(plain).toContain("1.0.0");
     expect(plain).toContain("2.0.0");
   });
 
   it("npm-global channel includes npm update command", () => {
     const result = renderBanner(availableStatus, npmDetection);
-    const plain = stripAnsi(result!);
+    const plain = stripAnsi(result as string);
     expect(plain).toContain("npm update -g");
   });
 
   it("brew-cask channel includes brew upgrade command", () => {
     const result = renderBanner(availableStatus, brewDetection);
-    const plain = stripAnsi(result!);
+    const plain = stripAnsi(result as string);
     expect(plain).toContain("brew upgrade --cask");
   });
 
   it("native channel does not include a command", () => {
     const result = renderBanner(availableStatus, nativeDetection);
-    const plain = stripAnsi(result!);
+    const plain = stripAnsi(result as string);
     expect(plain).not.toContain("Run `");
   });
 
@@ -85,7 +85,7 @@ describe("renderBanner", () => {
       evidence: [],
     };
     const result = renderBanner(availableStatus, unmanagedDetection);
-    const plain = stripAnsi(result!);
+    const plain = stripAnsi(result as string);
     expect(plain).not.toContain("Run `");
   });
 
@@ -96,7 +96,7 @@ describe("renderBanner", () => {
       evidence: [],
     };
     const result = renderBanner(availableStatus, customDetection);
-    const plain = stripAnsi(result!);
+    const plain = stripAnsi(result as string);
     expect(plain).not.toContain("Run `");
   });
 
@@ -105,7 +105,7 @@ describe("renderBanner", () => {
       updateAvailable: ({ current, latest }) =>
         `New version ${latest} (current: ${current})`,
     });
-    const plain = stripAnsi(result!);
+    const plain = stripAnsi(result as string);
     expect(plain).toContain("New version");
   });
 });

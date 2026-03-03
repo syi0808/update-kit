@@ -30,7 +30,7 @@ export async function atomicReplace(
 }
 
 async function unixReplace(newPath: string, targetPath: string): Promise<void> {
-  const tmpInPlace = targetPath + `.new.${process.pid}`;
+  const tmpInPlace = `${targetPath}.new.${process.pid}`;
 
   try {
     await fs.copyFile(newPath, tmpInPlace);
@@ -51,7 +51,7 @@ async function windowsReplace(
   newPath: string,
   targetPath: string,
 ): Promise<void> {
-  const backupPath = targetPath + ".old";
+  const backupPath = `${targetPath}.old`;
 
   // Clean up previous backup
   try {

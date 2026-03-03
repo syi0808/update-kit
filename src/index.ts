@@ -9,7 +9,12 @@ import {
   inferSourceConfigs,
   orderSourcesByChannel,
 } from "./checker/infer-sources.js";
-import type { VersionSource } from "./checker/sources/index.js";
+import type {
+  AssetInfo,
+  FetchVersionsOptions,
+  VersionListResult,
+  VersionSource,
+} from "./checker/sources/index.js";
 import { createVersionSource } from "./checker/sources/index.js";
 import type {
   CreateOptions,
@@ -30,11 +35,7 @@ import type {
   UpdatePlan,
   UpdateStatus,
 } from "./types.js";
-import type {
-  AssetInfo,
-  FetchVersionsOptions,
-  VersionListResult,
-} from "./checker/sources/index.js";
+import type { PackageJsonResult } from "./utils/package-json.js";
 import {
   findPackageJsonFromModule,
   getCallerFilePath,
@@ -155,7 +156,7 @@ export class UpdateKit {
     }
 
     // Resolve package.json: explicit moduleUrl > auto-detect from caller
-    let pkgResult;
+    let pkgResult: PackageJsonResult | null;
     try {
       pkgResult = options?.moduleUrl
         ? await findPackageJsonFromModule(options.moduleUrl)
@@ -454,9 +455,7 @@ export class UpdateKit {
   ): Promise<ApplyResult> {
     try {
       const normalizedTarget = normalizeVersion(targetVersion);
-      const normalizedCurrent = normalizeVersion(
-        this.config.currentVersion,
-      );
+      const normalizedCurrent = normalizeVersion(this.config.currentVersion);
       if (
         normalizedTarget &&
         normalizedCurrent &&
@@ -625,8 +624,6 @@ export {
 // Detection
 export { detectInstall } from "./detection/index.js";
 export type { DiagnosticCheck, DoctorReport } from "./doctor.js";
-// Planner
-export type { PlanUpdateOptions } from "./planner/index.js";
 // Doctor
 export { runDoctor } from "./doctor.js";
 export type { ErrorCode } from "./errors.js";
@@ -652,6 +649,8 @@ export {
   UpdateKitError,
   VERSION_PARSE,
 } from "./errors.js";
+// Planner
+export type { PlanUpdateOptions } from "./planner/index.js";
 export { atomicReplace } from "./platform/replace.js";
 // Types
 export type {

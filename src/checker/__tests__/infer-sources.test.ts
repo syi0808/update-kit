@@ -219,6 +219,7 @@ describe("orderSourcesByChannel", () => {
 
   it("puts unknown source types at the end", () => {
     const sources: VersionSourceConfig[] = [
+      // biome-ignore lint/suspicious/noExplicitAny: testing invalid/unknown source type
       { type: "custom", url: "https://example.com/manifest.json" } as any,
       { type: "npm", packageName: "x" },
       { type: "github", owner: "o", repo: "r" },
@@ -233,9 +234,7 @@ describe("orderSourcesByChannel", () => {
   });
 
   it("handles single source", () => {
-    const sources: VersionSourceConfig[] = [
-      { type: "brew", caskName: "x" },
-    ];
+    const sources: VersionSourceConfig[] = [{ type: "brew", caskName: "x" }];
     const ordered = orderSourcesByChannel(sources, "native");
     expect(ordered.map((s) => s.type)).toEqual(["brew"]);
   });

@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { APPLY_FAILED, PERMISSION_DENIED } from "../../errors.js";
+import { PERMISSION_DENIED } from "../../errors.js";
 import { atomicReplace } from "../replace.js";
 
 const originalPlatform = process.platform;
@@ -23,21 +23,24 @@ afterEach(async () => {
 // ──────────────────────────────────────────────
 
 describe("atomicReplace — permission check", () => {
-  it.skipIf(process.platform === "win32")("throws PERMISSION_DENIED when target is not writable", async () => {
-    const targetPath = path.join(tmpDir, "readonly-binary");
-    const newPath = path.join(tmpDir, "new-binary");
+  it.skipIf(process.platform === "win32")(
+    "throws PERMISSION_DENIED when target is not writable",
+    async () => {
+      const targetPath = path.join(tmpDir, "readonly-binary");
+      const newPath = path.join(tmpDir, "new-binary");
 
-    await fs.writeFile(targetPath, "old");
-    await fs.writeFile(newPath, "new");
-    await fs.chmod(targetPath, 0o444);
+      await fs.writeFile(targetPath, "old");
+      await fs.writeFile(newPath, "new");
+      await fs.chmod(targetPath, 0o444);
 
-    await expect(atomicReplace(newPath, targetPath)).rejects.toThrow(
-      expect.objectContaining({ code: PERMISSION_DENIED }),
-    );
+      await expect(atomicReplace(newPath, targetPath)).rejects.toThrow(
+        expect.objectContaining({ code: PERMISSION_DENIED }),
+      );
 
-    // Restore permissions for cleanup
-    await fs.chmod(targetPath, 0o644);
-  });
+      // Restore permissions for cleanup
+      await fs.chmod(targetPath, 0o644);
+    },
+  );
 });
 
 // ──────────────────────────────────────────────
@@ -60,22 +63,25 @@ describe("atomicReplace — Unix", () => {
     expect(result).toBe("new content");
   });
 
-  it.skipIf(process.platform === "win32")("preserves executable permission on the new file", async () => {
-    Object.defineProperty(process, "platform", { value: "linux" });
+  it.skipIf(process.platform === "win32")(
+    "preserves executable permission on the new file",
+    async () => {
+      Object.defineProperty(process, "platform", { value: "linux" });
 
-    const targetPath = path.join(tmpDir, "binary");
-    const newPath = path.join(tmpDir, "new-binary");
+      const targetPath = path.join(tmpDir, "binary");
+      const newPath = path.join(tmpDir, "new-binary");
 
-    await fs.writeFile(targetPath, "old");
-    await fs.chmod(targetPath, 0o755);
-    await fs.writeFile(newPath, "new");
+      await fs.writeFile(targetPath, "old");
+      await fs.chmod(targetPath, 0o755);
+      await fs.writeFile(newPath, "new");
 
-    await atomicReplace(newPath, targetPath);
+      await atomicReplace(newPath, targetPath);
 
-    const stat = await fs.stat(targetPath);
-    // 0o755 = rwxr-xr-x → check that execute bit is set
-    expect(stat.mode & 0o111).not.toBe(0);
-  });
+      const stat = await fs.stat(targetPath);
+      // 0o755 = rwxr-xr-x → check that execute bit is set
+      expect(stat.mode & 0o111).not.toBe(0);
+    },
+  );
 
   it("leaves no temp files on success", async () => {
     Object.defineProperty(process, "platform", { value: "linux" });
@@ -127,7 +133,7 @@ describe("atomicReplace — Windows", () => {
     await atomicReplace(newPath, targetPath);
 
     // .old should be cleaned up
-    await expect(fs.access(targetPath + ".old")).rejects.toThrow();
+    await expect(fs.access(`${targetPath}.old`)).rejects.toThrow();
   });
 
   it("throws APPLY_FAILED when both copy and rollback fail", async () => {

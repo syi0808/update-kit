@@ -21,9 +21,9 @@ describe("detectFromReceipt", () => {
 
     const result = await detectFromReceipt(config);
     expect(result).not.toBeNull();
-    expect(result!.channel).toBe("native");
-    expect(result!.confidence).toBe("high");
-    expect(result!.evidence[0].source).toBe("receipt_file");
+    expect(result?.channel).toBe("native");
+    expect(result?.confidence).toBe("high");
+    expect(result?.evidence[0].source).toBe("receipt_file");
   });
 
   it("uses channel from receipt", async () => {
@@ -32,7 +32,7 @@ describe("detectFromReceipt", () => {
     );
 
     const result = await detectFromReceipt(config);
-    expect(result!.channel).toBe("brew-cask");
+    expect(result?.channel).toBe("brew-cask");
   });
 
   it("defaults to native when channel is missing in receipt", async () => {
@@ -41,7 +41,7 @@ describe("detectFromReceipt", () => {
     );
 
     const result = await detectFromReceipt(config);
-    expect(result!.channel).toBe("native");
+    expect(result?.channel).toBe("native");
   });
 
   it("returns null when appName does not match", async () => {

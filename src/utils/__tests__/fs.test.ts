@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { atomicWriteFile } from "../fs.js";
 
 describe("atomicWriteFile", () => {
@@ -61,5 +61,4 @@ describe("atomicWriteFile", () => {
     // 0o600 = owner read+write only
     expect(stat.mode & 0o777).toBe(0o600);
   });
-
 });

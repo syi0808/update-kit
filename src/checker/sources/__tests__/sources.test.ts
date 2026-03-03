@@ -255,7 +255,7 @@ describe("GitHubReleasesSource", () => {
     expect(result.kind).toBe("found");
     if (result.kind === "found") {
       expect(result.info.assets).toHaveLength(1);
-      expect(result.info.assets![0].name).toBe("safe.tar.gz");
+      expect(result.info.assets?.[0].name).toBe("safe.tar.gz");
     }
   });
 });
@@ -967,6 +967,7 @@ describe("CustomManifestSource", () => {
 
 describe("createVersionSource", () => {
   it("throws for unknown source type", () => {
+    // biome-ignore lint/suspicious/noExplicitAny: testing invalid source type
     expect(() => createVersionSource({ type: "unknown" as any })).toThrow(
       "Unknown version source type",
     );

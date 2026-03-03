@@ -49,7 +49,7 @@ export async function checkUpdate(
 
 async function checkBlocking(
   config: CheckUpdateOptions,
-  intervalMs: number,
+  _intervalMs: number,
 ): Promise<UpdateStatus> {
   const { appName, currentVersion, sources, cacheDir } = config;
   const cached = await readCache(cacheDir, appName);

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { UpdateKitConfig } from "../dist/index.mjs";
 import { UpdateKit } from "../dist/index.mjs";
 
 describe("UpdateKit Constructor Validation", () => {
@@ -25,15 +26,18 @@ describe("UpdateKit Constructor Validation", () => {
   });
 
   it("throws when neither appName nor pkg is provided", () => {
-    expect(() => new UpdateKit({ currentVersion: "1.0.0" } as any)).toThrow(
-      "appName",
-    );
+    expect(
+      () =>
+        new UpdateKit({
+          currentVersion: "1.0.0",
+        } as unknown as UpdateKitConfig),
+    ).toThrow("appName");
   });
 
   it("throws when neither currentVersion nor pkg is provided", () => {
-    expect(() => new UpdateKit({ appName: "test" } as any)).toThrow(
-      "currentVersion",
-    );
+    expect(
+      () => new UpdateKit({ appName: "test" } as unknown as UpdateKitConfig),
+    ).toThrow("currentVersion");
   });
 
   it("throws for invalid semver version", () => {

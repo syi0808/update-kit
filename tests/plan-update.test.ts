@@ -68,9 +68,9 @@ describe("UpdateKit instance method shapes", () => {
     };
     const plan = kit.planUpdate(status, detection);
     expect(plan).not.toBeNull();
-    expect(plan!.kind.type).toBe("delegate-command");
-    expect(plan!.fromVersion).toBe("1.0.0");
-    expect(plan!.toVersion).toBe("2.0.0");
+    expect(plan?.kind.type).toBe("delegate-command");
+    expect(plan?.fromVersion).toBe("1.0.0");
+    expect(plan?.toVersion).toBe("2.0.0");
   });
 
   it("planUpdate returns delegate-command for brew-cask channel", () => {
@@ -86,7 +86,7 @@ describe("UpdateKit instance method shapes", () => {
     };
     const plan = kit.planUpdate(status, detection);
     expect(plan).not.toBeNull();
-    expect(plan!.kind.type).toBe("delegate-command");
+    expect(plan?.kind.type).toBe("delegate-command");
   });
 
   it("planUpdate returns manual-install for unknown channel", () => {
@@ -102,7 +102,7 @@ describe("UpdateKit instance method shapes", () => {
     };
     const plan = kit.planUpdate(status, detection);
     expect(plan).not.toBeNull();
-    expect(plan!.kind.type).toBe("manual-install");
+    expect(plan?.kind.type).toBe("manual-install");
   });
 
   it("planUpdate returns manual-install for low confidence npm-global", () => {
@@ -118,7 +118,7 @@ describe("UpdateKit instance method shapes", () => {
     };
     const plan = kit.planUpdate(status, detection);
     expect(plan).not.toBeNull();
-    expect(plan!.kind.type).toBe("manual-install");
+    expect(plan?.kind.type).toBe("manual-install");
   });
 
   it("planUpdate returns manual-install for low confidence brew-cask", () => {
@@ -134,7 +134,7 @@ describe("UpdateKit instance method shapes", () => {
     };
     const plan = kit.planUpdate(status, detection);
     expect(plan).not.toBeNull();
-    expect(plan!.kind.type).toBe("manual-install");
+    expect(plan?.kind.type).toBe("manual-install");
   });
 
   it("planUpdate returns manual-install for native channel without assets", () => {
@@ -150,7 +150,7 @@ describe("UpdateKit instance method shapes", () => {
     };
     const plan = kit.planUpdate(status, detection);
     expect(plan).not.toBeNull();
-    expect(plan!.kind.type).toBe("manual-install");
+    expect(plan?.kind.type).toBe("manual-install");
   });
 
   it("planUpdate returns manual-install for unmanaged with none confidence", () => {
@@ -166,7 +166,7 @@ describe("UpdateKit instance method shapes", () => {
     };
     const plan = kit.planUpdate(status, detection);
     expect(plan).not.toBeNull();
-    expect(plan!.kind.type).toBe("manual-install");
+    expect(plan?.kind.type).toBe("manual-install");
   });
 
   it("delegate-command plan has correct postAction", () => {
@@ -181,7 +181,7 @@ describe("UpdateKit instance method shapes", () => {
       evidence: [],
     };
     const plan = kit.planUpdate(status, detection);
-    expect(plan!.postAction).toBe("exit-after-apply");
+    expect(plan?.postAction).toBe("exit-after-apply");
   });
 
   it("manual-install plan has none postAction", () => {
@@ -196,7 +196,7 @@ describe("UpdateKit instance method shapes", () => {
       evidence: [],
     };
     const plan = kit.planUpdate(status, detection);
-    expect(plan!.postAction).toBe("none");
+    expect(plan?.postAction).toBe("none");
   });
 });
 
@@ -219,11 +219,11 @@ describe("Delegate command plan structure", () => {
     };
     const plan = kit.planUpdate(status, detection);
     expect(plan).not.toBeNull();
-    expect(plan!.kind.type).toBe("delegate-command");
-    if (plan!.kind.type === "delegate-command") {
-      expect(plan!.kind.command).toContain("npm");
-      expect(plan!.kind.command).toContain("my-npm-pkg@3.0.0");
-      expect(plan!.kind.mode).toBe("print-only");
+    expect(plan?.kind.type).toBe("delegate-command");
+    if (plan?.kind.type === "delegate-command") {
+      expect(plan?.kind.command).toContain("npm");
+      expect(plan?.kind.command).toContain("my-npm-pkg@3.0.0");
+      expect(plan?.kind.mode).toBe("print-only");
     }
   });
 
@@ -243,8 +243,8 @@ describe("Delegate command plan structure", () => {
       evidence: [],
     };
     const plan = kit.planUpdate(status, detection);
-    if (plan!.kind.type === "delegate-command") {
-      expect(plan!.kind.command).toContain("fallback-name@2.0.0");
+    if (plan?.kind.type === "delegate-command") {
+      expect(plan?.kind.command).toContain("fallback-name@2.0.0");
     }
   });
 
@@ -266,9 +266,9 @@ describe("Delegate command plan structure", () => {
     };
     const plan = kit.planUpdate(status, detection);
     expect(plan).not.toBeNull();
-    if (plan!.kind.type === "delegate-command") {
-      expect(plan!.kind.command).toContain("brew");
-      expect(plan!.kind.command).toContain("my-brew-cask");
+    if (plan?.kind.type === "delegate-command") {
+      expect(plan?.kind.command).toContain("brew");
+      expect(plan?.kind.command).toContain("my-brew-cask");
     }
   });
 
@@ -288,8 +288,8 @@ describe("Delegate command plan structure", () => {
       evidence: [],
     };
     const plan = kit.planUpdate(status, detection);
-    if (plan!.kind.type === "delegate-command") {
-      expect(plan!.kind.command).toContain("brew-fallback");
+    if (plan?.kind.type === "delegate-command") {
+      expect(plan?.kind.command).toContain("brew-fallback");
     }
   });
 
@@ -310,8 +310,8 @@ describe("Delegate command plan structure", () => {
       evidence: [],
     };
     const plan = kit.planUpdate(status, detection);
-    if (plan!.kind.type === "delegate-command") {
-      expect(plan!.kind.mode).toBe("execute");
+    if (plan?.kind.type === "delegate-command") {
+      expect(plan?.kind.mode).toBe("execute");
     }
   });
 });

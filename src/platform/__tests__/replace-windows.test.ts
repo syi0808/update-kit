@@ -48,9 +48,7 @@ describe("atomicReplace — Windows (mocked fs)", () => {
     });
     mockFs.copyFile.mockRejectedValue(copyError);
 
-    await expect(
-      atomicReplace("/tmp/new-app", "/tmp/app.exe"),
-    ).rejects.toThrow(
+    await expect(atomicReplace("/tmp/new-app", "/tmp/app.exe")).rejects.toThrow(
       expect.objectContaining({
         code: APPLY_FAILED,
         message: expect.stringContaining("disk full"),
@@ -67,9 +65,9 @@ describe("atomicReplace — Windows (mocked fs)", () => {
     mockFs.rename.mockResolvedValue(undefined);
     mockFs.copyFile.mockRejectedValue(copyError);
 
-    await expect(
-      atomicReplace("/tmp/new-app", "/tmp/app.exe"),
-    ).rejects.toThrow("disk full");
+    await expect(atomicReplace("/tmp/new-app", "/tmp/app.exe")).rejects.toThrow(
+      "disk full",
+    );
   });
 
   it("tolerates .old cleanup failure after successful update", async () => {
@@ -106,9 +104,9 @@ describe("atomicReplace — Unix cleanup on failure (mocked fs)", () => {
     vi.mocked(fs.chmod).mockResolvedValue(undefined);
     mockFs.rename.mockRejectedValue(renameError);
 
-    await expect(
-      atomicReplace("/tmp/new-app", "/tmp/app"),
-    ).rejects.toThrow("permission denied");
+    await expect(atomicReplace("/tmp/new-app", "/tmp/app")).rejects.toThrow(
+      "permission denied",
+    );
 
     // unlink should have been called for the temp file
     expect(mockFs.unlink).toHaveBeenCalled();

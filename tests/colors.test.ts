@@ -12,15 +12,15 @@ import {
 let savedNoColor: string | undefined;
 
 beforeAll(() => {
-  savedNoColor = process.env["NO_COLOR"];
-  process.env["NO_COLOR"] = "1";
+  savedNoColor = process.env.NO_COLOR;
+  process.env.NO_COLOR = "1";
 });
 
 afterAll(() => {
   if (savedNoColor === undefined) {
-    delete process.env["NO_COLOR"];
+    delete process.env.NO_COLOR;
   } else {
-    process.env["NO_COLOR"] = savedNoColor;
+    process.env.NO_COLOR = savedNoColor;
   }
 });
 

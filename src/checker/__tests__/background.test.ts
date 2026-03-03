@@ -66,7 +66,7 @@ describe("spawnBackgroundCheck", () => {
       expect(mockWriteCache).toHaveBeenCalledOnce();
     });
 
-    const writtenEntry = mockWriteCache.mock.calls[0]![2] as CacheEntry;
+    const writtenEntry = mockWriteCache.mock.calls[0]?.[2] as CacheEntry;
     expect(writtenEntry.latestVersion).toBe("2.0.0");
     expect(writtenEntry.source).toBe("github");
     expect(writtenEntry.etag).toBe('"etag-1"');
@@ -116,7 +116,7 @@ describe("spawnBackgroundCheck", () => {
       expect(mockWriteCache).toHaveBeenCalledOnce();
     });
 
-    const writtenEntry = mockWriteCache.mock.calls[0]![2] as CacheEntry;
+    const writtenEntry = mockWriteCache.mock.calls[0]?.[2] as CacheEntry;
     expect(writtenEntry.latestVersion).toBe("2.0.0");
     expect(writtenEntry.source).toBe("github");
     expect(source2.fetchLatest).not.toHaveBeenCalled();
@@ -138,7 +138,7 @@ describe("spawnBackgroundCheck", () => {
       expect(mockWriteCache).toHaveBeenCalledOnce();
     });
 
-    const writtenEntry = mockWriteCache.mock.calls[0]![2] as CacheEntry;
+    const writtenEntry = mockWriteCache.mock.calls[0]?.[2] as CacheEntry;
     expect(writtenEntry.latestVersion).toBe("2.5.0");
     expect(writtenEntry.source).toBe("npm");
   });
@@ -201,10 +201,12 @@ describe("spawnBackgroundCheck", () => {
   });
 
   it("logs to console.error when UPDATE_KIT_DEBUG is set and check fails", async () => {
-    const originalDebug = process.env["UPDATE_KIT_DEBUG"];
-    process.env["UPDATE_KIT_DEBUG"] = "1";
+    const originalDebug = process.env.UPDATE_KIT_DEBUG;
+    process.env.UPDATE_KIT_DEBUG = "1";
 
-    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
     // Source that throws an error during fetch
     const failingSource: VersionSource = {
@@ -223,9 +225,9 @@ describe("spawnBackgroundCheck", () => {
 
     consoleErrorSpy.mockRestore();
     if (originalDebug === undefined) {
-      delete process.env["UPDATE_KIT_DEBUG"];
+      delete process.env.UPDATE_KIT_DEBUG;
     } else {
-      process.env["UPDATE_KIT_DEBUG"] = originalDebug;
+      process.env.UPDATE_KIT_DEBUG = originalDebug;
     }
   });
 
