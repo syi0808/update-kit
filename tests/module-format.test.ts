@@ -101,8 +101,8 @@ describe("Module Format Verification", () => {
     expect(esmKeys).toEqual(cjsKeys);
   });
 
-  it("exports exactly 56 symbols", async () => {
+  it("exports exactly 57 symbols", async () => {
     const mod = await import("../dist/index.mjs");
-    expect(Object.keys(mod)).toHaveLength(56);
+    expect(Object.keys(mod)).toHaveLength(57);
   });
 });
