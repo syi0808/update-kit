@@ -6,6 +6,9 @@
 - [Pattern B: Dedicated Update Command](#pattern-b-dedicated-update-command)
 - [Pattern C: Manual Pipeline](#pattern-c-manual-pipeline)
 - [Pattern D: With Hooks](#pattern-d-with-hooks)
+- [Pattern E: Version Listing & Switching](#pattern-e-version-listing--switching)
+- [Pattern F: Custom Detectors & Plan Resolvers](#pattern-f-custom-detectors--plan-resolvers)
+- [Pattern G: Custom Message Templates](#pattern-g-custom-message-templates)
 
 ---
 
@@ -139,6 +142,116 @@ const kit = await UpdateKit.create({
 
 ---
 
+## Pattern E: Version Listing & Switching
+
+**Best for**: CLIs with `my-cli versions` and `my-cli switch <version>` subcommands.
+**Methods**: `listVersions()` + `switchVersion()`
+
+```typescript
+async function handleVersionsCommand() {
+  const kit = await UpdateKit.create({
+    sources: [{ type: 'github', owner: 'myorg', repo: 'my-cli' }],
+  });
+
+  const result = await kit.listVersions({ limit: 10 });
+  if (result.kind === 'error') {
+    console.error(result.reason);
+    return;
+  }
+
+  for (const v of result.versions) {
+    const date = v.publishedAt ? ` (${v.publishedAt})` : '';
+    console.log(`  ${v.version}${date}`);
+  }
+}
+
+async function handleSwitchCommand(targetVersion: string) {
+  const kit = await UpdateKit.create({
+    sources: [{ type: 'npm', packageName: 'my-cli' }],
+  });
+
+  const result = await kit.switchVersion(targetVersion, { execute: true });
+
+  switch (result.kind) {
+    case 'success':
+      console.log(`Switched from ${result.fromVersion} to ${result.toVersion}`);
+      break;
+    case 'up-to-date':
+      console.log(`Already at version ${result.current}`);
+      break;
+    case 'failed':
+      console.error(`Switch failed: ${result.error.message}`);
+      process.exitCode = 1;
+      break;
+  }
+}
+```
+
+---
+
+## Pattern F: Custom Detectors & Plan Resolvers
+
+**Best for**: Apps with non-standard install channels or custom update strategies.
+
+```typescript
+const kit = await UpdateKit.create({
+  sources: [{ type: 'github', owner: 'myorg', repo: 'my-cli' }],
+  customDetectors: [
+    {
+      name: 'docker',
+      detect: (execPath) => {
+        if (process.env.RUNNING_IN_DOCKER) {
+          return {
+            channel: 'docker',
+            confidence: 'high',
+            evidence: [{ source: 'env', detail: 'RUNNING_IN_DOCKER is set' }],
+          };
+        }
+        return null;  // pass to next detector
+      },
+    },
+  ],
+  customPlanResolver: (ctx) => {
+    // For Docker installs, show manual pull instructions
+    if (ctx.channel === 'docker') {
+      return {
+        type: 'manual-install',
+        reason: 'Running in Docker',
+        instructions: `Pull the new image:\n  docker pull myorg/my-cli:${ctx.toVersion}`,
+      };
+    }
+    return null;  // keep the default plan
+  },
+});
+```
+
+---
+
+## Pattern G: Custom Message Templates
+
+**Best for**: Apps needing branded or localized update messages.
+
+```typescript
+import { renderBanner, defaultTemplates } from 'update-kit';
+
+const customTemplates = {
+  ...defaultTemplates,
+  updateAvailable({ current, latest, command }) {
+    return `🆕 New version ${latest} available (you have ${current})${
+      command ? `\n  → ${command}` : ''
+    }`;
+  },
+};
+
+// Use with renderBanner directly
+const status = await kit.checkUpdate('non-blocking');
+const detection = await kit.detectInstall();
+const banner = renderBanner(status, detection, customTemplates);
+if (banner) console.error(banner);
+```
+
+---
+
 ## Combining Patterns
 
 Patterns compose naturally. Common combinations:
@@ -146,6 +259,13 @@ Patterns compose naturally. Common combinations:
 **Startup notification + update command** (Pattern A + B):
 - Add `checkAndNotify()` to the main entry point for passive notification
 - Add a dedicated `update` subcommand with `autoUpdate()` for active updates
+
+**Startup notification + version management** (Pattern A + E):
+- Add `checkAndNotify()` to the main entry point for passive notification
+- Add `versions` and `switch` subcommands for full version control
+
+**Custom channels + any pattern** (Pattern F + A/B/C/E):
+- Add `customDetectors` and `customPlanResolver` to any pattern for non-standard installs
 
 **Any pattern + hooks** (Pattern A/B/C + D):
 - Add hooks for CI skipping or telemetry to any pattern

@@ -41,8 +41,9 @@ Use `AskUserQuestion` (skip what is already known):
 2. **Update behavior** — What happens when an update is found?
    - **Notify only** (`checkAndNotify`) — print banner at startup
    - **Auto-update** (`autoUpdate`) — full detect/download/apply pipeline
+   - **Version listing & switching** (`listVersions` + `switchVersion`) — let users pick a version (supports downgrade)
    - **Manual pipeline** — step-by-step control
-3. **Delegate mode** (if auto-update): Execute package-manager commands or print-only?
+3. **Delegate mode** (if auto-update or switchVersion): Execute package-manager commands or print-only?
 
 ### Step 3: Install
 
@@ -61,7 +62,15 @@ Read `references/integration-patterns.md` to select the matching pattern. Read `
 const kit = await UpdateKit.create({ sources: [...] });
 ```
 
-Auto-detects `appName` and `currentVersion` from the caller's nearest `package.json` via call stack inspection.
+Auto-detects `appName` and `currentVersion` from the caller's nearest `package.json` via call stack inspection. Also auto-fills `repository` from package.json for source inference.
+
+**Quick reference — Additional config options:**
+
+| Option | Description |
+|--------|-------------|
+| `customDetectors` | Custom install channel detectors (checked before built-in ones) |
+| `customPlanResolver` | Custom plan resolver (overrides default plan for a channel) |
+| `repository` | GitHub repo URL/shorthand for auto-inferring GitHub source |
 
 **Quick reference — Version sources:**
 
@@ -83,6 +92,8 @@ Auto-detects `appName` and `currentVersion` from the caller's nearest `package.j
 | `checkUpdate(mode?)` | `Promise<UpdateStatus>` | Yes |
 | `planUpdate(status, detection)` | `UpdatePlan \| null` | No (sync) |
 | `applyUpdate(plan, options?)` | `Promise<ApplyResult>` | Yes |
+| `listVersions(options?)` | `Promise<VersionListResult>` | No |
+| `switchVersion(version, options?)` | `Promise<ApplyResult>` | Never |
 
 ### Step 5: Verify
 
@@ -91,7 +102,7 @@ After generating the integration code, run through this checklist:
 - [ ] `update-kit` is in `dependencies` (not devDependencies)
 - [ ] Module syntax matches the project (ESM `import` vs CJS `require`)
 - [ ] Version source matches the project's actual distribution channel
-- [ ] Project uses ESM (`"type": "module"`) for `UpdateKit.create()`
+- [ ] Project uses ESM (`"type": "module"`) for `UpdateKit.create()` and Node.js `>=24.0.0`
 - [ ] `npmPackageName` / `brewCaskName` set if they differ from `appName`
 - [ ] Banner output goes to `stderr` (not stdout) to avoid interfering with piped output
 - [ ] Run `pnpm build` (or equivalent) to verify no compilation errors

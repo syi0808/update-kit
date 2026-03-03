@@ -6,7 +6,7 @@
 import { UpdateKit } from 'update-kit';
 ```
 
-Dual ESM + CJS output. Requires Node.js >= 18. Only runtime dependency: `semver`.
+Dual ESM + CJS output. Requires Node.js >= 24.0.0. Only runtime dependency: `semver`.
 
 ## Creating an Instance
 
@@ -26,21 +26,25 @@ const kit = await UpdateKit.create({
   appName: string,
   currentVersion: string,
 
-  // Version sources (tried in order, first success wins)
-  sources: VersionSourceConfig[],
-
-  // Optional
+  // Optional — Version checking
+  sources: VersionSourceConfig[],    // Tried in order; first success wins
   checkInterval: number,             // Cache validity ms. Default: 72_000_000 (20h)
   cacheDir: string,                  // Default: OS-specific (~/.cache or %LOCALAPPDATA%)
-  delegateMode: 'print-only' | 'execute',  // Default: 'print-only'
-  allowReexec: boolean,              // Re-exec new binary after native update. Default: false
+  repository: string | { url: string }, // GitHub repo for auto-inferring sources
+
+  // Optional — Detection
   npmPackageName: string,            // Override for npm-global detection/updates
   brewCaskName: string,              // Override for brew-cask detection/updates
   executablePath: string,            // Default: process.argv[1]
+  customDetectors: CustomDetector[], // Custom channel detectors (checked before built-ins)
 
-  // Asset pattern for native-in-place updates (GitHub releases)
-  // Placeholders: {app}, {version}, {target}, {platform}, {arch}, {ext}
-  assetPattern: string,
+  // Optional — Planning
+  delegateMode: 'print-only' | 'execute',  // Default: 'print-only'
+  assetPattern: string,              // Placeholders: {app}, {version}, {target}, {arch}, {ext}
+  customPlanResolver: (ctx: PlanResolverContext) => PlanKind | null,
+
+  // Optional — Apply
+  allowReexec: boolean,              // Re-exec new binary after native update. Default: false
 
   // Lifecycle hooks
   hooks: Hooks,
@@ -70,7 +74,7 @@ Full pipeline: detect -> check (blocking) -> plan -> apply. **Never throws.** Re
 ### detectInstall(): Promise<InstallDetection>
 
 Returns `{ channel, confidence, evidence[] }`.
-- Channels: `'native'`, `'npm-global'`, `'brew-cask'`, `'unmanaged'`
+- Channels: `'native'`, `'npm-global'`, `'brew-cask'`, `'unmanaged'`, or custom strings via `customDetectors`
 - Confidence: `'none'`, `'low'`, `'medium'`, `'high'`
 
 ### checkUpdate(mode?): Promise<UpdateStatus>
@@ -86,12 +90,26 @@ Synchronous. Returns null if status is not `'available'`.
 
 Executes the plan. Runs `beforeApply`, `afterApply`, and `onError` hooks.
 
+### listVersions(options?): Promise<VersionListResult>
+
+Lists available versions with pagination. Iterates sources in channel-priority order; returns results from the first source that supports version listing. Does not throw.
+
+Options: `{ limit?: number, cursor?: string, signal?: AbortSignal }`
+
+### switchVersion(targetVersion, options?): Promise<ApplyResult>
+
+Switches to a specific version (upgrade or downgrade). Runs the full pipeline: detect -> plan -> apply. **Never throws**; errors are returned as `{ kind: 'failed' }`.
+
+Options: `{ execute?: boolean, assets?: AssetInfo[] } & ApplyOptions`
+
+When `execute: true`, overrides `delegateMode` to `'execute'` for this operation.
+
 ## Result Types (Discriminated Unions)
 
 ### UpdateStatus (discriminated on `kind`)
 
 ```typescript
-| { kind: 'available'; current: string; latest: string; releaseUrl?: string; releaseNotes?: string }
+| { kind: 'available'; current: string; latest: string; releaseUrl?: string; releaseNotes?: string; assets?: AssetInfo[] }
 | { kind: 'up-to-date'; current: string }
 | { kind: 'unknown'; reason: string; cachedLatest?: string }
 ```
@@ -100,6 +118,7 @@ Executes the plan. Runs `beforeApply`, `afterApply`, and `onError` hooks.
 
 ```typescript
 | { kind: 'success'; fromVersion: string; toVersion: string; postAction: PostAction }
+| { kind: 'up-to-date'; current: string }
 | { kind: 'needs-restart'; message: string }
 | { kind: 'failed'; error: Error; rollbackSucceeded: boolean }
 ```
@@ -139,7 +158,7 @@ Executes the plan. Runs `beforeApply`, `afterApply`, and `onError` hooks.
 }
 ```
 
-`ApplyProgress` phases: `'downloading'`, `'verifying'`, `'extracting'`, `'replacing'`, `'done'`. The `'downloading'` phase includes `bytesDownloaded` and optional `totalBytes`.
+`ApplyProgress` phases: `'downloading'`, `'verifying'`, `'extracting'`, `'replacing'`, `'executing'`, `'done'`. The `'downloading'` phase includes `bytesDownloaded` and optional `totalBytes`. The `'executing'` phase includes `output` and `stream` (`'stdout'` | `'stderr'`) for delegate command output.
 
 ## Hooks
 
@@ -196,4 +215,84 @@ Config file: `update-kit.config.json`
 }
 ```
 
-Commands: `update-kit detect`, `check`, `plan`, `apply`, `cache show`, `cache clear`. All support `--json`.
+Commands: `update-kit detect`, `check`, `plan`, `apply`, `cache show`, `cache clear`, `doctor`. All support `--json`.
+
+## Additional Types
+
+### CustomDetector
+
+```typescript
+{
+  name: string;
+  detect: (execPath: string) => Promise<InstallDetection | null> | InstallDetection | null;
+}
+```
+
+### PlanResolverContext
+
+```typescript
+{
+  channel: Channel;
+  confidence: Confidence;
+  toVersion: string;
+  config: ResolvedUpdateKitConfig;
+  assets?: AssetInfo[];
+  defaultPlan: PlanKind;
+}
+```
+
+### VersionInfo
+
+```typescript
+{
+  version: string;
+  releaseUrl?: string;
+  releaseNotes?: string;
+  assets?: AssetInfo[];
+  publishedAt?: string;
+}
+```
+
+### AssetInfo
+
+```typescript
+{
+  name: string;
+  url: string;
+  size?: number;
+  checksumUrl?: string;
+}
+```
+
+### VersionListResult (discriminated on `kind`)
+
+```typescript
+| { kind: 'success'; versions: VersionInfo[]; nextCursor?: string; totalCount?: number }
+| { kind: 'error'; reason: string }
+```
+
+### FetchVersionsOptions
+
+```typescript
+{
+  limit?: number;    // Default: 20
+  cursor?: string;   // Opaque pagination cursor
+  signal?: AbortSignal;
+}
+```
+
+### MessageTemplates
+
+Customizable UX templates for update messages. Override via `renderBanner(status, detection, templates)`.
+
+```typescript
+{
+  updateAvailable: (ctx: { current: string; latest: string; command?: string }) => string;
+  updateInProgress: (ctx: { phase: string; progress?: number }) => string;
+  updateSuccess: (ctx: { version: string; postAction: PostAction }) => string;
+  updateFailed: (ctx: { error: string }) => string;
+  manualInstruction: (ctx: { instructions: string; downloadUrl?: string }) => string;
+}
+```
+
+Import default templates: `import { defaultTemplates } from 'update-kit';`
