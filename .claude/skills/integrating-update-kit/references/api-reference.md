@@ -6,7 +6,7 @@
 import { UpdateKit } from 'update-kit';
 ```
 
-Dual ESM + CJS output. Requires Node.js >= 24.0.0. Only runtime dependency: `semver`.
+Dual ESM + CJS output. Requires Node.js >= 18. Only runtime dependency: `semver`.
 
 ## Creating an Instance
 

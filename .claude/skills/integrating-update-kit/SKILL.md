@@ -102,7 +102,7 @@ After generating the integration code, run through this checklist:
 - [ ] `update-kit` is in `dependencies` (not devDependencies)
 - [ ] Module syntax matches the project (ESM `import` vs CJS `require`)
 - [ ] Version source matches the project's actual distribution channel
-- [ ] Project uses ESM (`"type": "module"`) for `UpdateKit.create()` and Node.js `>=24.0.0`
+- [ ] Project uses ESM (`"type": "module"`) for `UpdateKit.create()` and Node.js `>=18`
 - [ ] `npmPackageName` / `brewCaskName` set if they differ from `appName`
 - [ ] Banner output goes to `stderr` (not stdout) to avoid interfering with piped output
 - [ ] Run `pnpm build` (or equivalent) to verify no compilation errors
