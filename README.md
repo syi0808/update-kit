@@ -15,6 +15,8 @@ Most CLI tools are installed through different channels — npm, Homebrew, direc
 - **Non-blocking Checks** — Returns cached results instantly and refreshes in the background, so app startup is never delayed
 - **Smart Update Planning** — Chooses the safest strategy per channel: in-place binary replacement, delegated package manager command, or manual instructions
 - **Safe Application** — SHA-256 checksum verification, atomic file replacement, HTTPS-only enforcement, and automatic rollback on failure
+- **Version Listing** — Paginated version list from any source (GitHub, npm, JSR) with cursor-based pagination
+- **Version Switching** — Upgrade or downgrade to any specific version through the same channel-aware pipeline
 - **Lifecycle Hooks** — `beforeCheck`, `beforeApply`, `afterApply`, and `onError` hooks for telemetry, logging, or custom logic
 - **CLI Included** — Built-in `update-kit` CLI with `detect`, `check`, `plan`, `apply`, `cache`, and `doctor` subcommands
 
@@ -78,6 +80,30 @@ if (status.kind === 'available') {
   if (plan) {
     const result = await kit.applyUpdate(plan);
   }
+}
+```
+
+### Version listing and switching
+
+List available versions and switch to any version (upgrade or downgrade):
+
+```typescript
+// List available versions with pagination
+const versions = await kit.listVersions({ limit: 10 });
+if (versions.kind === 'success') {
+  for (const v of versions.versions) {
+    console.log(`${v.version} — ${v.publishedAt ?? ''}`);
+  }
+  // Paginate with cursor
+  if (versions.nextCursor) {
+    const next = await kit.listVersions({ limit: 10, cursor: versions.nextCursor });
+  }
+}
+
+// Switch to a specific version (downgrade or upgrade)
+const result = await kit.switchVersion('1.2.0', { execute: true });
+if (result.kind === 'success') {
+  console.log(`Switched to ${result.toVersion}`);
 }
 ```
 

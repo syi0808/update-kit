@@ -1,7 +1,10 @@
+import semver from "semver";
 import type { NpmSourceConfig } from "../../config.js";
 import { fetchWithEtag } from "./base.js";
 import type {
+  FetchVersionsOptions,
   VersionInfo,
+  VersionListResult,
   VersionSource,
   VersionSourceResult,
 } from "./index.js";
@@ -56,5 +59,56 @@ export class NpmRegistrySource implements VersionSource {
     };
 
     return { kind: "found", info, etag: result.etag };
+  }
+
+  async fetchVersions(options?: FetchVersionsOptions): Promise<VersionListResult> {
+    const limit = options?.limit ?? 20;
+    const cursorStr = options?.cursor;
+    const offset = cursorStr ? parseInt(cursorStr.replace('offset:', ''), 10) : 0;
+    if (isNaN(offset) || offset < 0) {
+      return { kind: 'error', reason: 'Invalid pagination cursor' };
+    }
+
+    const registry = this.config.registryUrl ?? 'https://registry.npmjs.org';
+    const url = `${registry}/${this.config.packageName}`;
+
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        signal: options?.signal,
+      });
+
+      if (!response.ok) {
+        return {
+          kind: 'error',
+          reason: `npm registry responded with failure: ${response.status}`,
+        };
+      }
+
+      const data = await response.json();
+      const allVersions = Object.keys(data.versions ?? {});
+      const sorted = allVersions
+        .filter(v => semver.valid(v))
+        .sort((a, b) => semver.rcompare(a, b));
+
+      const totalCount = sorted.length;
+      const sliced = sorted.slice(offset, offset + limit);
+
+      const versions: VersionInfo[] = sliced.map(v => ({
+        version: v,
+        releaseUrl: `https://www.npmjs.com/package/${this.config.packageName}/v/${v}`,
+        publishedAt: data.time?.[v],
+      }));
+
+      const nextOffset = offset + limit;
+      const nextCursor = nextOffset < totalCount ? `offset:${nextOffset}` : undefined;
+
+      return { kind: 'success', versions, nextCursor, totalCount };
+    } catch (error) {
+      return {
+        kind: 'error',
+        reason: `npm registry request failed: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
   }
 }

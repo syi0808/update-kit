@@ -30,6 +30,11 @@ import type {
   UpdatePlan,
   UpdateStatus,
 } from "./types.js";
+import type {
+  AssetInfo,
+  FetchVersionsOptions,
+  VersionListResult,
+} from "./checker/sources/index.js";
 import {
   findPackageJsonFromModule,
   getCallerFilePath,
@@ -413,6 +418,91 @@ export class UpdateKit {
     }
   }
 
+  /**
+   * List available versions with pagination.
+   * Iterates sources in channel-priority order and returns results from
+   * the first source that supports version listing.
+   *
+   * @param options - Pagination options (limit, cursor).
+   * @returns Version list result, or error if no source supports listing.
+   */
+  async listVersions(
+    options?: FetchVersionsOptions,
+  ): Promise<VersionListResult> {
+    const sources = this.getEffectiveSources();
+
+    for (const source of sources) {
+      if (source.fetchVersions) {
+        return source.fetchVersions(options);
+      }
+    }
+
+    return { kind: "error", reason: "No source supports version listing" };
+  }
+
+  /**
+   * Switch to a specific version (upgrade or downgrade).
+   * Runs the full pipeline: detect → plan → apply.
+   *
+   * @param targetVersion - The version to switch to.
+   * @param options - Options including whether to execute delegate commands.
+   * @returns Apply result. Never throws; errors are returned as `{ kind: 'failed' }`.
+   */
+  async switchVersion(
+    targetVersion: string,
+    options?: { execute?: boolean; assets?: AssetInfo[] } & ApplyOptions,
+  ): Promise<ApplyResult> {
+    try {
+      const normalizedTarget = normalizeVersion(targetVersion);
+      const normalizedCurrent = normalizeVersion(
+        this.config.currentVersion,
+      );
+      if (
+        normalizedTarget &&
+        normalizedCurrent &&
+        normalizedTarget === normalizedCurrent
+      ) {
+        return {
+          kind: "failed",
+          error: new Error(`Already at version ${targetVersion}`),
+          rollbackSucceeded: true,
+        };
+      }
+
+      const detection = await this.detectInstall();
+
+      // Build a synthetic status for the planner
+      const status: UpdateStatus = {
+        kind: "up-to-date",
+        current: this.config.currentVersion,
+      };
+
+      const effectiveConfig = options?.execute
+        ? { ...this.config, delegateMode: "execute" as const }
+        : this.config;
+
+      const plan = planUpdateFn(status, detection, effectiveConfig, {
+        targetVersion,
+        assets: options?.assets,
+      });
+
+      if (!plan) {
+        return {
+          kind: "failed",
+          error: new Error(
+            `No plan could be created for version ${targetVersion}`,
+          ),
+          rollbackSucceeded: true,
+        };
+      }
+
+      return await this.applyUpdate(plan, options);
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      return { kind: "failed", error: err, rollbackSucceeded: false };
+    }
+  }
+
   private resolveExecPath(): string {
     const execPath = this.config.executablePath ?? process.argv[1];
     if (!execPath) {
@@ -497,15 +587,17 @@ export type {
   AssetInfo,
   BrewSourceConfig,
   CustomManifestSourceConfig,
+  FetchVersionsOptions,
   GitHubSourceConfig,
   JsrSourceConfig,
   NpmSourceConfig,
   VersionInfo,
+  VersionListResult,
   VersionSource,
   VersionSourceResult,
 } from "./checker/sources/index.js";
 // Version Sources
-export { createVersionSource } from "./checker/sources/index.js";
+export { createVersionSource, listVersions } from "./checker/sources/index.js";
 // Config
 export type {
   CreateOptions,
@@ -533,6 +625,8 @@ export {
 // Detection
 export { detectInstall } from "./detection/index.js";
 export type { DiagnosticCheck, DoctorReport } from "./doctor.js";
+// Planner
+export type { PlanUpdateOptions } from "./planner/index.js";
 // Doctor
 export { runDoctor } from "./doctor.js";
 export type { ErrorCode } from "./errors.js";

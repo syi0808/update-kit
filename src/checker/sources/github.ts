@@ -3,7 +3,9 @@ import { DEFAULT_SOURCE_TIMEOUT_MS } from "../../constants.js";
 import { fetchWithEtag } from "./base.js";
 import type {
   AssetInfo,
+  FetchVersionsOptions,
   VersionInfo,
+  VersionListResult,
   VersionSource,
   VersionSourceResult,
 } from "./index.js";
@@ -92,5 +94,63 @@ export class GitHubReleasesSource implements VersionSource {
     };
 
     return { kind: "found", info, etag: result.etag };
+  }
+
+  async fetchVersions(options?: FetchVersionsOptions): Promise<VersionListResult> {
+    const limit = options?.limit ?? 20;
+    const cursorStr = options?.cursor;
+    const page = cursorStr ? parseInt(cursorStr.replace('page:', ''), 10) : 1;
+    if (isNaN(page) || page < 1) {
+      return { kind: 'error', reason: 'Invalid pagination cursor' };
+    }
+
+    const baseUrl = this.config.apiBaseUrl ?? 'https://api.github.com';
+    const url = `${baseUrl}/repos/${this.config.owner}/${this.config.repo}/releases?per_page=${limit}&page=${page}`;
+
+    const headers: Record<string, string> = {
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'update-kit',
+    };
+
+    if (this.config.token) {
+      headers['Authorization'] = `Bearer ${this.config.token}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        headers,
+        signal: options?.signal,
+      });
+
+      if (!response.ok) {
+        return {
+          kind: 'error',
+          reason: `GitHub API responded with failure: ${response.status} ${response.statusText}`,
+        };
+      }
+
+      const data = await response.json() as any[];
+
+      const versions: VersionInfo[] = data.map((release: any) => ({
+        version: release.tag_name?.replace(/^v/, '') ?? release.tag_name,
+        releaseUrl: release.html_url,
+        releaseNotes: release.body,
+        publishedAt: release.published_at,
+        assets: (release.assets ?? []).map((asset: any) => ({
+          name: asset.name,
+          url: asset.browser_download_url,
+          size: asset.size,
+        })),
+      }));
+
+      const nextCursor = data.length >= limit ? `page:${page + 1}` : undefined;
+
+      return { kind: 'success', versions, nextCursor };
+    } catch (error) {
+      return {
+        kind: 'error',
+        reason: `GitHub API request failed: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
   }
 }

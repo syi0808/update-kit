@@ -10,19 +10,72 @@ import type {
   UpdatePlan,
   UpdateStatus,
 } from "../types.js";
+import { normalizeVersion } from "../checker/index.js";
+
+/** Options for planUpdate */
+export interface PlanUpdateOptions {
+  /** Override the target version. When set, plans for this version instead of status.latest. */
+  targetVersion?: string;
+  /** Release assets for native-in-place strategy */
+  assets?: AssetInfo[];
+}
 
 /**
  * Create an update plan based on version status, installation detection, and configuration.
  * Pure function — no I/O, no side effects.
  *
- * Returns null if no update is needed (status is not 'available').
+ * Returns null if no update is needed (status is not 'available' and no targetVersion specified).
  */
 export function planUpdate(
   status: UpdateStatus,
   detection: InstallDetection,
   config: ResolvedUpdateKitConfig,
-  assets?: AssetInfo[],
+  options?: AssetInfo[] | PlanUpdateOptions,
 ): UpdatePlan | null {
+  // Normalize options: support legacy assets array or new options object
+  const opts: PlanUpdateOptions = Array.isArray(options)
+    ? { assets: options }
+    : (options ?? {});
+
+  const { targetVersion, assets } = opts;
+
+  if (targetVersion) {
+    // Explicit target version (upgrade or downgrade)
+    const current =
+      status.kind === "available"
+        ? status.current
+        : status.kind === "up-to-date"
+          ? status.current
+          : config.currentVersion;
+
+    const normalizedCurrent = normalizeVersion(current);
+    const normalizedTarget = normalizeVersion(targetVersion);
+    if (
+      normalizedCurrent &&
+      normalizedTarget &&
+      normalizedCurrent === normalizedTarget
+    ) {
+      return null;
+    }
+
+    const { channel, confidence } = detection;
+    const kind = resolvePlanKind(
+      channel,
+      confidence,
+      targetVersion,
+      config,
+      assets,
+    );
+    const postAction = resolvePostAction(kind, confidence, config);
+
+    return {
+      kind,
+      fromVersion: current,
+      toVersion: targetVersion,
+      postAction,
+    };
+  }
+
   if (status.kind !== "available") {
     return null;
   }

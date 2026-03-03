@@ -10,6 +10,7 @@
   - [Detection Types](#detection-types)
   - [Version Check Types](#version-check-types)
   - [Planning Types](#planning-types)
+  - [Version Listing Types](#version-listing-types)
   - [Apply Types](#apply-types)
 - [Error Handling](#error-handling)
   - [UpdateKitError](#updatekiterror)
@@ -17,11 +18,14 @@
 - [Version Sources](#version-sources)
   - [VersionSource Interface](#versionsource-interface)
   - [VersionSourceResult](#versionsourceresult)
+  - [FetchVersionsOptions](#fetchversionsoptions)
+  - [VersionListResult](#versionlistresult)
   - [VersionInfo](#versioninfo)
   - [AssetInfo](#assetinfo)
   - [Source Configurations](#source-configurations)
   - [createVersionSource](#createversionsource)
 - [Standalone Functions](#standalone-functions)
+  - [listVersions](#listversions)
   - [detectInstall](#detectinstall)
   - [checkUpdate](#checkupdate)
   - [normalizeVersion](#normalizeversion)
@@ -112,6 +116,41 @@ async autoUpdate(options?: ApplyOptions): Promise<ApplyResult>
 ```
 
 Runs the full pipeline: detect → check (blocking) → plan → apply. Never throws; errors are returned as `{ kind: 'failed' }`.
+
+#### `listVersions(options?)`
+
+```typescript
+async listVersions(options?: FetchVersionsOptions): Promise<VersionListResult>
+```
+
+Lists available versions with pagination. Iterates configured sources in channel-priority order and returns results from the first source that supports version listing. Returns `{ kind: 'error' }` if no source supports listing.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `options.limit` | `number` | `20` | Maximum number of versions to return |
+| `options.cursor` | `string` | — | Opaque pagination token from a previous result's `nextCursor` |
+| `options.signal` | `AbortSignal` | — | Cancellation signal |
+
+**Supported sources:** GitHub (page-based), npm (offset-based), JSR (offset-based). Brew does not support version listing.
+
+#### `switchVersion(targetVersion, options?)`
+
+```typescript
+async switchVersion(
+  targetVersion: string,
+  options?: { execute?: boolean; assets?: AssetInfo[] } & ApplyOptions,
+): Promise<ApplyResult>
+```
+
+Switches to a specific version (upgrade or downgrade). Runs the full pipeline: detect → plan → apply. Never throws; errors are returned as `{ kind: 'failed' }`.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `targetVersion` | `string` | **required** | The version to switch to |
+| `options.execute` | `boolean` | `false` | Override `delegateMode` to `'execute'` |
+| `options.assets` | `AssetInfo[]` | — | Release assets for native-in-place updates |
+| `options.onProgress` | `(progress: ApplyProgress) => void` | — | Progress callback |
+| `options.signal` | `AbortSignal` | — | Cancellation signal |
 
 ---
 
@@ -287,6 +326,30 @@ interface UpdatePlan {
 }
 ```
 
+### Version Listing Types
+
+#### `FetchVersionsOptions`
+
+See [FetchVersionsOptions](#fetchversionsoptions) in the Version Sources section.
+
+#### `VersionListResult`
+
+See [VersionListResult](#versionlistresult) in the Version Sources section.
+
+#### `PlanUpdateOptions`
+
+```typescript
+interface PlanUpdateOptions {
+  targetVersion?: string;
+  assets?: AssetInfo[];
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `targetVersion` | `string` | Override the target version. Enables downgrades when `targetVersion < currentVersion`. |
+| `assets` | `AssetInfo[]` | Release assets for `native-in-place` strategy. |
+
 ### Apply Types
 
 #### `ApplyProgress`
@@ -429,10 +492,11 @@ import { CHECKSUM_MISMATCH, type ErrorCode } from 'update-kit';
 interface VersionSource {
   name: string;
   fetchLatest(options?: { etag?: string; signal?: AbortSignal }): Promise<VersionSourceResult>;
+  fetchVersions?(options?: FetchVersionsOptions): Promise<VersionListResult>;
 }
 ```
 
-Plugin interface for fetching the latest version from an external registry.
+Plugin interface for fetching version information from an external registry. `fetchVersions` is optional — sources that cannot list versions (e.g., Brew) simply omit it.
 
 ### VersionSourceResult
 
@@ -444,6 +508,33 @@ type VersionSourceResult =
   | { kind: 'not-modified'; etag: string }
   | { kind: 'error'; reason: string };
 ```
+
+### FetchVersionsOptions
+
+```typescript
+interface FetchVersionsOptions {
+  limit?: number;        // Default: 20
+  cursor?: string;       // Opaque pagination token
+  signal?: AbortSignal;
+}
+```
+
+Options for `fetchVersions()` and `listVersions()`.
+
+### VersionListResult
+
+Discriminated union on `kind`:
+
+```typescript
+type VersionListResult =
+  | { kind: 'success'; versions: VersionInfo[]; nextCursor?: string; totalCount?: number }
+  | { kind: 'error'; reason: string };
+```
+
+| Variant | Description |
+|---------|-------------|
+| `success` | Version list with optional pagination cursor and total count. |
+| `error` | Version listing failed or is not supported. |
 
 ### VersionInfo
 
@@ -534,6 +625,19 @@ Factory function that creates the appropriate `VersionSource` implementation bas
 ## Standalone Functions
 
 These functions are exported individually for advanced use cases where you need direct access to specific pipeline stages.
+
+### listVersions
+
+```typescript
+import { listVersions } from 'update-kit';
+
+async function listVersions(
+  source: VersionSource,
+  options?: FetchVersionsOptions,
+): Promise<VersionListResult>
+```
+
+Fetches a list of available versions from a single source. Returns `{ kind: 'error' }` if the source does not support version listing (i.e., does not implement `fetchVersions`).
 
 ### detectInstall
 

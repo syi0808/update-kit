@@ -542,3 +542,92 @@ describe("planUpdate — native low confidence with assets", () => {
     }
   });
 });
+
+// ──────────────────────────────────────────────
+// Downgrade / targetVersion
+// ──────────────────────────────────────────────
+
+describe('planUpdate — targetVersion option', () => {
+  it('uses targetVersion instead of status.latest', () => {
+    const result = planUpdate(
+      available('2.0.0', '3.0.0'),
+      detection('npm-global', 'high'),
+      config(),
+      { targetVersion: '1.0.0' },
+    );
+    expect(result).not.toBeNull();
+    expect(result!.toVersion).toBe('1.0.0');
+    expect(result!.fromVersion).toBe('2.0.0');
+  });
+
+  it('creates delegate-command with target version for npm downgrade', () => {
+    const result = planUpdate(
+      available('2.0.0', '3.0.0'),
+      detection('npm-global', 'high'),
+      config(),
+      { targetVersion: '1.5.0' },
+    );
+    expect(result).not.toBeNull();
+    if (result!.kind.type === 'delegate-command') {
+      expect(result!.kind.command).toEqual(['npm', 'install', '-g', 'test-app@1.5.0']);
+    }
+  });
+
+  it('creates native-in-place plan for native channel downgrade', () => {
+    const result = planUpdate(
+      available('2.0.0', '3.0.0'),
+      detection('native', 'high'),
+      config(),
+      { targetVersion: '1.0.0', assets: assets() },
+    );
+    expect(result).not.toBeNull();
+    expect(result!.kind.type).toBe('native-in-place');
+    expect(result!.toVersion).toBe('1.0.0');
+  });
+
+  it('creates plan even when status is up-to-date (for explicit downgrade)', () => {
+    const result = planUpdate(
+      { kind: 'up-to-date', current: '2.0.0' },
+      detection('npm-global', 'high'),
+      config(),
+      { targetVersion: '1.0.0' },
+    );
+    expect(result).not.toBeNull();
+    expect(result!.toVersion).toBe('1.0.0');
+    expect(result!.fromVersion).toBe('2.0.0');
+  });
+
+  it('returns null when targetVersion equals current version', () => {
+    const result = planUpdate(
+      { kind: 'up-to-date', current: '2.0.0' },
+      detection('npm-global', 'high'),
+      config({ currentVersion: '2.0.0' }),
+      { targetVersion: '2.0.0' },
+    );
+    expect(result).toBeNull();
+  });
+
+  it('passes assets from options to plan resolution', () => {
+    const result = planUpdate(
+      available('1.0.0', '3.0.0'),
+      detection('native', 'high'),
+      config(),
+      { targetVersion: '2.0.0', assets: assets() },
+    );
+    expect(result).not.toBeNull();
+    expect(result!.kind.type).toBe('native-in-place');
+  });
+
+  it('works with brew-cask channel downgrade', () => {
+    const result = planUpdate(
+      available('2.0.0', '3.0.0'),
+      detection('brew-cask', 'high'),
+      config({ brewCaskName: 'my-cask' }),
+      { targetVersion: '1.0.0' },
+    );
+    expect(result).not.toBeNull();
+    if (result!.kind.type === 'delegate-command') {
+      expect(result!.kind.command).toEqual(['brew', 'upgrade', '--cask', 'my-cask']);
+    }
+  });
+});

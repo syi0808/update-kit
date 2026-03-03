@@ -50,6 +50,12 @@ export interface VersionSource {
     etag?: string;
     signal?: AbortSignal;
   }): Promise<VersionSourceResult>;
+
+  /**
+   * Fetch a list of available versions with pagination.
+   * Optional — sources that cannot list versions simply omit this method.
+   */
+  fetchVersions?(options?: FetchVersionsOptions): Promise<VersionListResult>;
 }
 
 /** fetchLatest return result */
@@ -57,6 +63,21 @@ export type VersionSourceResult =
   | { kind: "found"; info: VersionInfo; etag?: string }
   | { kind: "not-modified"; etag: string }
   | { kind: "error"; reason: string; status?: number };
+
+/** Options for fetching a list of versions */
+export interface FetchVersionsOptions {
+  /** Maximum number of versions to return. Default: 20 */
+  limit?: number;
+  /** Opaque pagination cursor from a previous result's nextCursor */
+  cursor?: string;
+  /** AbortSignal for request cancellation */
+  signal?: AbortSignal;
+}
+
+/** Result of fetching a version list */
+export type VersionListResult =
+  | { kind: 'success'; versions: VersionInfo[]; nextCursor?: string; totalCount?: number }
+  | { kind: 'error'; reason: string };
 
 /**
  * Factory function that creates an appropriate VersionSource instance from a config object.
@@ -84,6 +105,20 @@ export function createVersionSource(
         `Unknown version source type: ${(config as { type: string }).type}`,
       );
   }
+}
+
+/**
+ * Fetch a list of available versions from a single source.
+ * Returns an error if the source does not support version listing.
+ */
+export async function listVersions(
+  source: VersionSource,
+  options?: FetchVersionsOptions,
+): Promise<VersionListResult> {
+  if (!source.fetchVersions) {
+    return { kind: 'error', reason: `Source "${source.name}" does not support version listing` };
+  }
+  return source.fetchVersions(options);
 }
 
 export type {
