@@ -7,8 +7,8 @@ export default defineConfig({
     exclude: ["tests/dist/**", "node_modules/**"],
     coverage: {
       provider: "v8",
-			reporter: ['text', 'json-summary', 'json'],
-			reportOnFailure: true,
+      reporter: ["text", "json-summary", "json"],
+      reportOnFailure: true,
       include: ["src/**/*.ts"],
       exclude: [
         "src/**/__tests__/**",
