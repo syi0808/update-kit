@@ -216,4 +216,27 @@ describe("orderSourcesByChannel", () => {
     const ordered = orderSourcesByChannel(subset, "npm-global");
     expect(ordered.map((s) => s.type)).toEqual(["npm", "github"]);
   });
+
+  it("puts unknown source types at the end", () => {
+    const sources: VersionSourceConfig[] = [
+      { type: "custom", url: "https://example.com/manifest.json" } as any,
+      { type: "npm", packageName: "x" },
+      { type: "github", owner: "o", repo: "r" },
+    ];
+    const ordered = orderSourcesByChannel(sources, "native");
+    expect(ordered.map((s) => s.type)).toEqual(["github", "npm", "custom"]);
+  });
+
+  it("handles empty source array", () => {
+    const ordered = orderSourcesByChannel([], "native");
+    expect(ordered).toEqual([]);
+  });
+
+  it("handles single source", () => {
+    const sources: VersionSourceConfig[] = [
+      { type: "brew", caskName: "x" },
+    ];
+    const ordered = orderSourcesByChannel(sources, "native");
+    expect(ordered.map((s) => s.type)).toEqual(["brew"]);
+  });
 });

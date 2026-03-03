@@ -18,7 +18,15 @@ vi.mock("../detection/index.js", () => ({
 
 vi.mock("../checker/index.js", () => ({
   checkUpdate: vi.fn(),
-  normalizeVersion: vi.fn((v: string) => v || null),
+  normalizeVersion: vi.fn((v: string) => {
+    // Minimal semver validation for testing
+    if (!v) return null;
+    if (/^\d+\.\d+\.\d+/.test(v)) return v;
+    // Try coercion
+    const match = v.match(/(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+    if (match) return `${match[1]}.${match[2] ?? "0"}.${match[3] ?? "0"}`;
+    return null;
+  }),
 }));
 
 vi.mock("../checker/sources/index.js", () => ({
@@ -461,6 +469,89 @@ describe("UpdateKit", () => {
     });
   });
 
+  describe("constructor — validation", () => {
+    it("throws for invalid semver currentVersion", () => {
+      expect(
+        () => new UpdateKit({ appName: "test", currentVersion: "not-a-version" }),
+      ).toThrow("Invalid semver version");
+    });
+  });
+
+  describe("resolveExecPath", () => {
+    it("uses executablePath from config when provided", async () => {
+      const kit = new UpdateKit({
+        ...baseConfig,
+        executablePath: "/custom/path/app",
+      });
+      await kit.detectInstall();
+
+      expect(mockDetectInstall).toHaveBeenCalledWith(
+        "/custom/path/app",
+        expect.any(Object),
+      );
+    });
+  });
+
+  describe("autoUpdate — edge cases", () => {
+    it("returns up-to-date with currentVersion for unknown status", async () => {
+      mockCheckUpdate.mockResolvedValue({
+        kind: "unknown",
+        reason: "All sources failed",
+      });
+
+      const kit = new UpdateKit(baseConfig);
+      const result = await kit.autoUpdate();
+
+      expect(result.kind).toBe("up-to-date");
+      if (result.kind === "up-to-date") {
+        expect(result.current).toBe("1.0.0");
+      }
+    });
+  });
+
+  describe("getEffectiveSources", () => {
+    it("orders inferred sources by channel", async () => {
+      const kit = new UpdateKit({
+        ...baseConfig,
+        // No explicit sources → inferred
+      });
+
+      mockDetectInstall.mockResolvedValue({
+        channel: "brew-cask",
+        confidence: "high",
+        evidence: [],
+      });
+
+      // checkAndNotify calls performCheck with channel
+      await kit.checkAndNotify();
+
+      expect(mockCheckUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sources: expect.any(Array),
+        }),
+        "non-blocking",
+      );
+    });
+
+    it("uses explicit sources without reordering", async () => {
+      const kit = new UpdateKit({
+        ...baseConfig,
+        sources: [{ type: "npm", packageName: "test-app" }],
+      });
+
+      await kit.checkUpdate();
+
+      expect(mockCheckUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sources: expect.arrayContaining([
+            expect.objectContaining({ name: "mock" }),
+          ]),
+        }),
+        "non-blocking",
+      );
+    });
+  });
+
   describe("constructor with pkg field", () => {
     it("accepts pkg field instead of explicit appName/currentVersion", () => {
       const kit = new UpdateKit({
@@ -613,6 +704,70 @@ describe("UpdateKit", () => {
 
       expect(kit).toBeInstanceOf(UpdateKit);
       expect(mockFindPackageJsonFromModule).not.toHaveBeenCalled();
+    });
+
+    it("auto-fills repository from package.json when not explicitly provided", async () => {
+      mockFindPackageJsonFromModule.mockResolvedValue({
+        name: "auto-app",
+        version: "4.0.0",
+        path: "/mock/package.json",
+        repository: "https://github.com/org/auto-app",
+      });
+
+      const kit = await UpdateKit.create(
+        {},
+        { moduleUrl: "file:///mock/src/index.js" },
+      );
+
+      expect(kit).toBeInstanceOf(UpdateKit);
+      const config = kit.getResolvedConfig();
+      expect(config.repository).toBe("https://github.com/org/auto-app");
+    });
+
+    it("auto-fills repository from object-style package.json repository", async () => {
+      mockFindPackageJsonFromModule.mockResolvedValue({
+        name: "auto-app",
+        version: "4.0.0",
+        path: "/mock/package.json",
+        repository: { type: "git", url: "https://github.com/org/auto-app.git" },
+      });
+
+      const kit = await UpdateKit.create(
+        {},
+        { moduleUrl: "file:///mock/src/index.js" },
+      );
+
+      const config = kit.getResolvedConfig();
+      expect(config.repository).toEqual({
+        url: "https://github.com/org/auto-app.git",
+      });
+    });
+
+    it("does not override explicit repository with package.json repository", async () => {
+      mockFindPackageJsonFromModule.mockResolvedValue({
+        name: "auto-app",
+        version: "4.0.0",
+        path: "/mock/package.json",
+        repository: "https://github.com/org/auto-app",
+      });
+
+      const kit = await UpdateKit.create(
+        { repository: "https://github.com/other/repo" },
+        { moduleUrl: "file:///mock/src/index.js" },
+      );
+
+      const config = kit.getResolvedConfig();
+      expect(config.repository).toBe("https://github.com/other/repo");
+    });
+
+    it("handles findPackageJsonFromModule throwing", async () => {
+      mockFindPackageJsonFromModule.mockRejectedValue(
+        new Error("permission denied"),
+      );
+
+      await expect(
+        UpdateKit.create({}, { moduleUrl: "file:///mock/src/index.js" }),
+      ).rejects.toThrow("Could not auto-detect package identity");
     });
 
     it("uses resolved values for version checking", async () => {

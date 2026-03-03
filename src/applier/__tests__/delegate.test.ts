@@ -306,3 +306,97 @@ describe("applyDelegateUpdate — spawn error", () => {
     );
   });
 });
+
+// ──────────────────────────────────────────────
+// Execute mode — mode fallback
+// ──────────────────────────────────────────────
+
+describe("applyDelegateUpdate — mode fallback", () => {
+  it("uses plan.kind.mode when options.mode is not set", async () => {
+    const child = createMockChildProcess();
+    mockSpawn.mockReturnValue(child);
+
+    const plan = delegatePlan({ mode: "execute" });
+    const promise = applyDelegateUpdate(plan);
+
+    child.emit("close", 0);
+    const result = await promise;
+
+    // Since plan mode is "execute", spawn should have been called
+    expect(mockSpawn).toHaveBeenCalled();
+    expect(result.kind).toBe("success");
+  });
+
+  it("defaults to print-only when neither options.mode nor plan.kind.mode is set", async () => {
+    const callsBefore = mockSpawn.mock.calls.length;
+    const plan: UpdatePlan = {
+      kind: {
+        type: "delegate-command",
+        channel: "npm-global",
+        command: ["npm", "install", "-g", "my-app@2.0.0"],
+        // mode intentionally omitted
+      },
+      fromVersion: "1.0.0",
+      toVersion: "2.0.0",
+      postAction: "exit-after-apply",
+    };
+
+    const result = await applyDelegateUpdate(plan);
+    expect(result.kind).toBe("success");
+    expect(result.message).toContain("npm install -g my-app@2.0.0");
+    // No new spawn calls should have been made
+    expect(mockSpawn.mock.calls.length).toBe(callsBefore);
+  });
+});
+
+// ──────────────────────────────────────────────
+// Execute mode — null exit code
+// ──────────────────────────────────────────────
+
+describe("applyDelegateUpdate — null exit code", () => {
+  it("treats null exit code as 1", async () => {
+    const child = createMockChildProcess();
+    mockSpawn.mockReturnValue(child);
+
+    const plan = delegatePlan();
+    const promise = applyDelegateUpdate(plan, { mode: "execute" });
+
+    child.stderr!.emit("data", Buffer.from("unexpected failure"));
+    child.emit("close", null);
+
+    await expect(promise).rejects.toThrow(
+      expect.objectContaining({ code: COMMAND_FAILED }),
+    );
+  });
+});
+
+// ──────────────────────────────────────────────
+// Execute mode — settle guard (double settle)
+// ──────────────────────────────────────────────
+
+describe("applyDelegateUpdate — settle guard", () => {
+  it("ignores close event after timeout has already settled", async () => {
+    vi.useFakeTimers();
+
+    const child = createMockChildProcess();
+    mockSpawn.mockReturnValue(child);
+
+    const plan = delegatePlan();
+    const promise = applyDelegateUpdate(plan, {
+      mode: "execute",
+      timeoutMs: 100,
+    });
+
+    // Timeout fires first
+    vi.advanceTimersByTime(100);
+
+    // Then close fires (should be ignored due to settle guard)
+    child.emit("close", 0);
+
+    await expect(promise).rejects.toThrow(
+      expect.objectContaining({ code: COMMAND_TIMEOUT }),
+    );
+
+    vi.useRealTimers();
+  });
+});

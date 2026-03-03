@@ -251,6 +251,71 @@ describe("findBinaryInDir", () => {
       expect.objectContaining({ code: EXTRACT_FAILED }),
     );
   });
+
+  it("filters non-binary extensions when no file has execute permission", async () => {
+    const dir = path.join(tmpDir, "extracted");
+    await fs.mkdir(dir, { recursive: true });
+
+    // Create files without execute permission
+    await fs.writeFile(path.join(dir, "README.md"), "readme");
+    await fs.writeFile(path.join(dir, "LICENSE"), "license");
+    await fs.writeFile(path.join(dir, "config.json"), "{}");
+    await fs.writeFile(path.join(dir, "app"), "binary");
+
+    // None have execute permission on this platform
+    await fs.chmod(path.join(dir, "app"), 0o644);
+    await fs.chmod(path.join(dir, "README.md"), 0o644);
+    await fs.chmod(path.join(dir, "LICENSE"), 0o644);
+    await fs.chmod(path.join(dir, "config.json"), 0o644);
+
+    const result = await findBinaryInDir(dir);
+    // "app" should be returned (no non-binary extension, not named license/readme)
+    expect(path.basename(result)).toBe("app");
+  });
+
+  it("falls back to first file when all have non-binary extensions", async () => {
+    const dir = path.join(tmpDir, "extracted");
+    await fs.mkdir(dir, { recursive: true });
+
+    await fs.writeFile(path.join(dir, "README.md"), "readme");
+    await fs.writeFile(path.join(dir, "CHANGELOG.txt"), "changes");
+
+    await fs.chmod(path.join(dir, "README.md"), 0o644);
+    await fs.chmod(path.join(dir, "CHANGELOG.txt"), 0o644);
+
+    const result = await findBinaryInDir(dir);
+    // Should return one of the files as fallback (binaryCandidates is empty -> files[0])
+    expect(result).toBeTruthy();
+  });
+
+  it.skipIf(process.platform === "win32")("skips files that resolve outside the extraction directory (symlink escape)", async () => {
+    const dir = path.join(tmpDir, "extracted");
+    const outsideDir = path.join(tmpDir, "outside");
+    await fs.mkdir(dir, { recursive: true });
+    await fs.mkdir(outsideDir, { recursive: true });
+
+    // Create a legitimate file and a symlink pointing outside
+    await fs.writeFile(path.join(dir, "app"), "binary");
+    await fs.writeFile(path.join(outsideDir, "malicious"), "evil");
+    await fs.symlink(
+      path.join(outsideDir, "malicious"),
+      path.join(dir, "escaped"),
+    );
+
+    const result = await findBinaryInDir(dir);
+    // Should only return the legitimate file, not the symlink
+    expect(path.basename(result)).toBe("app");
+  });
+
+  it("skips directories in readdir results", async () => {
+    const dir = path.join(tmpDir, "extracted");
+    const subDir = path.join(dir, "subdir");
+    await fs.mkdir(subDir, { recursive: true });
+    await fs.writeFile(path.join(dir, "app"), "binary");
+
+    const result = await findBinaryInDir(dir);
+    expect(path.basename(result)).toBe("app");
+  });
 });
 
 // ──────────────────────────────────────────────
@@ -267,6 +332,65 @@ describe("extractBinary", () => {
     expect(path.basename(result)).toBe("app.bin");
     const content = await fs.readFile(result, "utf-8");
     expect(content).toBe("binary content");
+  });
+
+  it("extracts .tar.gz archives", async () => {
+    // Create a real tar.gz with a single file
+    const { execFile: execFileCb } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const execFileAsync = promisify(execFileCb);
+
+    const archiveDir = path.join(tmpDir, "archive-src");
+    await fs.mkdir(archiveDir, { recursive: true });
+    await fs.writeFile(path.join(archiveDir, "my-app"), "binary content");
+
+    const archivePath = path.join(tmpDir, "app.tar.gz");
+    await execFileAsync("tar", [
+      "czf",
+      archivePath,
+      "-C",
+      archiveDir,
+      "my-app",
+    ]);
+
+    const result = await extractBinary(archivePath, tmpDir);
+    const content = await fs.readFile(result, "utf-8");
+    expect(content).toBe("binary content");
+  });
+
+  it.skipIf(process.platform === "win32")("extracts .zip archives on Unix", async () => {
+    const { execFile: execFileCb } = await import("node:child_process");
+    const { promisify } = await import("node:util");
+    const execFileAsync = promisify(execFileCb);
+
+    const archiveDir = path.join(tmpDir, "zip-src");
+    await fs.mkdir(archiveDir, { recursive: true });
+    await fs.writeFile(path.join(archiveDir, "my-app"), "zip binary content");
+
+    const archivePath = path.join(tmpDir, "app.zip");
+    await execFileAsync("zip", ["-j", archivePath, path.join(archiveDir, "my-app")]);
+
+    const result = await extractBinary(archivePath, tmpDir);
+    const content = await fs.readFile(result, "utf-8");
+    expect(content).toBe("zip binary content");
+  });
+
+  it("throws EXTRACT_FAILED for corrupted tar.gz", async () => {
+    const archivePath = path.join(tmpDir, "bad.tar.gz");
+    await fs.writeFile(archivePath, "not a real tar.gz");
+
+    await expect(extractBinary(archivePath, tmpDir)).rejects.toThrow(
+      expect.objectContaining({ code: EXTRACT_FAILED }),
+    );
+  });
+
+  it("throws EXTRACT_FAILED for corrupted zip", async () => {
+    const archivePath = path.join(tmpDir, "bad.zip");
+    await fs.writeFile(archivePath, "not a real zip");
+
+    await expect(extractBinary(archivePath, tmpDir)).rejects.toThrow(
+      expect.objectContaining({ code: EXTRACT_FAILED }),
+    );
   });
 });
 
@@ -405,6 +529,38 @@ describe("applyNativeUpdate — pipeline", () => {
     const entries = await fs.readdir(tmpDir);
     const tmpDirs = entries.filter((e) => e.startsWith(".update-kit-tmp-"));
     expect(tmpDirs).toHaveLength(0);
+  });
+
+  it("returns failed with generic Error for non-UpdateKitError failures", async () => {
+    const content = Buffer.from("new binary");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(createMockResponse(content)),
+    );
+
+    const targetPath = path.join(tmpDir, "app");
+    await fs.writeFile(targetPath, "old");
+    await fs.chmod(targetPath, 0o755);
+
+    // Mock atomicReplace to throw a generic Error (not UpdateKitError)
+    const { atomicReplace } = await import("../../platform/replace.js");
+    vi.spyOn(
+      await import("../../platform/replace.js"),
+      "atomicReplace",
+    ).mockRejectedValueOnce(new Error("generic failure"));
+
+    const plan = nativePlan({ downloadUrl: "https://example.com/app" });
+    const result = await applyNativeUpdate(plan, targetPath, {
+      skipChecksum: true,
+    });
+
+    expect(result.kind).toBe("failed");
+    if (result.kind === "failed") {
+      expect(result.error).toBeInstanceOf(Error);
+      expect(result.error).not.toBeInstanceOf(UpdateKitError);
+      expect(result.error.message).toBe("generic failure");
+      expect(result.rollbackSucceeded).toBe(true);
+    }
   });
 
   it("cleans up temp directory on failure", async () => {

@@ -230,4 +230,81 @@ describe("fetchChecksumFromUrl", () => {
       fetchChecksumFromUrl("https://example.com/SHA256SUMS", "app.tar.gz"),
     ).rejects.toThrow(expect.objectContaining({ code: CHECKSUM_PARSE_FAILED }));
   });
+
+  it("matches filename with single space separator", async () => {
+    const hash = "abcd".repeat(16);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(`${hash} app.tar.gz`),
+      }),
+    );
+
+    // Single space doesn't match the pattern (requires two or more spaces)
+    // Pattern: /^([a-f0-9]{64})\s+(.+)$/i
+    // \s+ matches one or more, so single space should work
+    const result = await fetchChecksumFromUrl(
+      "https://example.com/SHA256SUMS",
+      "app.tar.gz",
+    );
+    expect(result).toBe(hash);
+  });
+
+  it("handles multi-line with matching filename among many", async () => {
+    const hash1 = "a".repeat(64);
+    const hash2 = "b".repeat(64);
+    const hash3 = "c".repeat(64);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: () =>
+          Promise.resolve(
+            [
+              `${hash1}  linux-x64.tar.gz`,
+              `${hash2}  darwin-arm64.tar.gz`,
+              `${hash3}  windows-x64.zip`,
+            ].join("\n"),
+          ),
+      }),
+    );
+
+    const result = await fetchChecksumFromUrl(
+      "https://example.com/SHA256SUMS",
+      "darwin-arm64.tar.gz",
+    );
+    expect(result).toBe(hash2);
+  });
+
+  it("uses default filename 'artifact' when no filename option provided", async () => {
+    const content = "test content for artifact";
+    const filePath = path.join(tmpDir, "artifact");
+    await fs.writeFile(filePath, content);
+
+    const hash = crypto.createHash("sha256").update(content).digest("hex");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: () => Promise.resolve(hash),
+      }),
+    );
+
+    // When verifyChecksum is called with checksumUrl but without filename option
+    await expect(
+      verifyChecksum(filePath, {
+        checksumUrl: "https://example.com/sha256",
+      }),
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe("computeSha256 — error handling", () => {
+  it("rejects when file does not exist", async () => {
+    await expect(
+      computeSha256(path.join(tmpDir, "nonexistent-file")),
+    ).rejects.toThrow();
+  });
 });

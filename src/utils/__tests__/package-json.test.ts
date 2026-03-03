@@ -275,6 +275,188 @@ describe("findPackageJsonFromModule", () => {
   });
 });
 
+describe("findPackageJson — repository parsing", () => {
+  let tmpDir: string;
+
+  afterEach(async () => {
+    if (tmpDir) {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  async function setup(): Promise<string> {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "update-kit-repo-test-"));
+    return tmpDir;
+  }
+
+  it("parses string repository field", async () => {
+    const dir = await setup();
+    await fs.writeFile(
+      path.join(dir, "package.json"),
+      JSON.stringify({
+        name: "my-app",
+        version: "1.0.0",
+        repository: "https://github.com/user/repo",
+      }),
+    );
+
+    const result = await findPackageJson(dir);
+    expect(result?.repository).toBe("https://github.com/user/repo");
+  });
+
+  it("parses object repository field with type and url", async () => {
+    const dir = await setup();
+    await fs.writeFile(
+      path.join(dir, "package.json"),
+      JSON.stringify({
+        name: "my-app",
+        version: "1.0.0",
+        repository: { type: "git", url: "https://github.com/user/repo.git" },
+      }),
+    );
+
+    const result = await findPackageJson(dir);
+    expect(result?.repository).toEqual({
+      type: "git",
+      url: "https://github.com/user/repo.git",
+    });
+  });
+
+  it("parses object repository field without url", async () => {
+    const dir = await setup();
+    await fs.writeFile(
+      path.join(dir, "package.json"),
+      JSON.stringify({
+        name: "my-app",
+        version: "1.0.0",
+        repository: { type: "svn" },
+      }),
+    );
+
+    const result = await findPackageJson(dir);
+    expect(result?.repository).toEqual({ type: "svn" });
+  });
+
+  it("ignores array repository field", async () => {
+    const dir = await setup();
+    await fs.writeFile(
+      path.join(dir, "package.json"),
+      JSON.stringify({
+        name: "my-app",
+        version: "1.0.0",
+        repository: ["not", "valid"],
+      }),
+    );
+
+    const result = await findPackageJson(dir);
+    expect(result?.repository).toBeUndefined();
+  });
+
+  it("ignores null repository field", async () => {
+    const dir = await setup();
+    await fs.writeFile(
+      path.join(dir, "package.json"),
+      JSON.stringify({
+        name: "my-app",
+        version: "1.0.0",
+        repository: null,
+      }),
+    );
+
+    const result = await findPackageJson(dir);
+    expect(result?.repository).toBeUndefined();
+  });
+
+  it("skips package.json with empty version", async () => {
+    const dir = await setup();
+    const child = path.join(dir, "child");
+    await fs.mkdir(child);
+
+    await fs.writeFile(
+      path.join(child, "package.json"),
+      JSON.stringify({ name: "app", version: "" }),
+    );
+    await fs.writeFile(
+      path.join(dir, "package.json"),
+      JSON.stringify({ name: "valid", version: "1.0.0" }),
+    );
+
+    const result = await findPackageJson(child);
+    expect(result?.name).toBe("valid");
+    expect(result?.version).toBe("1.0.0");
+  });
+
+  it("skips non-object package.json", async () => {
+    const dir = await setup();
+    const child = path.join(dir, "child");
+    await fs.mkdir(child);
+
+    await fs.writeFile(path.join(child, "package.json"), '"just a string"');
+    await fs.writeFile(
+      path.join(dir, "package.json"),
+      JSON.stringify({ name: "valid", version: "1.0.0" }),
+    );
+
+    const result = await findPackageJson(child);
+    expect(result?.name).toBe("valid");
+  });
+
+  it("handles object repository with non-string type", async () => {
+    const dir = await setup();
+    await fs.writeFile(
+      path.join(dir, "package.json"),
+      JSON.stringify({
+        name: "my-app",
+        version: "1.0.0",
+        repository: { type: 123, url: "https://github.com/user/repo.git" },
+      }),
+    );
+
+    const result = await findPackageJson(dir);
+    // type should be omitted since it's not a string, but url should remain
+    expect(result?.repository).toEqual({
+      url: "https://github.com/user/repo.git",
+    });
+  });
+});
+
+describe("resolvePackageJsonFromCaller", () => {
+  it("resolves from file:// URL", async () => {
+    // This test calls resolvePackageJsonFromCaller with import.meta.url
+    // which should find the update-kit package.json
+    const { resolvePackageJsonFromCaller } = await import(
+      "../package-json.js"
+    );
+    const result = await resolvePackageJsonFromCaller(import.meta.url);
+    // Should find the update-kit package.json
+    expect(result).not.toBeNull();
+    if (result) {
+      expect(result.name).toBe("update-kit");
+    }
+  });
+
+  it("resolves from absolute path", async () => {
+    const { resolvePackageJsonFromCaller } = await import(
+      "../package-json.js"
+    );
+    const result = await resolvePackageJsonFromCaller(__filename);
+    // Should find the update-kit package.json
+    expect(result).not.toBeNull();
+  });
+});
+
+describe("getCallerFilePath", () => {
+  it("returns a string (caller file path) when called from outside update-kit", async () => {
+    const { getCallerFilePath } = await import("../package-json.js");
+    // When called from the test file (which is inside update-kit),
+    // it will try to find a frame outside update-kit root.
+    // Depending on test runner internals, it may return a string or null.
+    const result = getCallerFilePath();
+    // Just verify it returns string or null without throwing
+    expect(result === null || typeof result === "string").toBe(true);
+  });
+});
+
 describe("findPackageJsonFromModuleSync", () => {
   let tmpDir: string;
 

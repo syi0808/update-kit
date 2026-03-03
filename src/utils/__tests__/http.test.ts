@@ -156,4 +156,53 @@ describe("getProxyConfig", () => {
 
     expect(getProxyConfig("https://example.com")).toBeUndefined();
   });
+
+  it("respects lowercase no_proxy env var", () => {
+    process.env["HTTPS_PROXY"] = "http://proxy:8080";
+    process.env["no_proxy"] = "example.com";
+
+    expect(getProxyConfig("https://example.com")).toBeUndefined();
+  });
+
+  it("does not match unrelated domains in NO_PROXY", () => {
+    process.env["HTTPS_PROXY"] = "http://proxy:8080";
+    process.env["NO_PROXY"] = "other.com";
+
+    const config = getProxyConfig("https://example.com");
+    expect(config).toEqual({ proxyUrl: "http://proxy:8080" });
+  });
+
+  it("handles comma-separated NO_PROXY entries", () => {
+    process.env["HTTPS_PROXY"] = "http://proxy:8080";
+    process.env["NO_PROXY"] = "foo.com, example.com, bar.com";
+
+    expect(getProxyConfig("https://example.com")).toBeUndefined();
+  });
+
+  it("prefers HTTPS_PROXY over https_proxy", () => {
+    process.env["HTTPS_PROXY"] = "http://proxy-upper:8080";
+    process.env["https_proxy"] = "http://proxy-lower:8080";
+
+    const config = getProxyConfig("https://example.com");
+    expect(config).toEqual({ proxyUrl: "http://proxy-upper:8080" });
+  });
+});
+
+describe("fetchWithTimeout — error propagation", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("re-throws non-abort errors as-is", async () => {
+    const networkError = new TypeError("Failed to fetch");
+    vi.mocked(fetch).mockRejectedValue(networkError);
+
+    await expect(
+      fetchWithTimeout("https://example.com"),
+    ).rejects.toThrow("Failed to fetch");
+  });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { AssetInfo } from "../../checker/sources/index.js";
 import type { ResolvedUpdateKitConfig } from "../../config.js";
 import type {
@@ -405,6 +405,140 @@ describe("planUpdate — unknown channel", () => {
     expect(result!.postAction).toBe("none");
     if (result!.kind.type === "manual-install") {
       expect(result!.kind.reason).toContain("custom-channel");
+    }
+  });
+});
+
+// ──────────────────────────────────────────────
+// Custom plan resolver
+// ──────────────────────────────────────────────
+
+describe("planUpdate — customPlanResolver", () => {
+  it("overrides the default plan when resolver returns a value", () => {
+    const result = planUpdate(
+      available(),
+      detection("npm-global", "high"),
+      config({
+        customPlanResolver: ({ defaultPlan }) => ({
+          type: "manual-install",
+          reason: "Custom override",
+          instructions: "Do it this way instead",
+        }),
+      }),
+    );
+    expect(result).not.toBeNull();
+    expect(result!.kind.type).toBe("manual-install");
+    if (result!.kind.type === "manual-install") {
+      expect(result!.kind.reason).toBe("Custom override");
+    }
+  });
+
+  it("keeps default plan when resolver returns null/undefined", () => {
+    const result = planUpdate(
+      available(),
+      detection("npm-global", "high"),
+      config({
+        customPlanResolver: () => null as any,
+      }),
+    );
+    expect(result).not.toBeNull();
+    expect(result!.kind.type).toBe("delegate-command");
+  });
+
+  it("receives correct context in resolver arguments", () => {
+    const resolver = vi.fn().mockReturnValue(null);
+    planUpdate(
+      available("1.0.0", "2.0.0"),
+      detection("native", "high"),
+      config({ customPlanResolver: resolver }),
+      assets(),
+    );
+
+    expect(resolver).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "native",
+        confidence: "high",
+        toVersion: "2.0.0",
+        assets: expect.any(Array),
+        defaultPlan: expect.objectContaining({ type: expect.any(String) }),
+      }),
+    );
+  });
+});
+
+// ──────────────────────────────────────────────
+// Native channel — empty assets array
+// ──────────────────────────────────────────────
+
+describe("planUpdate — empty assets array", () => {
+  it("empty assets → manual-install", () => {
+    const result = planUpdate(
+      available(),
+      detection("native", "high"),
+      config(),
+      [],
+    );
+    expect(result).not.toBeNull();
+    expect(result!.kind.type).toBe("manual-install");
+    if (result!.kind.type === "manual-install") {
+      expect(result!.kind.reason).toContain("No release assets");
+    }
+  });
+});
+
+// ──────────────────────────────────────────────
+// Brew channel — uses brewCaskName in low-confidence instructions
+// ──────────────────────────────────────────────
+
+describe("planUpdate — brew low confidence instructions", () => {
+  it("includes brewCaskName in low-confidence instructions", () => {
+    const result = planUpdate(
+      available(),
+      detection("brew-cask", "low"),
+      config({ brewCaskName: "my-special-cask" }),
+    );
+    expect(result).not.toBeNull();
+    if (result!.kind.type === "manual-install") {
+      expect(result!.kind.instructions).toContain("my-special-cask");
+    }
+  });
+});
+
+// ──────────────────────────────────────────────
+// npm channel — low-confidence instructions use npmPackageName
+// ──────────────────────────────────────────────
+
+describe("planUpdate — npm low confidence instructions", () => {
+  it("includes npmPackageName in low-confidence instructions", () => {
+    const result = planUpdate(
+      available(),
+      detection("npm-global", "low"),
+      config({ npmPackageName: "@scope/my-pkg" }),
+    );
+    expect(result).not.toBeNull();
+    if (result!.kind.type === "manual-install") {
+      expect(result!.kind.instructions).toContain("@scope/my-pkg");
+    }
+  });
+});
+
+// ──────────────────────────────────────────────
+// Native — low confidence includes downloadUrl from assets
+// ──────────────────────────────────────────────
+
+describe("planUpdate — native low confidence with assets", () => {
+  it("includes downloadUrl from first asset in low-confidence manual-install", () => {
+    const result = planUpdate(
+      available(),
+      detection("native", "low"),
+      config(),
+      assets(),
+    );
+    expect(result).not.toBeNull();
+    if (result!.kind.type === "manual-install") {
+      expect(result!.kind.downloadUrl).toBe(
+        "https://dl.example.com/darwin-arm64.tar.gz",
+      );
     }
   });
 });

@@ -424,6 +424,104 @@ describe("checkUpdate — non-blocking mode", () => {
   });
 });
 
+describe("checkUpdate — cache write failure", () => {
+  it("returns result even when cache write fails in blocking mode", async () => {
+    mockWriteCache.mockRejectedValue(new Error("ENOSPC: no space left"));
+
+    const source = createMockSource("npm", {
+      kind: "found",
+      info: { version: "2.0.0" },
+    });
+
+    const status = await checkUpdate(
+      {
+        appName: "test",
+        currentVersion: "1.0.0",
+        sources: [source],
+        cacheDir: CACHE_DIR,
+      },
+      "blocking",
+    );
+
+    // Result should still be returned despite cache failure
+    expect(status.kind).toBe("available");
+    if (status.kind === "available") {
+      expect(status.latest).toBe("2.0.0");
+    }
+  });
+
+  it("returns result when cache write fails on not-modified", async () => {
+    mockReadCache.mockResolvedValue(baseCacheEntry);
+    mockWriteCache.mockRejectedValue(new Error("ENOSPC"));
+
+    const source = createMockSource("github", {
+      kind: "not-modified",
+      etag: '"etag-123"',
+    });
+
+    const status = await checkUpdate(
+      {
+        appName: "test",
+        currentVersion: "1.0.0",
+        sources: [source],
+        cacheDir: CACHE_DIR,
+      },
+      "blocking",
+    );
+
+    expect(status.kind).toBe("available");
+  });
+});
+
+describe("checkUpdate — version parse edge cases", () => {
+  it("returns unknown when latest version is not valid semver", async () => {
+    const source = createMockSource("github", {
+      kind: "found",
+      info: { version: "not-a-version" },
+    });
+
+    const status = await checkUpdate(
+      {
+        appName: "test",
+        currentVersion: "1.0.0",
+        sources: [source],
+        cacheDir: CACHE_DIR,
+      },
+      "blocking",
+    );
+
+    expect(status.kind).toBe("unknown");
+    if (status.kind === "unknown") {
+      expect(status.reason).toContain("Unable to parse versions");
+    }
+  });
+
+  it("skips rate-limited source without cache and tries next", async () => {
+    const rateSource = createMockSource("github", {
+      kind: "error",
+      reason: "Rate limited",
+      status: 429,
+    });
+    const okSource = createMockSource("npm", {
+      kind: "found",
+      info: { version: "2.0.0" },
+    });
+
+    const status = await checkUpdate(
+      {
+        appName: "test",
+        currentVersion: "1.0.0",
+        sources: [rateSource, okSource],
+        cacheDir: CACHE_DIR,
+      },
+      "blocking",
+    );
+
+    expect(status.kind).toBe("available");
+    expect(okSource.fetchLatest).toHaveBeenCalled();
+  });
+});
+
 describe("checkUpdate — multi-source failover", () => {
   it("uses first successful source and does not try subsequent ones", async () => {
     const source1 = createMockSource("github", {

@@ -153,4 +153,54 @@ describe("detectFromNpm", () => {
     );
     expect(result).toBeNull();
   });
+
+  it("does not add npm_prefix evidence when prefix does not match", async () => {
+    execFilePromisified.mockResolvedValueOnce({
+      stdout: "/home/other/.nvm/versions/node/v20/\n",
+      stderr: "",
+    });
+
+    const result = await detectFromNpm(
+      "/usr/local/lib/node_modules/.bin/my-app",
+    );
+    expect(result).not.toBeNull();
+    // Only path_pattern evidence, not npm_prefix
+    const npmPrefixEvidence = result!.evidence.find(
+      (e) => e.source === "npm_prefix",
+    );
+    expect(npmPrefixEvidence).toBeUndefined();
+    expect(result!.confidence).toBe("medium");
+  });
+
+  it("does not add symlink evidence when symlink target does not include node_modules", async () => {
+    vi.mocked(lstat).mockResolvedValueOnce({
+      isSymbolicLink: () => true,
+    } as any);
+    vi.mocked(readlink).mockResolvedValueOnce("/opt/my-app/bin/cli.js");
+
+    // Use a path that matches npm pattern so we get at least one evidence
+    const result = await detectFromNpm(
+      "/usr/local/lib/node_modules/.bin/my-app",
+    );
+    expect(result).not.toBeNull();
+    const symlinkEvidence = result!.evidence.find(
+      (e) => e.source === "symlink",
+    );
+    expect(symlinkEvidence).toBeUndefined();
+  });
+
+  it("does not add symlink evidence when file is not a symlink", async () => {
+    vi.mocked(lstat).mockResolvedValueOnce({
+      isSymbolicLink: () => false,
+    } as any);
+
+    const result = await detectFromNpm(
+      "/usr/local/lib/node_modules/.bin/my-app",
+    );
+    expect(result).not.toBeNull();
+    const symlinkEvidence = result!.evidence.find(
+      (e) => e.source === "symlink",
+    );
+    expect(symlinkEvidence).toBeUndefined();
+  });
 });

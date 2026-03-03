@@ -1,7 +1,8 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CACHE_ERROR, UpdateKitError } from "../../errors.js";
 import {
   type CacheEntry,
   clearCache,
@@ -163,6 +164,54 @@ describe("isCacheStale", () => {
   });
 });
 
+describe("readCache — invalid date", () => {
+  it("returns null when lastCheckedAt is unparseable date", async () => {
+    const dir = path.join(tmpDir, "baddate");
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(
+      path.join(dir, "update-check.json"),
+      JSON.stringify({
+        latestVersion: "2.0.0",
+        currentVersionAtCheck: "1.0.0",
+        lastCheckedAt: "not-a-real-date",
+        source: "github",
+      }),
+    );
+
+    const result = await readCache(tmpDir, "baddate");
+    expect(result).toBeNull();
+  });
+});
+
+describe("writeCache — error handling", () => {
+  it("throws CACHE_ERROR on write failure", async () => {
+    // Use a null byte in path to cause fs.mkdir to fail
+    const invalidDir = path.join(tmpDir, "nonexistent\x00illegal");
+
+    await expect(
+      writeCache(invalidDir, "myapp", validEntry),
+    ).rejects.toThrow();
+  });
+
+  it("throws CACHE_ERROR with proper code when rename fails", async () => {
+    // Write a valid cache first to create the directory
+    await writeCache(tmpDir, "myapp", validEntry);
+
+    // Now spy on fs.rename to make it fail
+    const renameSpy = vi.spyOn(fs, "rename").mockRejectedValueOnce(
+      new Error("rename failed"),
+    );
+
+    await expect(
+      writeCache(tmpDir, "myapp", validEntry),
+    ).rejects.toThrow(
+      expect.objectContaining({ code: CACHE_ERROR }),
+    );
+
+    renameSpy.mockRestore();
+  });
+});
+
 describe("clearCache", () => {
   it("deletes the cache file", async () => {
     await writeCache(tmpDir, "myapp", validEntry);
@@ -174,5 +223,16 @@ describe("clearCache", () => {
 
   it("succeeds silently when file does not exist", async () => {
     await expect(clearCache(tmpDir, "no-such-app")).resolves.toBeUndefined();
+  });
+
+  it("rethrows non-ENOENT errors", async () => {
+    // Create a directory where the cache file would be, so unlink fails with EISDIR/EPERM
+    const appDir = path.join(tmpDir, "dirapp");
+    await fs.mkdir(appDir, { recursive: true });
+    const cacheFilePath = path.join(appDir, "update-check.json");
+    // Create a directory at the cache file path instead of a file
+    await fs.mkdir(cacheFilePath, { recursive: true });
+
+    await expect(clearCache(tmpDir, "dirapp")).rejects.toThrow();
   });
 });

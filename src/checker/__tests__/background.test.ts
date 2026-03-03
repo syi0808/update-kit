@@ -199,4 +199,48 @@ describe("spawnBackgroundCheck", () => {
     // Let the async work settle — should not cause unhandled rejection
     await new Promise((r) => setTimeout(r, 50));
   });
+
+  it("logs to console.error when UPDATE_KIT_DEBUG is set and check fails", async () => {
+    const originalDebug = process.env["UPDATE_KIT_DEBUG"];
+    process.env["UPDATE_KIT_DEBUG"] = "1";
+
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    // Source that throws an error during fetch
+    const failingSource: VersionSource = {
+      name: "failing",
+      fetchLatest: vi.fn().mockRejectedValue(new Error("network down")),
+    };
+
+    spawnBackgroundCheck(baseConfig, [failingSource]);
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      "[update-kit] Background check failed:",
+      expect.any(Error),
+    );
+
+    consoleErrorSpy.mockRestore();
+    if (originalDebug === undefined) {
+      delete process.env["UPDATE_KIT_DEBUG"];
+    } else {
+      process.env["UPDATE_KIT_DEBUG"] = originalDebug;
+    }
+  });
+
+  it("calls onError callback when background check fails", async () => {
+    const onError = vi.fn();
+
+    const failingSource: VersionSource = {
+      name: "failing",
+      fetchLatest: vi.fn().mockRejectedValue(new Error("timeout")),
+    };
+
+    spawnBackgroundCheck(baseConfig, [failingSource], 10_000, { onError });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(onError).toHaveBeenCalledWith(expect.any(Error));
+  });
 });
