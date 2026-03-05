@@ -1,4 +1,5 @@
 use crate::types::{Channel, Confidence, Evidence, InstallDetection};
+use crate::utils::process::CommandRunner;
 
 /// Path patterns that indicate an npm global installation.
 const NPM_PATH_PATTERNS: &[&str] = &["node_modules", "/lib/node_modules/", "/.npm/"];
@@ -9,7 +10,7 @@ const NPM_PATH_PATTERNS: &[&str] = &["node_modules", "/lib/node_modules/", "/.np
 /// If the executable path contains an npm pattern, detection is triggered.
 /// Runs `npm prefix -g` to verify the path starts with the npm global prefix,
 /// yielding High confidence on match. Otherwise, Medium confidence is returned.
-pub async fn detect_from_npm(exec_path: &str) -> Option<InstallDetection> {
+pub async fn detect_from_npm(exec_path: &str, cmd: &dyn CommandRunner) -> Option<InstallDetection> {
     let matching_pattern = NPM_PATH_PATTERNS
         .iter()
         .find(|pattern| exec_path.contains(*pattern));
@@ -21,13 +22,9 @@ pub async fn detect_from_npm(exec_path: &str) -> Option<InstallDetection> {
     }];
 
     // Try to verify with npm prefix -g
-    match tokio::process::Command::new("npm")
-        .args(["prefix", "-g"])
-        .output()
-        .await
-    {
-        Ok(output) if output.status.success() => {
-            let prefix = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    match cmd.run("npm", &["prefix", "-g"]).await {
+        Ok(output) if output.success() => {
+            let prefix = output.stdout.trim().to_string();
             if exec_path.starts_with(&prefix) {
                 evidence.push(Evidence {
                     source: "npm-verify".into(),
@@ -55,10 +52,12 @@ pub async fn detect_from_npm(exec_path: &str) -> Option<InstallDetection> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::process::TokioCommandRunner;
 
     #[tokio::test]
     async fn npm_path_with_node_modules() {
-        let result = detect_from_npm("/usr/local/lib/node_modules/.bin/my-app").await;
+        let cmd = TokioCommandRunner;
+        let result = detect_from_npm("/usr/local/lib/node_modules/.bin/my-app", &cmd).await;
         assert!(result.is_some());
         let detection = result.unwrap();
         assert_eq!(detection.channel, Channel::NpmGlobal);
@@ -68,13 +67,15 @@ mod tests {
 
     #[tokio::test]
     async fn non_npm_path_returns_none() {
-        let result = detect_from_npm("/usr/local/bin/my-app").await;
+        let cmd = TokioCommandRunner;
+        let result = detect_from_npm("/usr/local/bin/my-app", &cmd).await;
         assert!(result.is_none());
     }
 
     #[tokio::test]
     async fn npm_dot_npm_path() {
-        let result = detect_from_npm("/home/user/.npm/bin/my-app").await;
+        let cmd = TokioCommandRunner;
+        let result = detect_from_npm("/home/user/.npm/bin/my-app", &cmd).await;
         assert!(result.is_some());
         let detection = result.unwrap();
         assert_eq!(detection.channel, Channel::NpmGlobal);

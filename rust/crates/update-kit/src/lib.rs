@@ -102,13 +102,14 @@ impl UpdateKit {
     /// Detect how the application was installed.
     pub async fn detect_install(&self) -> Result<InstallDetection, UpdateKitError> {
         let exec_path = self.resolve_exec_path()?;
+        let cmd = crate::utils::process::TokioCommandRunner;
         let detection_config = DetectionConfig {
             app_name: &self.config.app_name,
             brew_cask_name: self.config.base.brew_cask_name.as_deref(),
             custom_detectors: &[],
             receipt_dir: None,
         };
-        Ok(detect_install(&exec_path, &detection_config).await)
+        Ok(detect_install(&exec_path, &detection_config, &cmd).await)
     }
 
     /// Check for available updates.

@@ -7,6 +7,7 @@ use std::path::Path;
 
 use crate::config::CustomDetector;
 use crate::types::{Channel, Confidence, Evidence, InstallDetection};
+use crate::utils::process::CommandRunner;
 
 pub use brew::detect_from_brew;
 pub use heuristics::collect_path_heuristics;
@@ -33,7 +34,11 @@ pub struct DetectionConfig<'a> {
 /// 3. Homebrew (check path patterns + optional `brew list --cask` verification)
 /// 4. npm global (check path patterns + optional `npm prefix -g` verification)
 /// 5. Fallback: unmanaged with heuristic evidence
-pub async fn detect_install(exec_path: &str, config: &DetectionConfig<'_>) -> InstallDetection {
+pub async fn detect_install(
+    exec_path: &str,
+    config: &DetectionConfig<'_>,
+    cmd: &dyn CommandRunner,
+) -> InstallDetection {
     // 1. Custom detectors
     for detector in config.custom_detectors {
         match (detector.detect)().await {
@@ -49,12 +54,12 @@ pub async fn detect_install(exec_path: &str, config: &DetectionConfig<'_>) -> In
     }
 
     // 3. Homebrew
-    if let Some(detection) = detect_from_brew(exec_path, config.brew_cask_name).await {
+    if let Some(detection) = detect_from_brew(exec_path, config.brew_cask_name, cmd).await {
         return detection;
     }
 
     // 4. npm global
-    if let Some(detection) = detect_from_npm(exec_path).await {
+    if let Some(detection) = detect_from_npm(exec_path, cmd).await {
         return detection;
     }
 
@@ -76,9 +81,11 @@ pub async fn detect_install(exec_path: &str, config: &DetectionConfig<'_>) -> In
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::process::TokioCommandRunner;
 
     #[tokio::test]
     async fn fallback_to_unmanaged() {
+        let cmd = TokioCommandRunner;
         let config = DetectionConfig {
             app_name: "nonexistent-test-app",
             brew_cask_name: None,
@@ -86,7 +93,7 @@ mod tests {
             receipt_dir: None,
         };
 
-        let detection = detect_install("/tmp/random/path/my-app", &config).await;
+        let detection = detect_install("/tmp/random/path/my-app", &config, &cmd).await;
         assert_eq!(detection.channel, Channel::Unmanaged);
         assert_eq!(detection.confidence, Confidence::Low);
         assert!(!detection.evidence.is_empty());
@@ -118,7 +125,8 @@ mod tests {
             receipt_dir: None,
         };
 
-        let detection = detect_install("/tmp/random/path", &config).await;
+        let cmd = TokioCommandRunner;
+        let detection = detect_install("/tmp/random/path", &config, &cmd).await;
         assert_eq!(detection.channel, Channel::Custom("test-channel".into()));
         assert_eq!(detection.confidence, Confidence::High);
     }
@@ -142,13 +150,15 @@ mod tests {
             receipt_dir: Some(tmp.path()),
         };
 
-        let detection = detect_install("/opt/homebrew/bin/my-app", &config).await;
+        let cmd = TokioCommandRunner;
+        let detection = detect_install("/opt/homebrew/bin/my-app", &config, &cmd).await;
         assert_eq!(detection.channel, Channel::Native);
         assert_eq!(detection.confidence, Confidence::High);
     }
 
     #[tokio::test]
     async fn brew_path_detected_without_receipt() {
+        let cmd = TokioCommandRunner;
         let tmp = tempfile::TempDir::new().unwrap();
 
         let config = DetectionConfig {
@@ -158,12 +168,13 @@ mod tests {
             receipt_dir: Some(tmp.path()),
         };
 
-        let detection = detect_install("/opt/homebrew/bin/my-app", &config).await;
+        let detection = detect_install("/opt/homebrew/bin/my-app", &config, &cmd).await;
         assert_eq!(detection.channel, Channel::BrewCask);
     }
 
     #[tokio::test]
     async fn npm_path_detected_without_receipt() {
+        let cmd = TokioCommandRunner;
         let tmp = tempfile::TempDir::new().unwrap();
 
         let config = DetectionConfig {
@@ -173,7 +184,8 @@ mod tests {
             receipt_dir: Some(tmp.path()),
         };
 
-        let detection = detect_install("/usr/local/lib/node_modules/.bin/my-app", &config).await;
+        let detection =
+            detect_install("/usr/local/lib/node_modules/.bin/my-app", &config, &cmd).await;
         assert_eq!(detection.channel, Channel::NpmGlobal);
     }
 
@@ -198,7 +210,8 @@ mod tests {
             receipt_dir: None,
         };
 
-        let detection = detect_install("/tmp/random/path", &config).await;
+        let cmd = TokioCommandRunner;
+        let detection = detect_install("/tmp/random/path", &config, &cmd).await;
         // Should fall through to unmanaged since custom detector errored
         assert_eq!(detection.channel, Channel::Unmanaged);
     }
