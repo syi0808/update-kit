@@ -148,6 +148,104 @@ mod tests {
         assert_eq!(content, "new content");
     }
 
+    #[tokio::test]
+    async fn replace_creates_target_if_not_exists() {
+        let dir = TempDir::new().unwrap();
+        let source = dir.path().join("source_bin");
+        let target = dir.path().join("new_target");
+
+        tokio::fs::write(&source, b"new binary").await.unwrap();
+        // target doesn't exist yet
+
+        let result = atomic_replace(&source, &target).await;
+        assert!(result.is_ok());
+        let content = tokio::fs::read_to_string(&target).await.unwrap();
+        assert_eq!(content, "new binary");
+    }
+
+    #[tokio::test]
+    async fn replace_preserves_content_exactly() {
+        let dir = TempDir::new().unwrap();
+        let source = dir.path().join("source");
+        let target = dir.path().join("target");
+
+        let data = vec![0u8, 1, 2, 255, 128, 64];
+        tokio::fs::write(&source, &data).await.unwrap();
+        tokio::fs::write(&target, b"old").await.unwrap();
+
+        atomic_replace(&source, &target).await.unwrap();
+        let result = tokio::fs::read(&target).await.unwrap();
+        assert_eq!(result, data);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn replace_sets_executable_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = TempDir::new().unwrap();
+        let source = dir.path().join("source");
+        let target = dir.path().join("target");
+
+        tokio::fs::write(&source, b"binary").await.unwrap();
+        tokio::fs::write(&target, b"old").await.unwrap();
+
+        atomic_replace(&source, &target).await.unwrap();
+        let metadata = tokio::fs::metadata(&target).await.unwrap();
+        let mode = metadata.permissions().mode();
+        assert_eq!(
+            mode & 0o777,
+            0o755,
+            "Expected 755 permissions, got: {mode:o}"
+        );
+    }
+
+    #[tokio::test]
+    async fn replace_source_not_found_fails() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("target");
+        tokio::fs::write(&target, b"old").await.unwrap();
+
+        let result = atomic_replace(&dir.path().join("nonexistent"), &target).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn replace_idempotent() {
+        let dir = TempDir::new().unwrap();
+        let source = dir.path().join("source");
+        let target = dir.path().join("target");
+
+        tokio::fs::write(&source, b"content").await.unwrap();
+        tokio::fs::write(&target, b"old").await.unwrap();
+
+        atomic_replace(&source, &target).await.unwrap();
+        // Create source again (it may have been consumed)
+        tokio::fs::write(&source, b"content2").await.unwrap();
+        atomic_replace(&source, &target).await.unwrap();
+        let content = tokio::fs::read_to_string(&target).await.unwrap();
+        assert_eq!(content, "content2");
+    }
+
+    #[tokio::test]
+    async fn check_write_permission_writable_file() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("writable");
+        tokio::fs::write(&target, b"data").await.unwrap();
+
+        let result = check_write_permission(&target).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn check_write_permission_nonexistent_file() {
+        let dir = TempDir::new().unwrap();
+        let target = dir.path().join("nonexistent");
+        // Non-existent target should be OK (we're creating a new file)
+        let result = check_write_permission(&target).await;
+        assert!(result.is_ok());
+    }
+
     #[cfg(unix)]
     #[tokio::test]
     async fn atomic_replace_no_write_permission() {
