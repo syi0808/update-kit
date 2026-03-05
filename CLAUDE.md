@@ -56,6 +56,19 @@ The `UpdateKit` class (`src/index.ts`) orchestrates the full pipeline. `sources`
 
 `src/cli.ts` provides subcommands: `detect`, `check`, `plan`, `apply`, `cache show/clear`, `doctor`. Supports `--json` output. The `doctor` command (`src/doctor.ts`) validates config, package.json, source resolution, detection, and source connectivity.
 
+### Plugin
+
+The project includes a Claude Code plugin at `plugins/update-kit-plugin/` and a marketplace catalog at `.claude-plugin/marketplace.json`. The plugin provides:
+- **Skill** (`/update-kit:integrating-update-kit`) — 5-step integration workflow with API reference and pattern docs
+- **Command** (`/update-kit:doctor`) — Diagnostic checks for existing integrations
+- **Agent** (`integration-reviewer`) — Code review agent for update-kit usage
+
+Users can install via:
+```shell
+/plugin marketplace add syi0808/update-kit
+/plugin install update-kit@update-kit-marketplace
+```
+
 ## Testing
 
 - Tests use **vitest** with globals enabled.
