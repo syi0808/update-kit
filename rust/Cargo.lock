@@ -1989,6 +1989,7 @@ dependencies = [
  "dirs",
  "flate2",
  "futures-util",
+ "libc",
  "mockito",
  "regex",
  "reqwest",

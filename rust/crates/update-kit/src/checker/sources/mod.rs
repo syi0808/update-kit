@@ -42,7 +42,7 @@ pub struct FetchOptions {
 }
 
 /// Options for fetching a list of versions.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct FetchVersionsOptions {
     pub limit: Option<usize>,
     pub cursor: Option<String>,

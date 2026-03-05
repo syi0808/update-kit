@@ -21,6 +21,7 @@ async-trait = "0.1"
 regex = "1"
 futures-util = "0.3"
 tempfile = "3"
+libc = "0.2.182"
 
 [dev-dependencies]
 mockito = "1"
