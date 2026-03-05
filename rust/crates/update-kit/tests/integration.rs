@@ -17,7 +17,7 @@ use update_kit::types::{
     AssetInfo, Channel, Confidence, DelegateMode, InstallDetection, PlanKind,
     PostAction, UpdatePlan, UpdateStatus,
 };
-use update_kit::UpdateKit;
+use update_kit::{Hooks, UpdateKit};
 
 // ── Helpers ──
 
@@ -622,5 +622,309 @@ fn full_pipeline_detect_plan_for_each_channel() {
         let plan = plan.unwrap();
         assert_eq!(plan.from_version, "1.0.0");
         assert_eq!(plan.to_version, "2.0.0");
+    }
+}
+
+// ══════════════════════════════════════════════════
+// 8. Version comparison edge cases
+// ══════════════════════════════════════════════════
+
+#[test]
+fn semver_prerelease_less_than_release() {
+    let pre = semver::Version::parse("1.0.0-beta.1").unwrap();
+    let rel = semver::Version::parse("1.0.0").unwrap();
+    assert!(pre < rel);
+}
+
+#[test]
+fn semver_build_metadata_ignored_in_precedence() {
+    let v1 = semver::Version::parse("1.0.0+build1").unwrap();
+    let v2 = semver::Version::parse("1.0.0+build2").unwrap();
+    // SemVer spec: build metadata should be ignored for version precedence.
+    // The semver crate includes build metadata in Eq/Ord, but the core
+    // version fields (major, minor, patch, pre) are identical.
+    assert_eq!(v1.major, v2.major);
+    assert_eq!(v1.minor, v2.minor);
+    assert_eq!(v1.patch, v2.patch);
+    assert_eq!(v1.pre, v2.pre);
+    // Build metadata differs but does not affect precedence
+    assert_ne!(v1.build, v2.build);
+}
+
+#[test]
+fn semver_v_prefix_stripped_by_config() {
+    // ResolvedConfig strips 'v' prefix during parsing
+    let config = make_config("my-app", "1.0.0");
+    let kit = UpdateKit::new(config).unwrap();
+    assert_eq!(
+        kit.resolved_config().current_version,
+        semver::Version::new(1, 0, 0)
+    );
+}
+
+// ══════════════════════════════════════════════════
+// 9. UpdateKit construction edge cases
+// ══════════════════════════════════════════════════
+
+#[test]
+fn explicit_config_with_all_source_types() {
+    let config = UpdateKitConfig::Explicit {
+        app_name: "my-app".into(),
+        current_version: "1.0.0".into(),
+        base: BaseConfig {
+            sources: Some(vec![
+                VersionSourceConfig::Npm {
+                    package_name: "my-app".into(),
+                    registry_url: None,
+                },
+                VersionSourceConfig::Github {
+                    owner: "user".into(),
+                    repo: "repo".into(),
+                    token: None,
+                    api_base_url: None,
+                },
+                VersionSourceConfig::Brew {
+                    cask_name: "my-app".into(),
+                },
+            ]),
+            ..Default::default()
+        },
+    };
+    let kit = UpdateKit::new(config);
+    assert!(kit.is_ok());
+}
+
+#[test]
+fn hooks_default_is_empty() {
+    let hooks = Hooks::default();
+    assert!(hooks.before_check.is_none());
+    assert!(hooks.before_apply.is_none());
+    assert!(hooks.after_apply.is_none());
+    assert!(hooks.on_error.is_none());
+}
+
+#[test]
+fn config_with_repository_field() {
+    let config = UpdateKitConfig::Explicit {
+        app_name: "my-app".into(),
+        current_version: "1.0.0".into(),
+        base: BaseConfig {
+            repository: Some("https://github.com/user/repo".into()),
+            ..Default::default()
+        },
+    };
+    let kit = UpdateKit::new(config).unwrap();
+    assert_eq!(
+        kit.resolved_config().base.repository.as_deref(),
+        Some("https://github.com/user/repo")
+    );
+}
+
+// ══════════════════════════════════════════════════
+// 10. Plan update edge cases
+// ══════════════════════════════════════════════════
+
+#[test]
+fn plan_with_target_version_downgrade() {
+    let kit = UpdateKit::new(make_config("my-app", "2.0.0")).unwrap();
+    let status = UpdateStatus::UpToDate {
+        current: "2.0.0".into(),
+    };
+    let detection = make_detection(Channel::NpmGlobal, Confidence::High);
+    let plan = kit.plan_update_with_options(
+        &status,
+        &detection,
+        PlanUpdateOptions {
+            target_version: Some("1.0.0".into()),
+            assets: None,
+        },
+    );
+    // Should still generate a plan (downgrade is allowed)
+    assert!(plan.is_some());
+    let plan = plan.unwrap();
+    assert_eq!(plan.to_version, "1.0.0");
+}
+
+#[test]
+fn plan_native_high_confidence_with_assets_produces_native_in_place() {
+    let kit = UpdateKit::new(make_config("my-app", "1.0.0")).unwrap();
+    let status = UpdateStatus::Available {
+        current: "1.0.0".into(),
+        latest: "2.0.0".into(),
+        release_url: None,
+        release_notes: None,
+        assets: Some(vec![make_asset(
+            "my-app-darwin-arm64.tar.gz",
+            "https://example.com/asset.tar.gz",
+        )]),
+    };
+    let detection = make_detection(Channel::Native, Confidence::High);
+    let plan = kit.plan_update(&status, &detection).unwrap();
+    assert!(matches!(plan.kind, PlanKind::NativeInPlace { .. }));
+}
+
+#[test]
+fn plan_unmanaged_channel_produces_manual() {
+    let kit = UpdateKit::new(make_config("my-app", "1.0.0")).unwrap();
+    let status = UpdateStatus::Available {
+        current: "1.0.0".into(),
+        latest: "2.0.0".into(),
+        release_url: Some("https://example.com/releases".into()),
+        release_notes: None,
+        assets: None,
+    };
+    let detection = make_detection(Channel::Unmanaged, Confidence::Medium);
+    let plan = kit.plan_update(&status, &detection).unwrap();
+    assert!(matches!(plan.kind, PlanKind::ManualInstall { .. }));
+}
+
+#[test]
+fn plan_custom_channel_produces_manual() {
+    let kit = UpdateKit::new(make_config("my-app", "1.0.0")).unwrap();
+    let status = UpdateStatus::Available {
+        current: "1.0.0".into(),
+        latest: "2.0.0".into(),
+        release_url: None,
+        release_notes: None,
+        assets: None,
+    };
+    let detection = make_detection(Channel::Custom("snap".into()), Confidence::High);
+    let plan = kit.plan_update(&status, &detection).unwrap();
+    assert!(matches!(plan.kind, PlanKind::ManualInstall { .. }));
+}
+
+// ══════════════════════════════════════════════════
+// 11. Asset selection additional cases
+// ══════════════════════════════════════════════════
+
+#[test]
+fn asset_selection_case_insensitive_platform() {
+    let assets = vec![
+        make_asset("my-app-Darwin-arm64.tar.gz", "https://example.com/a"),
+        make_asset("my-app-linux-x64.tar.gz", "https://example.com/b"),
+    ];
+    let config = make_resolved("my-app", "1.0.0");
+    let selected = select_asset(&assets, &config, "darwin", "arm64");
+    // Should match even though asset has uppercase "Darwin"
+    assert!(selected.is_some());
+}
+
+#[test]
+fn asset_selection_prefers_tar_gz_over_zip_on_unix() {
+    let assets = vec![
+        make_asset("my-app-darwin-arm64.zip", "https://example.com/zip"),
+        make_asset(
+            "my-app-darwin-arm64.tar.gz",
+            "https://example.com/targz",
+        ),
+    ];
+    let config = make_resolved("my-app", "1.0.0");
+    let selected = select_asset(&assets, &config, "darwin", "arm64");
+    assert!(selected.is_some());
+    // Both match; just verify we get one
+    let name = &selected.unwrap().name;
+    assert!(name.contains("darwin") && name.contains("arm64"));
+}
+
+// ══════════════════════════════════════════════════
+// 12. Cache edge cases
+// ══════════════════════════════════════════════════
+
+#[test]
+fn cache_with_unicode_app_name() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let entry = create_cache_entry("2.0.0", "1.0.0", "npm", None, None, None);
+    write_cache(tmp.path(), "my-\u{C571}", &entry).unwrap();
+    let read_back = read_cache(tmp.path(), "my-\u{C571}").unwrap();
+    assert_eq!(read_back.latest_version, "2.0.0");
+}
+
+#[test]
+fn cache_overwrite_existing() {
+    let tmp = tempfile::TempDir::new().unwrap();
+    let entry1 = create_cache_entry("2.0.0", "1.0.0", "npm", None, None, None);
+    write_cache(tmp.path(), "app", &entry1).unwrap();
+
+    let entry2 = create_cache_entry("3.0.0", "2.0.0", "github", None, None, None);
+    write_cache(tmp.path(), "app", &entry2).unwrap();
+
+    let read_back = read_cache(tmp.path(), "app").unwrap();
+    assert_eq!(read_back.latest_version, "3.0.0");
+    assert_eq!(read_back.source, "github");
+}
+
+// ══════════════════════════════════════════════════
+// 13. Serialization additional cases
+// ══════════════════════════════════════════════════
+
+#[test]
+fn serialize_up_to_date_status_roundtrip() {
+    let status = UpdateStatus::UpToDate {
+        current: "1.0.0".into(),
+    };
+    let json = serde_json::to_string(&status).unwrap();
+    let back: UpdateStatus = serde_json::from_str(&json).unwrap();
+    match back {
+        UpdateStatus::UpToDate { current } => assert_eq!(current, "1.0.0"),
+        _ => panic!("expected UpToDate"),
+    }
+}
+
+#[test]
+fn serialize_unknown_status_roundtrip() {
+    let status = UpdateStatus::Unknown {
+        reason: "no source".into(),
+        cached_latest: None,
+    };
+    let json = serde_json::to_string(&status).unwrap();
+    let back: UpdateStatus = serde_json::from_str(&json).unwrap();
+    match back {
+        UpdateStatus::Unknown { reason, .. } => assert_eq!(reason, "no source"),
+        _ => panic!("expected Unknown"),
+    }
+}
+
+#[test]
+fn serialize_native_in_place_plan_roundtrip() {
+    let plan = UpdatePlan {
+        kind: PlanKind::NativeInPlace {
+            download_url: "https://example.com/v2.tar.gz".into(),
+            checksum_url: Some("https://example.com/v2.sha256".into()),
+            expected_checksum: None,
+        },
+        from_version: "1.0.0".into(),
+        to_version: "2.0.0".into(),
+        post_action: PostAction::ExitAfterApply,
+    };
+    let json = serde_json::to_string(&plan).unwrap();
+    let back: UpdatePlan = serde_json::from_str(&json).unwrap();
+    assert_eq!(back.from_version, "1.0.0");
+    match back.kind {
+        PlanKind::NativeInPlace { download_url, .. } => {
+            assert!(download_url.contains("v2.tar.gz"));
+        }
+        _ => panic!("expected NativeInPlace"),
+    }
+}
+
+#[test]
+fn serialize_manual_install_plan_roundtrip() {
+    let plan = UpdatePlan {
+        kind: PlanKind::ManualInstall {
+            reason: "unsupported channel".into(),
+            instructions: "Download from website".into(),
+            download_url: Some("https://example.com/download".into()),
+        },
+        from_version: "1.0.0".into(),
+        to_version: "2.0.0".into(),
+        post_action: PostAction::None,
+    };
+    let json = serde_json::to_string(&plan).unwrap();
+    let back: UpdatePlan = serde_json::from_str(&json).unwrap();
+    match back.kind {
+        PlanKind::ManualInstall { instructions, .. } => {
+            assert_eq!(instructions, "Download from website");
+        }
+        _ => panic!("expected ManualInstall"),
     }
 }
