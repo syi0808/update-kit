@@ -59,4 +59,35 @@ mod tests {
         );
         assert!(result.is_err());
     }
+
+    #[test]
+    fn spawn_with_current_exe_succeeds() {
+        // Use the test binary itself — it will exit quickly since args won't match
+        let exe = std::env::current_exe().unwrap();
+        let result = spawn_background_check(&exe, "{}");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn spawn_with_complex_config_json() {
+        let exe = std::env::current_exe().unwrap();
+        let config = r#"{"app_name":"test","version":"1.0.0","sources":[]}"#;
+        let result = spawn_background_check(&exe, config);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn spawn_with_empty_config() {
+        let exe = std::env::current_exe().unwrap();
+        let result = spawn_background_check(&exe, "");
+        assert!(result.is_ok()); // Empty string is valid as argument
+    }
+
+    #[test]
+    fn spawn_with_special_chars_in_config() {
+        let exe = std::env::current_exe().unwrap();
+        let config = r#"{"name":"test \"quoted\" & special <chars>"}"#;
+        let result = spawn_background_check(&exe, config);
+        assert!(result.is_ok());
+    }
 }
