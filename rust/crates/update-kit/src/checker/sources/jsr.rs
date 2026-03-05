@@ -116,4 +116,79 @@ mod tests {
         let source = JsrSource::new("scope".into(), "pkg".into());
         assert_eq!(source.name(), "jsr");
     }
+
+    #[test]
+    fn default_base_url() {
+        let source = JsrSource::new("scope".into(), "pkg".into());
+        assert_eq!(source.base_url, "https://jsr.io");
+    }
+
+    #[test]
+    fn custom_base_url() {
+        let source = JsrSource::with_base_url(
+            "scope".into(),
+            "pkg".into(),
+            "https://custom.jsr.io".into(),
+        );
+        assert_eq!(source.base_url, "https://custom.jsr.io");
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_unreachable_returns_error() {
+        let source = JsrSource::with_base_url(
+            "scope".into(),
+            "pkg".into(),
+            "https://localhost:1".into(),
+        );
+        let result = source.fetch_latest(FetchOptions::default()).await;
+        match result {
+            VersionSourceResult::Error { reason, .. } => {
+                assert!(!reason.is_empty());
+            }
+            other => panic!("Expected Error, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_http_rejected() {
+        let source = JsrSource::with_base_url(
+            "scope".into(),
+            "pkg".into(),
+            "http://insecure.com".into(),
+        );
+        let result = source.fetch_latest(FetchOptions::default()).await;
+        match result {
+            VersionSourceResult::Error { reason, .. } => {
+                assert!(
+                    reason.contains("HTTPS") || reason.contains("Insecure"),
+                    "Expected HTTPS/Insecure error, got: {reason}"
+                );
+            }
+            other => panic!("Expected Error for HTTP, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_versions_returns_unsupported() {
+        let source = JsrSource::new("scope".into(), "pkg".into());
+        let result = source
+            .fetch_versions(super::super::FetchVersionsOptions::default())
+            .await;
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert_eq!(err.code(), "UNSUPPORTED_OPERATION");
+    }
+
+    #[test]
+    fn source_name_is_jsr() {
+        let source = JsrSource::with_base_url("s".into(), "n".into(), "https://x.com".into());
+        assert_eq!(source.name(), "jsr");
+    }
+
+    #[test]
+    fn scope_and_name_stored() {
+        let source = JsrSource::new("my-scope".into(), "my-pkg".into());
+        assert_eq!(source.scope, "my-scope");
+        assert_eq!(source.name, "my-pkg");
+    }
 }
