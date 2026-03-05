@@ -81,6 +81,7 @@ pub async fn detect_install(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utils::MockCommandRunner;
     use crate::utils::process::TokioCommandRunner;
 
     #[tokio::test]
@@ -214,5 +215,141 @@ mod tests {
         let detection = detect_install("/tmp/random/path", &config, &cmd).await;
         // Should fall through to unmanaged since custom detector errored
         assert_eq!(detection.channel, Channel::Unmanaged);
+    }
+
+    // ── Orchestration tests using MockCommandRunner ──
+
+    #[tokio::test]
+    async fn custom_detector_returning_none_continues_pipeline() {
+        let skip_detector = CustomDetector {
+            name: "skip".into(),
+            detect: Box::new(|| Box::pin(async { Ok(None) })),
+        };
+        let detectors = vec![skip_detector];
+        let tmp = tempfile::TempDir::new().unwrap();
+        let cmd = MockCommandRunner::new();
+        let config = DetectionConfig {
+            app_name: "test-app",
+            brew_cask_name: None,
+            custom_detectors: &detectors,
+            receipt_dir: Some(tmp.path()),
+        };
+        // Should fall through to unmanaged since skip detector returns None and no brew/npm path
+        let detection = detect_install("/tmp/random/path", &config, &cmd).await;
+        assert_eq!(detection.channel, Channel::Unmanaged);
+    }
+
+    #[tokio::test]
+    async fn multiple_custom_detectors_first_match_wins() {
+        let first = CustomDetector {
+            name: "first".into(),
+            detect: Box::new(|| {
+                Box::pin(async {
+                    Ok(Some(InstallDetection {
+                        channel: Channel::Custom("first-channel".into()),
+                        confidence: Confidence::High,
+                        evidence: vec![Evidence {
+                            source: "first".into(),
+                            detail: "first wins".into(),
+                        }],
+                    }))
+                })
+            }),
+        };
+        let second = CustomDetector {
+            name: "second".into(),
+            detect: Box::new(|| {
+                Box::pin(async {
+                    Ok(Some(InstallDetection {
+                        channel: Channel::Custom("second-channel".into()),
+                        confidence: Confidence::High,
+                        evidence: vec![],
+                    }))
+                })
+            }),
+        };
+        let detectors = vec![first, second];
+        let cmd = MockCommandRunner::new();
+        let config = DetectionConfig {
+            app_name: "test-app",
+            brew_cask_name: None,
+            custom_detectors: &detectors,
+            receipt_dir: None,
+        };
+        let detection = detect_install("/tmp/path", &config, &cmd).await;
+        assert_eq!(detection.channel, Channel::Custom("first-channel".into()));
+    }
+
+    #[tokio::test]
+    async fn brew_verified_before_npm() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "brew list --cask my-cask",
+            Ok(MockCommandRunner::success_output("")),
+        );
+        let tmp = tempfile::TempDir::new().unwrap();
+        let config = DetectionConfig {
+            app_name: "test-app",
+            brew_cask_name: Some("my-cask"),
+            custom_detectors: &[],
+            receipt_dir: Some(tmp.path()),
+        };
+        let detection = detect_install("/opt/homebrew/bin/my-app", &config, &cmd).await;
+        assert_eq!(detection.channel, Channel::BrewCask);
+    }
+
+    #[tokio::test]
+    async fn fallback_unmanaged_has_fallback_evidence() {
+        let cmd = MockCommandRunner::new();
+        let tmp = tempfile::TempDir::new().unwrap();
+        let config = DetectionConfig {
+            app_name: "test-app",
+            brew_cask_name: None,
+            custom_detectors: &[],
+            receipt_dir: Some(tmp.path()),
+        };
+        let detection = detect_install("/usr/local/bin/random-app", &config, &cmd).await;
+        assert_eq!(detection.channel, Channel::Unmanaged);
+        assert_eq!(detection.confidence, Confidence::Low);
+        assert!(detection.evidence.iter().any(|e| e.source == "fallback"));
+    }
+
+    #[tokio::test]
+    async fn receipt_with_custom_dir_wins_over_brew_path() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let app_dir = tmp.path().join("my-app");
+        std::fs::create_dir_all(&app_dir).unwrap();
+        std::fs::write(
+            app_dir.join("install-receipt.json"),
+            r#"{"channel":"native"}"#,
+        )
+        .unwrap();
+
+        let cmd = MockCommandRunner::new();
+        let config = DetectionConfig {
+            app_name: "my-app",
+            brew_cask_name: None,
+            custom_detectors: &[],
+            receipt_dir: Some(tmp.path()),
+        };
+        // Brew path but receipt exists — receipt wins
+        let detection = detect_install("/opt/homebrew/bin/my-app", &config, &cmd).await;
+        assert_eq!(detection.channel, Channel::Native);
+        assert_eq!(detection.confidence, Confidence::High);
+    }
+
+    #[tokio::test]
+    async fn npm_path_detected_when_no_receipt_or_brew() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let cmd = MockCommandRunner::new();
+        let config = DetectionConfig {
+            app_name: "test-app",
+            brew_cask_name: None,
+            custom_detectors: &[],
+            receipt_dir: Some(tmp.path()),
+        };
+        let detection =
+            detect_install("/usr/local/lib/node_modules/.bin/my-app", &config, &cmd).await;
+        assert_eq!(detection.channel, Channel::NpmGlobal);
     }
 }
