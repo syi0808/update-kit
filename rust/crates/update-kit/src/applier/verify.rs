@@ -265,4 +265,83 @@ mod tests {
             "zzzz27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
         ));
     }
+
+    #[tokio::test]
+    async fn compute_sha256_empty_file() {
+        let dir = TempDir::new().unwrap();
+        let file_path = dir.path().join("empty.txt");
+        tokio::fs::write(&file_path, b"").await.unwrap();
+
+        let hash = compute_sha256(&file_path).await.unwrap();
+        // SHA-256 of empty string
+        assert_eq!(
+            hash,
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+    }
+
+    #[tokio::test]
+    async fn compute_sha256_file_not_found() {
+        let dir = TempDir::new().unwrap();
+        let result = compute_sha256(&dir.path().join("nonexistent.txt")).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn verify_checksum_url_http_rejected() {
+        let dir = TempDir::new().unwrap();
+        let file_path = dir.path().join("test.txt");
+        tokio::fs::write(&file_path, b"hello").await.unwrap();
+
+        let info = ChecksumInfo {
+            expected_checksum: None,
+            checksum_url: Some("http://insecure.com/checksums.txt".into()),
+        };
+
+        let result = verify_checksum(&file_path, &info, None).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            matches!(err, UpdateKitError::InsecureUrl(_)),
+            "Expected InsecureUrl, got: {err:?}"
+        );
+    }
+
+    #[test]
+    fn is_valid_sha256_hex_valid() {
+        assert!(is_valid_sha256_hex(&"a".repeat(64)));
+        assert!(is_valid_sha256_hex(
+            "ABCDEF0123456789abcdef0123456789ABCDEF0123456789abcdef0123456789"
+        ));
+    }
+
+    #[test]
+    fn is_valid_sha256_hex_invalid_length() {
+        assert!(!is_valid_sha256_hex(&"a".repeat(63)));
+        assert!(!is_valid_sha256_hex(&"a".repeat(65)));
+        assert!(!is_valid_sha256_hex(""));
+    }
+
+    #[test]
+    fn is_valid_sha256_hex_invalid_chars() {
+        assert!(!is_valid_sha256_hex(&format!("{}g", "a".repeat(63))));
+        assert!(!is_valid_sha256_hex(&format!("{} ", "a".repeat(63))));
+    }
+
+    #[test]
+    fn validate_hex_hash_returns_lowercase() {
+        let upper = "A".repeat(64);
+        let result = validate_hex_hash(&upper).unwrap();
+        assert_eq!(result, "a".repeat(64));
+    }
+
+    #[test]
+    fn validate_hex_hash_rejects_invalid() {
+        let result = validate_hex_hash("too_short");
+        assert!(result.is_err());
+        assert!(
+            matches!(result.unwrap_err(), UpdateKitError::ChecksumParseFailed(_)),
+            "Expected ChecksumParseFailed"
+        );
+    }
 }
