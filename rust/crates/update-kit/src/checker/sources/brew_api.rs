@@ -91,10 +91,141 @@ impl VersionSource for BrewSource {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
+
+    use crate::test_utils::MockCommandRunner;
 
     #[test]
     fn test_source_name() {
         let source = BrewSource::new("my-cask".into());
         assert_eq!(source.name(), "brew");
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_success() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "brew info --json=v2 --cask my-cask",
+            Ok(MockCommandRunner::success_output(
+                r#"{"casks": [{"version": "4.1.0", "name": [{"name": "my-cask"}]}]}"#,
+            )),
+        );
+
+        let source = BrewSource::with_cmd("my-cask".into(), Arc::new(cmd));
+        let result = source.fetch_latest(FetchOptions::default()).await;
+
+        match result {
+            VersionSourceResult::Found { info, .. } => {
+                assert_eq!(info.version, "4.1.0");
+            }
+            other => panic!("Expected Found, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_brew_command_fails() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "brew info --json=v2 --cask my-cask",
+            Ok(MockCommandRunner::failure_output(
+                "Error: Cask 'my-cask' is unavailable",
+            )),
+        );
+
+        let source = BrewSource::with_cmd("my-cask".into(), Arc::new(cmd));
+        let result = source.fetch_latest(FetchOptions::default()).await;
+
+        match result {
+            VersionSourceResult::Error { reason, .. } => {
+                assert!(reason.contains("brew info failed"));
+            }
+            other => panic!("Expected Error, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_brew_not_found() {
+        // Don't register any response — will get CommandSpawnFailed
+        let cmd = MockCommandRunner::new();
+
+        let source = BrewSource::with_cmd("my-cask".into(), Arc::new(cmd));
+        let result = source.fetch_latest(FetchOptions::default()).await;
+
+        match result {
+            VersionSourceResult::Error { reason, .. } => {
+                assert!(!reason.is_empty());
+            }
+            other => panic!("Expected Error, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_invalid_json() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "brew info --json=v2 --cask my-cask",
+            Ok(MockCommandRunner::success_output("not json")),
+        );
+
+        let source = BrewSource::with_cmd("my-cask".into(), Arc::new(cmd));
+        let result = source.fetch_latest(FetchOptions::default()).await;
+
+        match result {
+            VersionSourceResult::Error { reason, .. } => {
+                assert!(reason.contains("parse"));
+            }
+            other => panic!("Expected Error, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_empty_casks_array() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "brew info --json=v2 --cask my-cask",
+            Ok(MockCommandRunner::success_output(r#"{"casks": []}"#)),
+        );
+
+        let source = BrewSource::with_cmd("my-cask".into(), Arc::new(cmd));
+        let result = source.fetch_latest(FetchOptions::default()).await;
+
+        match result {
+            VersionSourceResult::Error { reason, .. } => {
+                assert!(reason.contains("version"));
+            }
+            other => panic!("Expected Error, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_missing_version_field() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "brew info --json=v2 --cask my-cask",
+            Ok(MockCommandRunner::success_output(
+                r#"{"casks": [{"name": "my-cask"}]}"#,
+            )),
+        );
+
+        let source = BrewSource::with_cmd("my-cask".into(), Arc::new(cmd));
+        let result = source.fetch_latest(FetchOptions::default()).await;
+
+        match result {
+            VersionSourceResult::Error { reason, .. } => {
+                assert!(reason.contains("version"));
+            }
+            other => panic!("Expected Error, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_versions_returns_unsupported() {
+        let cmd = MockCommandRunner::new();
+        let source = BrewSource::with_cmd("my-cask".into(), Arc::new(cmd));
+        let result = source
+            .fetch_versions(super::super::FetchVersionsOptions::default())
+            .await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().code(), "UNSUPPORTED_OPERATION");
     }
 }
