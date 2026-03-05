@@ -1,0 +1,26 @@
+[package]
+name = "update-kit"
+version = "0.1.0"
+edition = "2021"
+description = "Channel-aware self-update toolkit for CLI applications"
+license = "MIT"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "stream"] }
+semver = { version = "1", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+sha2 = "0.10"
+flate2 = "1"
+tar = "0.4"
+zip = "2"
+dirs = "6"
+async-trait = "0.1"
+regex = "1"
+
+[dev-dependencies]
+mockito = "1"
+tempfile = "3"
+tokio = { version = "1", features = ["test-util"] }
