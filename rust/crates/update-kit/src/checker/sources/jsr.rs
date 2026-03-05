@@ -6,11 +6,24 @@ use super::{FetchOptions, VersionInfo, VersionSource, VersionSourceResult};
 pub struct JsrSource {
     scope: String,
     name: String,
+    base_url: String,
 }
 
 impl JsrSource {
     pub fn new(scope: String, name: String) -> Self {
-        Self { scope, name }
+        Self {
+            scope,
+            name,
+            base_url: "https://jsr.io".to_string(),
+        }
+    }
+
+    pub fn with_base_url(scope: String, name: String, base_url: String) -> Self {
+        Self {
+            scope,
+            name,
+            base_url,
+        }
     }
 }
 
@@ -21,7 +34,7 @@ impl VersionSource for JsrSource {
     }
 
     async fn fetch_latest(&self, _options: FetchOptions) -> VersionSourceResult {
-        let url = format!("https://jsr.io/@{}/{}/meta.json", self.scope, self.name);
+        let url = format!("{}/@{}/{}/meta.json", self.base_url, self.scope, self.name);
 
         let response = match fetch_with_timeout(
             &url,
@@ -77,8 +90,8 @@ impl VersionSource for JsrSource {
                 info: VersionInfo {
                     version,
                     release_url: Some(format!(
-                        "https://jsr.io/@{}/{}",
-                        self.scope, self.name
+                        "{}/@{}/{}",
+                        self.base_url, self.scope, self.name
                     )),
                     release_notes: None,
                     assets: None,
