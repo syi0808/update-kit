@@ -52,6 +52,7 @@ pub async fn detect_from_npm(exec_path: &str, cmd: &dyn CommandRunner) -> Option
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utils::MockCommandRunner;
     use crate::utils::process::TokioCommandRunner;
 
     #[tokio::test]
@@ -79,5 +80,99 @@ mod tests {
         assert!(result.is_some());
         let detection = result.unwrap();
         assert_eq!(detection.channel, Channel::NpmGlobal);
+    }
+
+    // ── MockCommandRunner-based tests ──
+
+    #[tokio::test]
+    async fn prefix_match_high_confidence() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "npm prefix -g",
+            Ok(MockCommandRunner::success_output("/usr/local/lib\n")),
+        );
+
+        let result = detect_from_npm("/usr/local/lib/node_modules/.bin/my-app", &cmd).await;
+        let detection = result.unwrap();
+        assert_eq!(detection.channel, Channel::NpmGlobal);
+        assert_eq!(detection.confidence, Confidence::High);
+        assert!(detection.evidence.len() >= 2); // path + verify
+    }
+
+    #[tokio::test]
+    async fn prefix_mismatch_medium_confidence() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "npm prefix -g",
+            Ok(MockCommandRunner::success_output("/different/path\n")),
+        );
+
+        let result = detect_from_npm("/usr/local/lib/node_modules/.bin/my-app", &cmd).await;
+        let detection = result.unwrap();
+        assert_eq!(detection.channel, Channel::NpmGlobal);
+        assert_eq!(detection.confidence, Confidence::Medium);
+        assert_eq!(detection.evidence.len(), 1); // path only
+    }
+
+    #[tokio::test]
+    async fn npm_not_available_medium_confidence() {
+        let cmd = MockCommandRunner::new();
+        // No response registered — will return error
+
+        let result = detect_from_npm("/usr/local/lib/node_modules/.bin/my-app", &cmd).await;
+        let detection = result.unwrap();
+        assert_eq!(detection.confidence, Confidence::Medium);
+    }
+
+    #[tokio::test]
+    async fn npm_command_failure_medium() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "npm prefix -g",
+            Ok(MockCommandRunner::failure_output("npm ERR!")),
+        );
+
+        let result = detect_from_npm("/usr/local/lib/node_modules/.bin/my-app", &cmd).await;
+        let detection = result.unwrap();
+        assert_eq!(detection.confidence, Confidence::Medium);
+    }
+
+    #[tokio::test]
+    async fn evidence_source_is_npm_path() {
+        let cmd = MockCommandRunner::new();
+        let result = detect_from_npm("/usr/local/lib/node_modules/.bin/my-app", &cmd).await;
+        let detection = result.unwrap();
+        assert!(detection.evidence.iter().any(|e| e.source == "npm-path"));
+    }
+
+    #[tokio::test]
+    async fn evidence_has_verify_on_match() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "npm prefix -g",
+            Ok(MockCommandRunner::success_output("/usr/local/lib\n")),
+        );
+
+        let result = detect_from_npm("/usr/local/lib/node_modules/.bin/my-app", &cmd).await;
+        let detection = result.unwrap();
+        assert!(detection
+            .evidence
+            .iter()
+            .any(|e| e.source == "npm-verify"));
+    }
+
+    #[tokio::test]
+    async fn non_npm_path_returns_none_with_mock() {
+        let cmd = MockCommandRunner::new();
+        let result = detect_from_npm("/usr/local/bin/my-app", &cmd).await;
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn dot_npm_path_detected_with_mock() {
+        let cmd = MockCommandRunner::new();
+        let result = detect_from_npm("/home/user/.npm/bin/my-app", &cmd).await;
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().channel, Channel::NpmGlobal);
     }
 }
