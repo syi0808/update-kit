@@ -17,6 +17,9 @@ pub mod types;
 pub mod utils;
 pub mod ux;
 
+#[cfg(test)]
+pub(crate) mod test_utils;
+
 // Re-export key types at the crate root for convenience.
 pub use config::{BaseConfig, Hooks, ResolvedConfig, UpdateKitConfig, VersionSourceConfig};
 pub use errors::UpdateKitError;
