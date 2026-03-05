@@ -265,6 +265,178 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn execute_mode_success() {
+        use crate::test_utils::MockCommandRunner;
+
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "npm update -g myapp",
+            Ok(MockCommandRunner::success_output("updated to 2.0.0")),
+        );
+
+        let plan = make_delegate_plan(vec!["npm", "update", "-g", "myapp"], DelegateMode::Execute);
+        let opts = DelegateApplyOptions {
+            mode: None,
+            timeout_ms: Some(5000),
+            on_progress: None,
+            cmd: Some(Arc::new(cmd)),
+        };
+        let result = apply_delegate_update(&plan, Some(opts)).await;
+        match result {
+            ApplyResult::Success {
+                from_version,
+                to_version,
+                ..
+            } => {
+                assert_eq!(from_version, "1.0.0");
+                assert_eq!(to_version, "2.0.0");
+            }
+            other => panic!("Expected Success, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn execute_mode_nonzero_exit() {
+        use crate::test_utils::MockCommandRunner;
+
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "npm update -g myapp",
+            Ok(MockCommandRunner::failure_output("npm ERR! 404")),
+        );
+
+        let plan = make_delegate_plan(vec!["npm", "update", "-g", "myapp"], DelegateMode::Execute);
+        let opts = DelegateApplyOptions {
+            mode: None,
+            timeout_ms: Some(5000),
+            on_progress: None,
+            cmd: Some(Arc::new(cmd)),
+        };
+        let result = apply_delegate_update(&plan, Some(opts)).await;
+        match result {
+            ApplyResult::Failed { error, .. } => {
+                assert_eq!(error.code(), "COMMAND_FAILED");
+            }
+            other => panic!("Expected Failed, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn execute_mode_permission_error_eacces() {
+        use crate::test_utils::MockCommandRunner;
+
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "npm update -g myapp",
+            Ok(MockCommandRunner::failure_output(
+                "npm ERR! code EACCES\nnpm ERR! permission denied",
+            )),
+        );
+
+        let plan = make_delegate_plan(vec!["npm", "update", "-g", "myapp"], DelegateMode::Execute);
+        let opts = DelegateApplyOptions {
+            mode: None,
+            timeout_ms: Some(5000),
+            on_progress: None,
+            cmd: Some(Arc::new(cmd)),
+        };
+        let result = apply_delegate_update(&plan, Some(opts)).await;
+        match result {
+            ApplyResult::Failed { error, .. } => {
+                assert_eq!(error.code(), "PERMISSION_DENIED");
+            }
+            other => panic!("Expected Failed with PermissionDenied, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn execute_mode_command_spawn_error() {
+        use crate::test_utils::MockCommandRunner;
+
+        let cmd = MockCommandRunner::new();
+        // Don't register any response — will get CommandSpawnFailed
+
+        let plan = make_delegate_plan(vec!["brew", "upgrade", "myapp"], DelegateMode::Execute);
+        let opts = DelegateApplyOptions {
+            mode: None,
+            timeout_ms: Some(5000),
+            on_progress: None,
+            cmd: Some(Arc::new(cmd)),
+        };
+        let result = apply_delegate_update(&plan, Some(opts)).await;
+        match result {
+            ApplyResult::Failed { error, .. } => {
+                assert!(
+                    error.code() == "COMMAND_SPAWN_FAILED" || error.code() == "COMMAND_FAILED"
+                );
+            }
+            other => panic!("Expected Failed, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn options_mode_overrides_plan_mode() {
+        // Plan says Execute, but options say PrintOnly
+        let plan = make_delegate_plan(vec!["npm", "update", "-g", "myapp"], DelegateMode::Execute);
+        let opts = DelegateApplyOptions {
+            mode: Some(DelegateMode::PrintOnly),
+            timeout_ms: None,
+            on_progress: None,
+            cmd: None,
+        };
+        let result = apply_delegate_update(&plan, Some(opts)).await;
+        match result {
+            ApplyResult::NeedsRestart { message } => {
+                assert!(message.contains("npm update"));
+            }
+            other => panic!("Expected NeedsRestart, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn empty_command_fails() {
+        use crate::test_utils::MockCommandRunner;
+
+        let plan = UpdatePlan {
+            kind: PlanKind::DelegateCommand {
+                channel: Channel::NpmGlobal,
+                command: vec![],
+                mode: DelegateMode::Execute,
+            },
+            from_version: "1.0.0".into(),
+            to_version: "2.0.0".into(),
+            post_action: PostAction::None,
+        };
+        let cmd = MockCommandRunner::new();
+        let opts = DelegateApplyOptions {
+            mode: None,
+            timeout_ms: Some(5000),
+            on_progress: None,
+            cmd: Some(Arc::new(cmd)),
+        };
+        let result = apply_delegate_update(&plan, Some(opts)).await;
+        match result {
+            ApplyResult::Failed { error, .. } => {
+                assert_eq!(error.code(), "COMMAND_FAILED");
+            }
+            other => panic!("Expected Failed, got: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn truncate_output_within_limit() {
+        let short = "hello";
+        assert_eq!(truncate_string(short, 100), "hello");
+    }
+
+    #[test]
+    fn truncate_output_exceeds_limit() {
+        let long = "a".repeat(200);
+        let truncated = truncate_string(&long, 100);
+        assert_eq!(truncated.len(), 100);
+    }
+
+    #[tokio::test]
     async fn wrong_plan_type_fails() {
         let plan = UpdatePlan {
             kind: PlanKind::ManualInstall {
