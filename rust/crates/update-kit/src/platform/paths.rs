@@ -56,7 +56,7 @@ mod tests {
     fn cache_dir_is_non_empty() {
         let dir = get_default_cache_dir();
         assert!(
-            dir.as_os_str().len() > 0,
+            !dir.as_os_str().is_empty(),
             "cache dir should be non-empty"
         );
     }
@@ -65,7 +65,7 @@ mod tests {
     fn config_dir_is_non_empty() {
         let dir = get_default_config_dir();
         assert!(
-            dir.as_os_str().len() > 0,
+            !dir.as_os_str().is_empty(),
             "config dir should be non-empty"
         );
     }
@@ -121,8 +121,8 @@ mod tests {
     fn cache_and_config_dirs_are_different() {
         let cache = get_default_cache_dir();
         let config = get_default_config_dir();
-        assert!(cache.as_os_str().len() > 0);
-        assert!(config.as_os_str().len() > 0);
+        assert!(!cache.as_os_str().is_empty());
+        assert!(!config.as_os_str().is_empty());
         // On most systems they should be different (unless Windows defaults)
         if !cfg!(windows) {
             assert_ne!(cache, config, "Cache and config dirs should differ on Unix");
