@@ -84,4 +84,53 @@ mod tests {
         let result = detect_from_receipt("bad-app", Some(tmp.path())).await;
         assert!(result.is_none());
     }
+
+    #[tokio::test]
+    async fn receipt_with_minimal_json() {
+        let tmp = TempDir::new().unwrap();
+        let app_dir = tmp.path().join("my-app");
+        std::fs::create_dir_all(&app_dir).unwrap();
+        std::fs::write(app_dir.join("install-receipt.json"), "{}").unwrap();
+
+        let result = detect_from_receipt("my-app", Some(tmp.path())).await;
+        assert!(result.is_some());
+        let detection = result.unwrap();
+        assert_eq!(detection.channel, Channel::Native);
+        assert_eq!(detection.confidence, Confidence::High);
+    }
+
+    #[tokio::test]
+    async fn receipt_empty_file_returns_none() {
+        let tmp = TempDir::new().unwrap();
+        let app_dir = tmp.path().join("my-app");
+        std::fs::create_dir_all(&app_dir).unwrap();
+        std::fs::write(app_dir.join("install-receipt.json"), "").unwrap();
+
+        let result = detect_from_receipt("my-app", Some(tmp.path())).await;
+        assert!(result.is_none()); // empty string is not valid JSON
+    }
+
+    #[tokio::test]
+    async fn receipt_app_dir_exists_but_no_file() {
+        let tmp = TempDir::new().unwrap();
+        let app_dir = tmp.path().join("my-app");
+        std::fs::create_dir_all(&app_dir).unwrap();
+        // Don't create the receipt file
+
+        let result = detect_from_receipt("my-app", Some(tmp.path())).await;
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn receipt_evidence_includes_path() {
+        let tmp = TempDir::new().unwrap();
+        let app_dir = tmp.path().join("my-app");
+        std::fs::create_dir_all(&app_dir).unwrap();
+        std::fs::write(app_dir.join("install-receipt.json"), r#"{"ok": true}"#).unwrap();
+
+        let result = detect_from_receipt("my-app", Some(tmp.path())).await;
+        let detection = result.unwrap();
+        assert!(detection.evidence[0].detail.contains("install-receipt.json"));
+        assert_eq!(detection.evidence[0].source, "install-receipt");
+    }
 }
