@@ -210,6 +210,39 @@ pub fn normalize_version(version: &str) -> Option<semver::Version> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use self::sources::VersionInfo;
+    use std::sync::Mutex;
+
+    struct MockSource {
+        name_val: &'static str,
+        result: Mutex<Option<VersionSourceResult>>,
+    }
+
+    impl MockSource {
+        fn new(name: &'static str, result: VersionSourceResult) -> Self {
+            Self {
+                name_val: name,
+                result: Mutex::new(Some(result)),
+            }
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl VersionSource for MockSource {
+        fn name(&self) -> &str {
+            self.name_val
+        }
+        async fn fetch_latest(&self, _options: FetchOptions) -> VersionSourceResult {
+            self.result
+                .lock()
+                .unwrap()
+                .take()
+                .unwrap_or(VersionSourceResult::Error {
+                    reason: "Already consumed".into(),
+                    status: None,
+                })
+        }
+    }
 
     #[test]
     fn test_normalize_version_strips_v() {
@@ -305,6 +338,204 @@ mod tests {
         assert!(matches!(result, UpdateStatus::Available { .. }));
         if let UpdateStatus::Available { latest, .. } = &result {
             assert_eq!(latest, "2.0.0");
+        }
+    }
+
+    #[tokio::test]
+    async fn blocking_first_source_succeeds() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let source = MockSource::new(
+            "github",
+            VersionSourceResult::Found {
+                info: VersionInfo {
+                    version: "2.0.0".into(),
+                    release_url: Some("https://example.com".into()),
+                    release_notes: Some("notes".into()),
+                    assets: None,
+                    published_at: None,
+                },
+                etag: Some("etag1".into()),
+            },
+        );
+
+        let options = CheckUpdateOptions {
+            app_name: "test-app".into(),
+            current_version: "1.0.0".into(),
+            sources: vec![Box::new(source)],
+            cache_dir: tmp.path().to_path_buf(),
+            check_interval: Some(3600000),
+        };
+
+        let result = check_update(&options, CheckMode::Blocking).await.unwrap();
+        assert!(matches!(result, UpdateStatus::Available { .. }));
+        if let UpdateStatus::Available { latest, .. } = &result {
+            assert_eq!(latest, "2.0.0");
+        }
+    }
+
+    #[tokio::test]
+    async fn blocking_first_fails_second_succeeds() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let source1 = MockSource::new(
+            "github",
+            VersionSourceResult::Error {
+                reason: "Rate limited".into(),
+                status: Some(429),
+            },
+        );
+        let source2 = MockSource::new(
+            "npm",
+            VersionSourceResult::Found {
+                info: VersionInfo {
+                    version: "2.0.0".into(),
+                    release_url: None,
+                    release_notes: None,
+                    assets: None,
+                    published_at: None,
+                },
+                etag: None,
+            },
+        );
+
+        let options = CheckUpdateOptions {
+            app_name: "test-app".into(),
+            current_version: "1.0.0".into(),
+            sources: vec![Box::new(source1), Box::new(source2)],
+            cache_dir: tmp.path().to_path_buf(),
+            check_interval: Some(3600000),
+        };
+
+        let result = check_update(&options, CheckMode::Blocking).await.unwrap();
+        assert!(matches!(result, UpdateStatus::Available { .. }));
+    }
+
+    #[tokio::test]
+    async fn blocking_all_fail_returns_unknown() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let source = MockSource::new(
+            "github",
+            VersionSourceResult::Error {
+                reason: "Network error".into(),
+                status: None,
+            },
+        );
+
+        let options = CheckUpdateOptions {
+            app_name: "test-app".into(),
+            current_version: "1.0.0".into(),
+            sources: vec![Box::new(source)],
+            cache_dir: tmp.path().to_path_buf(),
+            check_interval: Some(3600000),
+        };
+
+        let result = check_update(&options, CheckMode::Blocking).await.unwrap();
+        assert!(matches!(result, UpdateStatus::Unknown { .. }));
+    }
+
+    #[tokio::test]
+    async fn blocking_writes_cache_on_success() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let source = MockSource::new(
+            "github",
+            VersionSourceResult::Found {
+                info: VersionInfo {
+                    version: "3.0.0".into(),
+                    release_url: None,
+                    release_notes: None,
+                    assets: None,
+                    published_at: None,
+                },
+                etag: None,
+            },
+        );
+
+        let options = CheckUpdateOptions {
+            app_name: "test-app".into(),
+            current_version: "1.0.0".into(),
+            sources: vec![Box::new(source)],
+            cache_dir: tmp.path().to_path_buf(),
+            check_interval: Some(3600000),
+        };
+
+        check_update(&options, CheckMode::Blocking).await.unwrap();
+        // Verify cache was written
+        let cached = cache::read_cache(tmp.path(), "test-app");
+        assert!(cached.is_some());
+        assert_eq!(cached.unwrap().latest_version, "3.0.0");
+    }
+
+    #[tokio::test]
+    async fn blocking_up_to_date_when_same_version() {
+        let tmp = tempfile::TempDir::new().unwrap();
+        let source = MockSource::new(
+            "npm",
+            VersionSourceResult::Found {
+                info: VersionInfo {
+                    version: "1.0.0".into(),
+                    release_url: None,
+                    release_notes: None,
+                    assets: None,
+                    published_at: None,
+                },
+                etag: None,
+            },
+        );
+
+        let options = CheckUpdateOptions {
+            app_name: "test-app".into(),
+            current_version: "1.0.0".into(),
+            sources: vec![Box::new(source)],
+            cache_dir: tmp.path().to_path_buf(),
+            check_interval: Some(3600000),
+        };
+
+        let result = check_update(&options, CheckMode::Blocking).await.unwrap();
+        assert!(matches!(result, UpdateStatus::UpToDate { .. }));
+    }
+
+    #[test]
+    fn compare_with_v_prefix() {
+        let status = compare_versions("v1.0.0", "v2.0.0", None, None, None);
+        assert!(matches!(status, UpdateStatus::Available { .. }));
+    }
+
+    #[test]
+    fn compare_prerelease_less_than_release() {
+        let status = compare_versions("1.0.0-beta.1", "1.0.0", None, None, None);
+        assert!(matches!(status, UpdateStatus::Available { .. }));
+    }
+
+    #[test]
+    fn compare_same_invalid_semver() {
+        let status = compare_versions("abc", "abc", None, None, None);
+        assert!(matches!(status, UpdateStatus::UpToDate { .. }));
+    }
+
+    #[test]
+    fn compare_different_invalid_semver() {
+        let status = compare_versions("abc", "def", None, None, None);
+        assert!(matches!(status, UpdateStatus::Available { .. }));
+    }
+
+    #[test]
+    fn compare_includes_release_url_and_notes() {
+        let status = compare_versions(
+            "1.0.0",
+            "2.0.0",
+            Some("https://url".into()),
+            Some("notes".into()),
+            None,
+        );
+        if let UpdateStatus::Available {
+            release_url,
+            release_notes,
+            ..
+        } = &status
+        {
+            assert_eq!(release_url.as_deref(), Some("https://url"));
+            assert_eq!(release_notes.as_deref(), Some("notes"));
+        } else {
+            panic!("Expected Available");
         }
     }
 }
