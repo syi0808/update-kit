@@ -299,4 +299,205 @@ mod tests {
         let info = source.parse_release(&json).unwrap();
         assert_eq!(info.version, "1.0.0");
     }
+
+    #[test]
+    fn parse_release_no_assets() {
+        let source = GitHubReleasesSource::new("owner".into(), "repo".into(), None, None);
+        let json = serde_json::json!({
+            "tag_name": "v1.0.0",
+            "html_url": "https://github.com/owner/repo/releases/tag/v1.0.0",
+            "body": "Notes",
+            "published_at": "2024-01-01T00:00:00Z"
+        });
+
+        let info = source.parse_release(&json).unwrap();
+        assert_eq!(info.version, "1.0.0");
+        assert!(info.assets.is_none());
+    }
+
+    #[test]
+    fn parse_release_no_body() {
+        let source = GitHubReleasesSource::new("owner".into(), "repo".into(), None, None);
+        let json = serde_json::json!({
+            "tag_name": "v1.0.0",
+            "html_url": "https://github.com/owner/repo/releases/tag/v1.0.0"
+        });
+
+        let info = source.parse_release(&json).unwrap();
+        assert_eq!(info.version, "1.0.0");
+        assert!(info.release_notes.is_none());
+    }
+
+    #[test]
+    fn parse_release_no_html_url() {
+        let source = GitHubReleasesSource::new("owner".into(), "repo".into(), None, None);
+        let json = serde_json::json!({
+            "tag_name": "v2.0.0",
+            "body": "Some notes"
+        });
+
+        let info = source.parse_release(&json).unwrap();
+        assert_eq!(info.version, "2.0.0");
+        assert!(info.release_url.is_none());
+        assert_eq!(info.release_notes, Some("Some notes".into()));
+    }
+
+    #[test]
+    fn parse_release_minimal() {
+        let source = GitHubReleasesSource::new("owner".into(), "repo".into(), None, None);
+        let json = serde_json::json!({
+            "tag_name": "v0.1.0"
+        });
+
+        let info = source.parse_release(&json).unwrap();
+        assert_eq!(info.version, "0.1.0");
+        assert!(info.release_url.is_none());
+        assert!(info.release_notes.is_none());
+        assert!(info.assets.is_none());
+        assert!(info.published_at.is_none());
+    }
+
+    #[test]
+    fn parse_release_empty_assets() {
+        let source = GitHubReleasesSource::new("owner".into(), "repo".into(), None, None);
+        let json = serde_json::json!({
+            "tag_name": "v1.0.0",
+            "assets": []
+        });
+
+        let info = source.parse_release(&json).unwrap();
+        assert_eq!(info.version, "1.0.0");
+        let assets = info.assets.unwrap();
+        assert!(assets.is_empty());
+    }
+
+    #[test]
+    fn parse_release_asset_missing_fields() {
+        let source = GitHubReleasesSource::new("owner".into(), "repo".into(), None, None);
+        let json = serde_json::json!({
+            "tag_name": "v1.0.0",
+            "assets": [
+                {
+                    "name": "app.tar.gz",
+                    "browser_download_url": "https://example.com/download",
+                    "size": 2048
+                },
+                {
+                    "name": "incomplete-asset"
+                    // missing browser_download_url — should be filtered out
+                },
+                {
+                    "browser_download_url": "https://example.com/other"
+                    // missing name — should be filtered out
+                }
+            ]
+        });
+
+        let info = source.parse_release(&json).unwrap();
+        let assets = info.assets.unwrap();
+        assert_eq!(assets.len(), 1);
+        assert_eq!(assets[0].name, "app.tar.gz");
+        assert_eq!(assets[0].url, "https://example.com/download");
+        assert_eq!(assets[0].size, Some(2048));
+    }
+
+    #[test]
+    fn parse_release_missing_tag_name_returns_none() {
+        let source = GitHubReleasesSource::new("owner".into(), "repo".into(), None, None);
+        let json = serde_json::json!({
+            "html_url": "https://github.com/owner/repo/releases/tag/v1.0.0",
+            "body": "Notes"
+        });
+
+        assert!(source.parse_release(&json).is_none());
+    }
+
+    #[test]
+    fn build_headers_without_token() {
+        let source = GitHubReleasesSource::new("owner".into(), "repo".into(), None, None);
+        let headers = source.build_headers(None);
+
+        assert_eq!(headers.len(), 2);
+        assert!(headers.iter().any(|(k, v)| k == "Accept" && v == "application/vnd.github+json"));
+        assert!(headers.iter().any(|(k, v)| k == "User-Agent" && v == "update-kit"));
+        assert!(!headers.iter().any(|(k, _)| k == "Authorization"));
+        assert!(!headers.iter().any(|(k, _)| k == "If-None-Match"));
+    }
+
+    #[test]
+    fn build_headers_with_token() {
+        let source = GitHubReleasesSource::new(
+            "owner".into(),
+            "repo".into(),
+            Some("test-token".into()),
+            None,
+        );
+        let headers = source.build_headers(None);
+
+        assert_eq!(headers.len(), 3);
+        assert!(headers.iter().any(|(k, v)| k == "Authorization" && v == "Bearer test-token"));
+    }
+
+    #[test]
+    fn build_headers_with_etag() {
+        let source = GitHubReleasesSource::new("owner".into(), "repo".into(), None, None);
+        let headers = source.build_headers(Some("\"etag-value\""));
+
+        assert_eq!(headers.len(), 3);
+        assert!(headers.iter().any(|(k, v)| k == "If-None-Match" && v == "\"etag-value\""));
+    }
+
+    #[test]
+    fn build_headers_with_token_and_etag() {
+        let source = GitHubReleasesSource::new(
+            "owner".into(),
+            "repo".into(),
+            Some("my-token".into()),
+            None,
+        );
+        let headers = source.build_headers(Some("\"abc\""));
+
+        assert_eq!(headers.len(), 4);
+        assert!(headers.iter().any(|(k, v)| k == "Authorization" && v == "Bearer my-token"));
+        assert!(headers.iter().any(|(k, v)| k == "If-None-Match" && v == "\"abc\""));
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_unreachable_returns_error() {
+        // Uses an unreachable HTTPS URL to test the error path without needing mockito.
+        // fetch_with_timeout enforces HTTPS, so we use an HTTPS URL that won't connect.
+        let source = GitHubReleasesSource::new(
+            "owner".into(),
+            "repo".into(),
+            None,
+            Some("https://localhost:1".into()),
+        );
+        let result = source.fetch_latest(FetchOptions::default()).await;
+
+        match result {
+            VersionSourceResult::Error { reason, status } => {
+                assert!(!reason.is_empty());
+                assert!(status.is_none());
+            }
+            other => panic!("Expected Error, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_versions_unreachable_returns_error() {
+        let source = GitHubReleasesSource::new(
+            "owner".into(),
+            "repo".into(),
+            None,
+            Some("https://localhost:1".into()),
+        );
+        let result = source
+            .fetch_versions(FetchVersionsOptions {
+                limit: None,
+                cursor: None,
+            })
+            .await;
+
+        assert!(result.is_err());
+    }
 }
