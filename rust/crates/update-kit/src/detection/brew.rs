@@ -108,4 +108,89 @@ mod tests {
         let result = detect_from_brew("/home/linuxbrew/.linuxbrew/bin/my-app", None, &cmd).await;
         assert!(result.is_some());
     }
+
+    // ── MockCommandRunner tests ──
+
+    use crate::test_utils::MockCommandRunner;
+
+    #[tokio::test]
+    async fn verified_cask_high_confidence() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "brew list --cask my-cask",
+            Ok(MockCommandRunner::success_output("my-cask")),
+        );
+
+        let result = detect_from_brew("/opt/homebrew/bin/my-app", Some("my-cask"), &cmd).await;
+        let detection = result.unwrap();
+        assert_eq!(detection.channel, Channel::BrewCask);
+        assert_eq!(detection.confidence, Confidence::High);
+        assert!(detection.evidence.len() >= 2); // path + verify
+    }
+
+    #[tokio::test]
+    async fn failed_verification_medium_confidence() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "brew list --cask my-cask",
+            Ok(MockCommandRunner::failure_output("Error")),
+        );
+
+        let result = detect_from_brew("/opt/homebrew/bin/my-app", Some("my-cask"), &cmd).await;
+        let detection = result.unwrap();
+        assert_eq!(detection.channel, Channel::BrewCask);
+        assert_eq!(detection.confidence, Confidence::Medium);
+        assert_eq!(detection.evidence.len(), 1); // path only
+    }
+
+    #[tokio::test]
+    async fn brew_command_not_found_medium_confidence() {
+        let cmd = MockCommandRunner::new();
+        // No response registered — will return error
+
+        let result = detect_from_brew("/opt/homebrew/bin/my-app", Some("my-cask"), &cmd).await;
+        let detection = result.unwrap();
+        assert_eq!(detection.confidence, Confidence::Medium);
+    }
+
+    #[tokio::test]
+    async fn evidence_source_is_brew_path() {
+        let cmd = MockCommandRunner::new();
+        let result = detect_from_brew("/opt/homebrew/bin/my-app", None, &cmd).await;
+        let detection = result.unwrap();
+        assert!(detection.evidence.iter().any(|e| e.source == "brew-path"));
+    }
+
+    #[tokio::test]
+    async fn evidence_has_verify_on_success() {
+        let cmd = MockCommandRunner::new();
+        cmd.on(
+            "brew list --cask my-cask",
+            Ok(MockCommandRunner::success_output("")),
+        );
+
+        let result = detect_from_brew("/opt/homebrew/bin/my-app", Some("my-cask"), &cmd).await;
+        let detection = result.unwrap();
+        assert!(detection
+            .evidence
+            .iter()
+            .any(|e| e.source == "brew-verify"));
+    }
+
+    #[tokio::test]
+    async fn usr_local_caskroom_detected() {
+        let cmd = MockCommandRunner::new();
+        let result =
+            detect_from_brew("/usr/local/Caskroom/my-app/1.0/bin/my-app", None, &cmd).await;
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().channel, Channel::BrewCask);
+    }
+
+    #[tokio::test]
+    async fn non_brew_path_with_cask_name_returns_none() {
+        // Even with cask_name provided, non-brew path should return None
+        let cmd = MockCommandRunner::new();
+        let result = detect_from_brew("/usr/bin/my-app", Some("my-cask"), &cmd).await;
+        assert!(result.is_none());
+    }
 }
