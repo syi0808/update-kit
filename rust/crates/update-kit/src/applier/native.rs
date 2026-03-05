@@ -501,4 +501,121 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), bin_path);
     }
+
+    #[tokio::test]
+    async fn apply_native_wrong_plan_type_fails() {
+        let plan = UpdatePlan {
+            kind: PlanKind::DelegateCommand {
+                channel: crate::types::Channel::NpmGlobal,
+                command: vec!["npm".into()],
+                mode: crate::types::DelegateMode::PrintOnly,
+            },
+            from_version: "1.0.0".into(),
+            to_version: "2.0.0".into(),
+            post_action: crate::types::PostAction::None,
+        };
+        let result = apply_native_update(&plan, "/tmp/test", None).await;
+        match result {
+            ApplyResult::Failed { error, .. } => {
+                assert_eq!(error.code(), "APPLY_FAILED");
+            }
+            other => panic!("Expected Failed, got: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn detect_archive_type_case_insensitive() {
+        assert_eq!(detect_archive_type("APP.TAR.GZ"), ArchiveType::TarGz);
+        assert_eq!(detect_archive_type("File.TGZ"), ArchiveType::TarGz);
+        assert_eq!(detect_archive_type("Archive.ZIP"), ArchiveType::Zip);
+    }
+
+    #[test]
+    fn detect_archive_type_with_path() {
+        assert_eq!(
+            detect_archive_type("path/to/app.tar.gz"),
+            ArchiveType::TarGz
+        );
+        assert_eq!(detect_archive_type("/downloads/app.zip"), ArchiveType::Zip);
+        assert_eq!(detect_archive_type("/usr/bin/myapp"), ArchiveType::Bare);
+    }
+
+    #[test]
+    fn detect_archive_type_exe_is_bare() {
+        assert_eq!(detect_archive_type("app.exe"), ArchiveType::Bare);
+        assert_eq!(detect_archive_type("app.msi"), ArchiveType::Bare);
+    }
+
+    #[tokio::test]
+    async fn extract_binary_empty_dir_error_message() {
+        let dir = TempDir::new().unwrap();
+        let result = find_binary_in_dir(dir.path()).await;
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("No executable binary found"));
+    }
+
+    #[tokio::test]
+    async fn extract_tar_gz_with_nested_dir() {
+        let dir = TempDir::new().unwrap();
+        let archive_path = dir.path().join("test.tar.gz");
+        let extract_dir = dir.path().join("extracted");
+        tokio::fs::create_dir_all(&extract_dir).await.unwrap();
+
+        // Create tar.gz with binary in subdirectory
+        {
+            let file = std::fs::File::create(&archive_path).unwrap();
+            let gz = flate2::write::GzEncoder::new(file, flate2::Compression::default());
+            let mut tar_builder = tar::Builder::new(gz);
+
+            let content = b"#!/bin/sh\necho nested";
+            let mut header = tar::Header::new_gnu();
+            header.set_size(content.len() as u64);
+            header.set_mode(0o755);
+            header.set_cksum();
+            tar_builder
+                .append_data(&mut header, "subdir/myapp", &content[..])
+                .unwrap();
+            tar_builder.finish().unwrap();
+        }
+
+        let result = extract_binary(&archive_path, &extract_dir).await;
+        assert!(result.is_ok());
+        let binary = result.unwrap();
+        let content = tokio::fs::read_to_string(&binary).await.unwrap();
+        assert_eq!(content, "#!/bin/sh\necho nested");
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn extract_bare_sets_executable_permission() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = TempDir::new().unwrap();
+        let archive_path = dir.path().join("myapp");
+        let extract_dir = dir.path().join("extracted");
+        tokio::fs::create_dir_all(&extract_dir).await.unwrap();
+        tokio::fs::write(&archive_path, b"binary content")
+            .await
+            .unwrap();
+
+        let result = extract_binary(&archive_path, &extract_dir).await.unwrap();
+        let metadata = tokio::fs::metadata(&result).await.unwrap();
+        let mode = metadata.permissions().mode();
+        assert!(
+            mode & 0o111 != 0,
+            "Binary should be executable, mode: {mode:o}"
+        );
+    }
+
+    #[tokio::test]
+    async fn extract_nonexistent_archive_fails() {
+        let dir = TempDir::new().unwrap();
+        let extract_dir = dir.path().join("extracted");
+        tokio::fs::create_dir_all(&extract_dir).await.unwrap();
+
+        let result =
+            extract_binary(&dir.path().join("nonexistent.tar.gz"), &extract_dir).await;
+        assert!(result.is_err());
+    }
 }
