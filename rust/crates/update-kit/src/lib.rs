@@ -206,6 +206,7 @@ impl UpdateKit {
                     mode: Some(*mode),
                     timeout_ms: self.config.base.delegate_timeout_ms,
                     on_progress: None,
+                    cmd: None,
                 };
                 apply_delegate_update(plan, Some(delegate_opts)).await
             }

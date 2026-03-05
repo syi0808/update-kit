@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use crate::constants::{DEFAULT_DELEGATE_TIMEOUT_MS, MAX_COMMAND_OUTPUT_BYTES};
 use crate::errors::UpdateKitError;
 use crate::types::{ApplyProgress, ApplyResult, DelegateMode, PlanKind, UpdatePlan};
+use crate::utils::process::{CommandRunner, TokioCommandRunner};
 
 /// Options for delegate command execution.
 pub struct DelegateApplyOptions {
@@ -10,6 +13,8 @@ pub struct DelegateApplyOptions {
     pub timeout_ms: Option<u64>,
     /// Progress callback.
     pub on_progress: Option<Box<dyn Fn(ApplyProgress) + Send + Sync>>,
+    /// Command runner for executing external processes.
+    pub cmd: Option<Arc<dyn CommandRunner>>,
 }
 
 /// Result of a delegate command operation.
@@ -100,6 +105,11 @@ async fn execute_command(
         .and_then(|o| o.timeout_ms)
         .unwrap_or(DEFAULT_DELEGATE_TIMEOUT_MS);
 
+    let cmd: Arc<dyn CommandRunner> = options
+        .as_ref()
+        .and_then(|o| o.cmd.clone())
+        .unwrap_or_else(|| Arc::new(TokioCommandRunner));
+
     let progress_cb = options.as_ref().and_then(|o| o.on_progress.as_ref());
 
     if let Some(cb) = progress_cb {
@@ -109,14 +119,19 @@ async fn execute_command(
         });
     }
 
+    let args_refs: Vec<&str> = command[1..].iter().map(|s| s.as_str()).collect();
+
     let result = tokio::time::timeout(
         std::time::Duration::from_millis(timeout_ms),
-        run_process(command),
+        cmd.run(program, &args_refs),
     )
     .await;
 
     match result {
-        Ok(Ok((exit_code, stdout, stderr))) => {
+        Ok(Ok(output)) => {
+            let exit_code = output.exit_code;
+            let stdout = truncate_string(&output.stdout, MAX_COMMAND_OUTPUT_BYTES);
+            let stderr = truncate_string(&output.stderr, MAX_COMMAND_OUTPUT_BYTES);
             // Check for permission errors (npm EACCES)
             if stderr.contains("EACCES") || stderr.contains("permission denied") {
                 return ApplyResult::Failed {
@@ -156,31 +171,12 @@ async fn execute_command(
     }
 }
 
-async fn run_process(command: &[String]) -> Result<(Option<i32>, String, String), UpdateKitError> {
-    let program = &command[0];
-    let args = &command[1..];
-
-    let output = tokio::process::Command::new(program)
-        .args(args)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .spawn()
-        .map_err(|e| {
-            UpdateKitError::CommandSpawnFailed(format!("Failed to spawn {program}: {e}"))
-        })?
-        .wait_with_output()
-        .await
-        .map_err(|e| UpdateKitError::CommandFailed(format!("Failed to wait for {program}: {e}")))?;
-
-    let stdout = truncate_output(&output.stdout);
-    let stderr = truncate_output(&output.stderr);
-
-    Ok((output.status.code(), stdout, stderr))
-}
-
-fn truncate_output(bytes: &[u8]) -> String {
-    let len = bytes.len().min(MAX_COMMAND_OUTPUT_BYTES);
-    String::from_utf8_lossy(&bytes[..len]).into_owned()
+fn truncate_string(s: &str, max_bytes: usize) -> String {
+    if s.len() <= max_bytes {
+        s.to_string()
+    } else {
+        s[..max_bytes].to_string()
+    }
 }
 
 /// Validate that a command program is in the allowed safelist.

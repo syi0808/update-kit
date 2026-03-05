@@ -1,13 +1,24 @@
+use std::sync::Arc;
+
 use super::{FetchOptions, VersionInfo, VersionSource, VersionSourceResult};
+use crate::utils::process::{CommandRunner, TokioCommandRunner};
 
 /// A version source backed by Homebrew (brew info --json).
 pub struct BrewSource {
     cask_name: String,
+    cmd: Arc<dyn CommandRunner>,
 }
 
 impl BrewSource {
     pub fn new(cask_name: String) -> Self {
-        Self { cask_name }
+        Self {
+            cask_name,
+            cmd: Arc::new(TokioCommandRunner),
+        }
+    }
+
+    pub fn with_cmd(cask_name: String, cmd: Arc<dyn CommandRunner>) -> Self {
+        Self { cask_name, cmd }
     }
 }
 
@@ -18,9 +29,10 @@ impl VersionSource for BrewSource {
     }
 
     async fn fetch_latest(&self, _options: FetchOptions) -> VersionSourceResult {
-        let output = match std::process::Command::new("brew")
-            .args(["info", "--json=v2", "--cask", &self.cask_name])
-            .output()
+        let output = match self
+            .cmd
+            .run("brew", &["info", "--json=v2", "--cask", &self.cask_name])
+            .await
         {
             Ok(o) => o,
             Err(e) => {
@@ -31,15 +43,14 @@ impl VersionSource for BrewSource {
             }
         };
 
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
+        if !output.success() {
             return VersionSourceResult::Error {
-                reason: format!("brew info failed: {}", stderr.trim()),
+                reason: format!("brew info failed: {}", output.stderr.trim()),
                 status: None,
             };
         }
 
-        let json: serde_json::Value = match serde_json::from_slice(&output.stdout) {
+        let json: serde_json::Value = match serde_json::from_str(&output.stdout) {
             Ok(j) => j,
             Err(e) => {
                 return VersionSourceResult::Error {
