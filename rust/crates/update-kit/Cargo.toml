@@ -19,6 +19,8 @@ zip = "2"
 dirs = "6"
 async-trait = "0.1"
 regex = "1"
+futures-util = "0.3"
+tempfile = "3"
 
 [dev-dependencies]
 mockito = "1"

@@ -1988,6 +1988,7 @@ dependencies = [
  "async-trait",
  "dirs",
  "flate2",
+ "futures-util",
  "mockito",
  "regex",
  "reqwest",
