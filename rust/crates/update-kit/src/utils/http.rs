@@ -63,4 +63,68 @@ mod tests {
         assert!(opts.timeout_ms.is_none());
         assert!(opts.headers.is_none());
     }
+
+    #[tokio::test]
+    async fn fetch_rejects_ftp() {
+        let result = fetch_with_timeout("ftp://example.com", None).await;
+        assert!(matches!(
+            result.unwrap_err(),
+            UpdateKitError::InsecureUrl(_)
+        ));
+    }
+
+    #[tokio::test]
+    async fn fetch_rejects_empty_url() {
+        let result = fetch_with_timeout("", None).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn fetch_rejects_file_scheme() {
+        let result = fetch_with_timeout("file:///etc/passwd", None).await;
+        assert!(matches!(
+            result.unwrap_err(),
+            UpdateKitError::InsecureUrl(_)
+        ));
+    }
+
+    #[tokio::test]
+    async fn fetch_with_custom_timeout_connection_refused() {
+        let opts = FetchOptions {
+            timeout_ms: Some(100),
+            headers: None,
+        };
+        // Use unreachable HTTPS address - should fail with network error
+        let result = fetch_with_timeout("https://127.0.0.1:1/nonexistent", Some(opts)).await;
+        assert!(result.is_err());
+        // Should be a NetworkError, not InsecureUrl
+        assert!(!matches!(
+            result.unwrap_err(),
+            UpdateKitError::InsecureUrl(_)
+        ));
+    }
+
+    #[tokio::test]
+    async fn fetch_with_custom_headers_connection_refused() {
+        let opts = FetchOptions {
+            timeout_ms: Some(100),
+            headers: Some(vec![
+                ("X-Custom".into(), "value".into()),
+                ("Authorization".into(), "Bearer test".into()),
+            ]),
+        };
+        let result = fetch_with_timeout("https://127.0.0.1:1/nonexistent", Some(opts)).await;
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn fetch_options_with_all_fields() {
+        let opts = FetchOptions {
+            timeout_ms: Some(5000),
+            headers: Some(vec![("Accept".into(), "application/json".into())]),
+        };
+        assert_eq!(opts.timeout_ms, Some(5000));
+        assert_eq!(opts.headers.as_ref().unwrap().len(), 1);
+        assert_eq!(opts.headers.as_ref().unwrap()[0].0, "Accept");
+    }
 }

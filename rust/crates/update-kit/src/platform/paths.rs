@@ -90,4 +90,52 @@ mod tests {
             "config dir should reference a config location: {dir_str}"
         );
     }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn cache_dir_respects_xdg_cache_home() {
+        let original = std::env::var("XDG_CACHE_HOME").ok();
+        std::env::set_var("XDG_CACHE_HOME", "/tmp/test-xdg-cache");
+        let dir = get_default_cache_dir();
+        assert_eq!(dir, PathBuf::from("/tmp/test-xdg-cache"));
+        match original {
+            Some(v) => std::env::set_var("XDG_CACHE_HOME", v),
+            None => std::env::remove_var("XDG_CACHE_HOME"),
+        }
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn config_dir_respects_xdg_config_home() {
+        let original = std::env::var("XDG_CONFIG_HOME").ok();
+        std::env::set_var("XDG_CONFIG_HOME", "/tmp/test-xdg-config");
+        let dir = get_default_config_dir();
+        assert_eq!(dir, PathBuf::from("/tmp/test-xdg-config"));
+        match original {
+            Some(v) => std::env::set_var("XDG_CONFIG_HOME", v),
+            None => std::env::remove_var("XDG_CONFIG_HOME"),
+        }
+    }
+
+    #[test]
+    fn cache_and_config_dirs_are_different() {
+        let cache = get_default_cache_dir();
+        let config = get_default_config_dir();
+        assert!(cache.as_os_str().len() > 0);
+        assert!(config.as_os_str().len() > 0);
+        // On most systems they should be different (unless Windows defaults)
+        if !cfg!(windows) {
+            assert_ne!(cache, config, "Cache and config dirs should differ on Unix");
+        }
+    }
+
+    #[test]
+    fn dirs_are_absolute_or_relative_fallback() {
+        let cache = get_default_cache_dir();
+        let config = get_default_config_dir();
+        // With HOME set, dirs should be absolute. Without HOME, they'd be relative fallbacks.
+        // Just verify they don't panic and return something.
+        let _ = cache.to_string_lossy();
+        let _ = config.to_string_lossy();
+    }
 }
