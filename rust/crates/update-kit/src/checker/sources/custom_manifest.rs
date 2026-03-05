@@ -147,4 +147,86 @@ mod tests {
             None
         );
     }
+
+    #[test]
+    fn custom_version_field() {
+        let source = CustomManifestSource::new(
+            "https://example.com/v.json".into(),
+            Some("data.version".into()),
+        );
+        assert_eq!(source.version_field, "data.version");
+    }
+
+    #[test]
+    fn extract_field_deeply_nested() {
+        let json = serde_json::json!({"a": {"b": {"c": {"d": "1.0.0"}}}});
+        assert_eq!(
+            CustomManifestSource::extract_field(&json, "a.b.c.d"),
+            Some("1.0.0")
+        );
+    }
+
+    #[test]
+    fn extract_field_non_string_value() {
+        let json = serde_json::json!({"version": 123});
+        assert_eq!(
+            CustomManifestSource::extract_field(&json, "version"),
+            None
+        );
+    }
+
+    #[test]
+    fn extract_field_null_value() {
+        let json = serde_json::json!({"version": null});
+        assert_eq!(
+            CustomManifestSource::extract_field(&json, "version"),
+            None
+        );
+    }
+
+    #[test]
+    fn extract_field_array_value() {
+        let json = serde_json::json!({"version": ["1.0.0"]});
+        assert_eq!(
+            CustomManifestSource::extract_field(&json, "version"),
+            None
+        );
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_http_url_rejected() {
+        let source =
+            CustomManifestSource::new("http://insecure.com/version.json".into(), None);
+        let result = source.fetch_latest(FetchOptions::default()).await;
+        match result {
+            VersionSourceResult::Error { reason, .. } => {
+                assert!(reason.contains("HTTPS") || reason.contains("Insecure"));
+            }
+            other => panic!("Expected Error, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_unreachable_returns_error() {
+        let source =
+            CustomManifestSource::new("https://localhost:1/version.json".into(), None);
+        let result = source.fetch_latest(FetchOptions::default()).await;
+        match result {
+            VersionSourceResult::Error { reason, .. } => {
+                assert!(!reason.is_empty());
+            }
+            other => panic!("Expected Error, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_versions_returns_unsupported() {
+        let source =
+            CustomManifestSource::new("https://example.com/v.json".into(), None);
+        let result = source
+            .fetch_versions(super::super::FetchVersionsOptions::default())
+            .await;
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().code(), "UNSUPPORTED_OPERATION");
+    }
 }
