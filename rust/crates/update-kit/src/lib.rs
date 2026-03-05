@@ -1,3 +1,10 @@
+//! Channel-aware self-update toolkit for CLI applications.
+//!
+//! `update-kit` detects how an application was installed and manages self-updates
+//! through a pipeline: **Detection -> Check -> Plan -> Apply**.
+//!
+//! The main entry point is [`UpdateKit`], which orchestrates the full pipeline.
+
 pub mod applier;
 pub mod checker;
 pub mod config;
@@ -10,6 +17,14 @@ pub mod types;
 pub mod utils;
 pub mod ux;
 
+// Re-export key types at the crate root for convenience.
+pub use config::{BaseConfig, Hooks, ResolvedConfig, UpdateKitConfig, VersionSourceConfig};
+pub use errors::UpdateKitError;
+pub use types::{
+    ApplyResult, AssetInfo, Channel, CheckMode, Confidence, DelegateMode, Evidence,
+    InstallDetection, PlanKind, PostAction, UpdatePlan, UpdateStatus,
+};
+
 use std::path::PathBuf;
 
 use crate::applier::delegate::{apply_delegate_update, DelegateApplyOptions};
@@ -20,14 +35,9 @@ use crate::checker::sources::{
     create_version_source, FetchVersionsOptions, VersionListResult, VersionSource,
 };
 use crate::checker::{check_update, CheckUpdateOptions};
-use crate::config::{Hooks, ResolvedConfig, UpdateKitConfig};
 use crate::detection::{detect_install, DetectionConfig};
-use crate::errors::UpdateKitError;
 use crate::planner::{plan_update, PlanUpdateOptions};
 use crate::platform::paths::get_default_cache_dir;
-use crate::types::{
-    ApplyResult, CheckMode, InstallDetection, PlanKind, UpdatePlan, UpdateStatus,
-};
 use crate::ux::banner::render_banner;
 
 /// The main orchestrator for the update-kit pipeline.

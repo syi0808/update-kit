@@ -23,11 +23,7 @@ pub async fn detect_from_brew(
         .iter()
         .find(|pattern| exec_path.contains(*pattern));
 
-    if matching_pattern.is_none() {
-        return None;
-    }
-
-    let pattern = matching_pattern.unwrap();
+    let pattern = matching_pattern?;
     let mut evidence = vec![Evidence {
         source: "brew-path".into(),
         detail: format!("path contains brew pattern '{}'", pattern),

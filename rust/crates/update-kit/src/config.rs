@@ -111,42 +111,40 @@ pub enum UpdateKitConfig {
     },
 }
 
-/// Lifecycle hooks for the update pipeline.
-pub struct Hooks {
-    pub before_check:
-        Option<Box<dyn Fn() -> Pin<Box<dyn Future<Output = Result<(), UpdateKitError>>>> + Send + Sync>>,
-    pub before_apply: Option<
-        Box<
-            dyn Fn(
-                    &UpdatePlan,
-                )
-                    -> Pin<Box<dyn Future<Output = Result<bool, UpdateKitError>> + Send>>
-                + Send
-                + Sync,
-        >,
-    >,
-    pub after_apply: Option<
-        Box<
-            dyn Fn(
-                    &crate::types::ApplyResult,
-                )
-                    -> Pin<Box<dyn Future<Output = Result<(), UpdateKitError>> + Send>>
-                + Send
-                + Sync,
-        >,
-    >,
-    pub on_error: Option<Box<dyn Fn(&UpdateKitError) + Send + Sync>>,
-}
+/// Async hook that takes no arguments and returns `Result<(), UpdateKitError>`.
+pub type BeforeCheckHook =
+    Box<dyn Fn() -> Pin<Box<dyn Future<Output = Result<(), UpdateKitError>>>> + Send + Sync>;
 
-impl Default for Hooks {
-    fn default() -> Self {
-        Self {
-            before_check: None,
-            before_apply: None,
-            after_apply: None,
-            on_error: None,
-        }
-    }
+/// Async hook called before applying an update. Returns `Ok(true)` to proceed, `Ok(false)` to abort.
+pub type BeforeApplyHook = Box<
+    dyn Fn(&UpdatePlan) -> Pin<Box<dyn Future<Output = Result<bool, UpdateKitError>> + Send>>
+        + Send
+        + Sync,
+>;
+
+/// Async hook called after applying an update.
+pub type AfterApplyHook = Box<
+    dyn Fn(
+            &crate::types::ApplyResult,
+        ) -> Pin<Box<dyn Future<Output = Result<(), UpdateKitError>> + Send>>
+        + Send
+        + Sync,
+>;
+
+/// Synchronous error handler hook.
+pub type OnErrorHook = Box<dyn Fn(&UpdateKitError) + Send + Sync>;
+
+/// Lifecycle hooks for the update pipeline.
+#[derive(Default)]
+pub struct Hooks {
+    /// Called before checking for updates.
+    pub before_check: Option<BeforeCheckHook>,
+    /// Called before applying an update. Return `false` to abort.
+    pub before_apply: Option<BeforeApplyHook>,
+    /// Called after applying an update.
+    pub after_apply: Option<AfterApplyHook>,
+    /// Called on any error during the pipeline.
+    pub on_error: Option<OnErrorHook>,
 }
 
 impl fmt::Debug for Hooks {
@@ -160,14 +158,19 @@ impl fmt::Debug for Hooks {
     }
 }
 
+/// Async function type for custom detection.
+pub type DetectFn = Box<
+    dyn Fn() -> Pin<Box<dyn Future<Output = Result<Option<InstallDetection>, UpdateKitError>> + Send>>
+        + Send
+        + Sync,
+>;
+
 /// A custom detector that can be plugged into the detection pipeline.
 pub struct CustomDetector {
+    /// Name identifying this detector.
     pub name: String,
-    pub detect: Box<
-        dyn Fn() -> Pin<Box<dyn Future<Output = Result<Option<InstallDetection>, UpdateKitError>> + Send>>
-            + Send
-            + Sync,
-    >,
+    /// The detection function.
+    pub detect: DetectFn,
 }
 
 impl fmt::Debug for CustomDetector {

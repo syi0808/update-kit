@@ -28,7 +28,7 @@ pub async fn fetch_with_timeout(
     let client = reqwest::Client::builder()
         .timeout(timeout)
         .build()
-        .map_err(|e| UpdateKitError::NetworkError(e))?;
+        .map_err(UpdateKitError::NetworkError)?;
 
     let mut request = client.get(url);
 

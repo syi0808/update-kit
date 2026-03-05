@@ -53,8 +53,8 @@ pub async fn apply_native_update(
         }
     };
 
-    let progress_cb = options.and_then(|o| o.on_progress.as_ref());
-    let skip_checksum = options.map_or(false, |o| o.skip_checksum);
+    let progress_cb = options.and_then(|o| o.on_progress.as_deref());
+    let skip_checksum = options.is_some_and(|o| o.skip_checksum);
 
     // Step 1: Download
     let archive_path = match download_artifact(download_url, temp_dir.path(), progress_cb).await {
@@ -147,7 +147,7 @@ pub async fn apply_native_update(
 async fn download_artifact(
     url: &str,
     dest_dir: &Path,
-    on_progress: Option<&Box<dyn Fn(ApplyProgress) + Send + Sync>>,
+    on_progress: Option<&(dyn Fn(ApplyProgress) + Send + Sync)>,
 ) -> Result<PathBuf, UpdateKitError> {
     require_https(url)?;
 
@@ -312,10 +312,8 @@ async fn find_binary_in_dir_inner(dir: &Path) -> Result<PathBuf, UpdateKitError>
             if let Ok(found) = find_binary_in_dir(&path).await {
                 candidates.push(found);
             }
-        } else if metadata.is_file() {
-            if is_executable(&path, &metadata) {
-                candidates.push(path);
-            }
+        } else if metadata.is_file() && is_executable(&path, &metadata) {
+            candidates.push(path);
         }
     }
 
@@ -328,7 +326,7 @@ async fn find_binary_in_dir_inner(dir: &Path) -> Result<PathBuf, UpdateKitError>
         a_is_archive.cmp(&b_is_archive)
     });
 
-    candidates.into_iter().next().ok_or_else(|| {
+    candidates.first().cloned().ok_or_else(|| {
         UpdateKitError::ExtractFailed(format!(
             "No executable binary found in {}",
             dir.display()

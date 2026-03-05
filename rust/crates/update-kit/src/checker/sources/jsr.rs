@@ -69,7 +69,7 @@ impl VersionSource for JsrSource {
                 // Fallback: find the latest from the versions object
                 json.get("versions")
                     .and_then(|v| v.as_object())
-                    .and_then(|obj| obj.keys().last().cloned())
+                    .and_then(|obj| obj.keys().next_back().cloned())
             });
 
         match version {
