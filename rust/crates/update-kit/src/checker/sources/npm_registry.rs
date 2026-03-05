@@ -174,4 +174,79 @@ mod tests {
         );
         assert_eq!(source.registry_url, "https://npm.example.com");
     }
+
+    #[test]
+    fn build_headers_contains_accept() {
+        let source = NpmRegistrySource::new("my-pkg".into(), None);
+        let headers = source.build_headers();
+        assert!(headers
+            .iter()
+            .any(|(k, v)| k == "Accept" && v == "application/json"));
+    }
+
+    #[test]
+    fn scoped_package_name() {
+        let source = NpmRegistrySource::new("@scope/pkg".into(), None);
+        assert_eq!(source.package_name, "@scope/pkg");
+        assert_eq!(source.registry_url, "https://registry.npmjs.org");
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_unreachable_returns_error() {
+        let source =
+            NpmRegistrySource::new("test-pkg".into(), Some("https://localhost:1".into()));
+        let result = source.fetch_latest(FetchOptions::default()).await;
+        match result {
+            VersionSourceResult::Error { reason, .. } => {
+                assert!(!reason.is_empty());
+            }
+            other => panic!("Expected Error, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_versions_unreachable_returns_error() {
+        let source =
+            NpmRegistrySource::new("test-pkg".into(), Some("https://localhost:1".into()));
+        let result = source.fetch_versions(FetchVersionsOptions::default()).await;
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn custom_registry_url_preserved() {
+        let source =
+            NpmRegistrySource::new("pkg".into(), Some("https://custom.registry.com".into()));
+        assert_eq!(source.registry_url, "https://custom.registry.com");
+    }
+
+    #[tokio::test]
+    async fn fetch_latest_http_url_rejected() {
+        let source =
+            NpmRegistrySource::new("test-pkg".into(), Some("http://insecure.com".into()));
+        let result = source.fetch_latest(FetchOptions::default()).await;
+        match result {
+            VersionSourceResult::Error { reason, .. } => {
+                assert!(
+                    reason.contains("HTTPS") || reason.contains("Insecure"),
+                    "Expected HTTPS-related error, got: {reason}"
+                );
+            }
+            other => panic!("Expected Error for HTTP URL, got: {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fetch_versions_http_url_rejected() {
+        let source =
+            NpmRegistrySource::new("test-pkg".into(), Some("http://insecure.com".into()));
+        let result = source.fetch_versions(FetchVersionsOptions::default()).await;
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn source_name_with_custom_registry() {
+        let source =
+            NpmRegistrySource::new("any-name".into(), Some("https://custom.com".into()));
+        assert_eq!(source.name(), "npm");
+    }
 }
