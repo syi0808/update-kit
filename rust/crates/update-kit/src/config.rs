@@ -75,6 +75,12 @@ pub struct BaseConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub min_confidence: Option<Confidence>,
 
+    // Plan (continued)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allow_reexec: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub asset_pattern: Option<String>,
+
     // Apply
     #[serde(skip_serializing_if = "Option::is_none")]
     pub download_timeout_ms: Option<u64>,
