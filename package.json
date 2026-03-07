@@ -54,7 +54,7 @@
     "test:ci": "pnpm build && pnpm test && pnpm test:dist",
     "prepublishOnly": "pnpm build",
     "coverage": "vitest run --coverage",
-    "release": "pubm",
+    "release": "pubm --no-publish",
     "ci:release": "pubm --publish-only"
   },
   "engines": {
