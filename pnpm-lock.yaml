@@ -25,8 +25,8 @@ importers:
         specifier: 4.0.18
         version: 4.0.18(vitest@4.0.18(@types/node@25.2.2)(jiti@2.6.1)(yaml@2.8.2))
       pubm:
-        specifier: ^0.1.4
-        version: 0.1.4
+        specifier: ^0.1.5
+        version: 0.1.5
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(typescript@5.9.3)(yaml@2.8.2)
@@ -766,8 +766,8 @@ packages:
     resolution: {integrity: sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg==}
     engines: {node: ^10 || ^12 || >=14}
 
-  pubm@0.1.4:
-    resolution: {integrity: sha512-s0sstsF8NbpPt/IhoBf5syw6hF3TW9VvaM+TGC5pZgMryEPAaBQJ9nCbrmKZnp8rxdgIWdaSLOu/4LvnHuPsgA==}
+  pubm@0.1.5:
+    resolution: {integrity: sha512-aewg5jnPIaIu7e3e2587zawMnb4D2S3TS/KoNc+OqK4JSv3nkRv4Jsy+S8d+/WTTO4VgDRFfgaAmi1ZvyciqFw==}
     engines: {git: '>=2.11.0', node: '>=18'}
     hasBin: true
 
@@ -1572,7 +1572,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  pubm@0.1.4:
+  pubm@0.1.5:
     dependencies:
       '@listr2/prompt-adapter-enquirer': 2.0.16(enquirer@2.4.1)
       '@npmcli/promise-spawn': 8.0.3
