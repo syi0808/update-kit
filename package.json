@@ -53,7 +53,9 @@
     "test:dist": "pnpm build && vitest run --config tests/vitest.config.ts",
     "test:ci": "pnpm build && pnpm test && pnpm test:dist",
     "prepublishOnly": "pnpm build",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "release": "pubm",
+    "ci:release": "pubm --publish-only"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -66,6 +68,7 @@
     "@types/node": "^25.2.2",
     "@types/semver": "^7.7.1",
     "@vitest/coverage-v8": "4.0.18",
+    "pubm": "^0.1.4",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
