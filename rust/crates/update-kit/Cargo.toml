@@ -1,15 +1,11 @@
 [package]
 name = "update-kit"
-version = "0.1.0"
+version = "0.1.5"
 edition = "2021"
 description = "Channel-aware self-update toolkit for CLI applications"
 license = "MIT"
 
 [dependencies]
-tokio = { version = "1", features = ["full"] }
-reqwest = { version = "0.12", features = ["json", "stream"] }
-semver = { version = "1", features = ["serde"] }
-serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 sha2 = "0.10"
@@ -23,7 +19,26 @@ futures-util = "0.3"
 tempfile = "3"
 libc = "0.2.182"
 
+[dependencies.tokio]
+version = "1"
+features = [ "full" ]
+
+[dependencies.reqwest]
+version = "0.12"
+features = [ "json", "stream" ]
+
+[dependencies.semver]
+version = "1"
+features = [ "serde" ]
+
+[dependencies.serde]
+version = "1"
+features = [ "derive" ]
+
 [dev-dependencies]
 mockito = "1"
 tempfile = "3"
-tokio = { version = "1", features = ["test-util"] }
+
+[dev-dependencies.tokio]
+version = "1"
+features = [ "test-util" ]
