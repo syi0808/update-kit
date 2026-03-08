@@ -69,7 +69,7 @@
     "@types/semver": "^7.7.1",
     "@vitest/coverage-v8": "4.0.18",
     "jsr": "^0.14.3",
-    "pubm": "^0.2.4",
+    "pubm": "^0.2.5",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
