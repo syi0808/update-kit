@@ -1,6 +1,6 @@
 {
   "name": "update-kit",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Channel-aware self-update toolkit for Node.js CLI applications",
   "type": "module",
   "license": "Apache-2.0",
