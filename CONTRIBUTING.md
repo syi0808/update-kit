@@ -1,29 +1,39 @@
 # Contributing to update-kit
 
-Thanks for considering a contribution. This guide covers how to report issues, suggest changes, and submit pull requests.
+Thank you for your interest in contributing to update-kit. This guide explains how to report issues, suggest improvements, and submit code changes.
 
-## Reporting Bugs
+## Code of Conduct
 
-1. Search [existing issues](../../issues) first
-2. If none match, open a new issue with:
-   - Steps to reproduce
-   - Expected vs. actual behavior
-   - Environment (OS, Node.js version)
+Please be respectful and constructive in all interactions. We are committed to providing a welcoming and inclusive experience for everyone.
+
+## How to Contribute
+
+### Reporting Bugs
+
+1. Search [existing issues](https://github.com/syi0808/update-kit/issues) to check if the bug has already been reported
+2. If not, open a new issue with:
+   - Steps to reproduce the bug
+   - Expected behavior vs. actual behavior
+   - Your environment (OS, Node.js version)
    - Error messages or logs
 
-## Suggesting Changes
+### Suggesting Enhancements
 
-Open an issue describing:
-- The problem or use case
-- Your proposed solution
-- Alternatives you considered
+1. Search [existing issues](https://github.com/syi0808/update-kit/issues) for similar suggestions
+2. Open a new issue describing:
+   - The problem or use case
+   - Your proposed solution
+   - Alternatives you considered
 
-## Pull Requests
+### Pull Requests
 
-1. Fork the repo and create a branch from `main`
-2. Make your changes
-3. Run `pnpm typecheck` and `pnpm test`
-4. Push and open a pull request with a clear description of what changed and why
+1. Fork the repository
+2. Create a feature branch from `main` (`git checkout -b feature/your-feature`)
+3. Make your changes
+4. Run `pnpm check` and `pnpm test` to verify
+5. Write clear commit messages (see Style Guide below)
+6. Push to your fork and open a pull request
+7. Fill in the PR description explaining what changed and why
 
 ## Development Setup
 
@@ -39,10 +49,14 @@ pnpm install
 
 | Command | Description |
 |---------|-------------|
-| `pnpm build` | Build with tsup (ESM + CJS) |
+| `pnpm build` | Build with tsup (ESM + CJS dual output) |
 | `pnpm test` | Run all tests |
 | `pnpm test:watch` | Run tests in watch mode |
+| `pnpm test -- src/checker` | Run tests in a specific directory |
+| `pnpm check` | Lint and format check (Biome) |
+| `pnpm format` | Auto-fix formatting |
 | `pnpm typecheck` | Type-check with `tsc --noEmit` |
+| `pnpm coverage` | Run tests with coverage |
 
 ### Project Structure
 
@@ -64,14 +78,24 @@ src/
 └── doctor.ts        # Diagnostic checks
 ```
 
-## Code Style
+## Style Guide
+
+### Code Style
+
+This project uses [Biome](https://biomejs.dev/) for linting and formatting. Run checks before submitting:
+
+```bash
+pnpm check       # Lint + format check
+pnpm format      # Auto-fix formatting
+```
+
+Key conventions:
 
 - All code and comments in English
 - Internal imports use `.js` extensions (TypeScript ESM convention)
 - Discriminated unions with `kind` or `type` fields for result types
-- External I/O (network, filesystem, child_process) must be mocked in tests
 
-## Commit Messages
+### Commit Messages
 
 Use the `type: description` format in imperative mood:
 
@@ -79,6 +103,8 @@ Use the `type: description` format in imperative mood:
 feat: Add npm registry version source
 fix: Handle missing checksum in native applier
 test: Add integration tests for delegate mode
+docs: Update API reference for version listing
+chore: Bump vitest to v4
 ```
 
 Keep the first line under 72 characters. Reference issues when applicable (`Fix #123`).
@@ -91,6 +117,7 @@ Tests live in `__tests__/` subdirectories next to their source modules. Integrat
 pnpm test                                        # All tests
 pnpm test -- src/checker                         # Module tests
 pnpm test -- src/checker/__tests__/cache.test.ts # Single file
+pnpm coverage                                    # With coverage report
 ```
 
-All external I/O is mocked with `vi.mock()`. Please maintain this pattern in new tests.
+All external I/O (network, filesystem, child_process) is mocked with `vi.mock()`. Please maintain this pattern in new tests.

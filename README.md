@@ -4,23 +4,31 @@
 [![CI](https://github.com/syi0808/update-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/syi0808/update-kit/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-**Self-updates that respect how your CLI was installed.**
+> CLI tools get installed through npm, Homebrew, direct download, or custom installers — each with its own update semantics. The update strategy should be determined by how the app was installed, not hardcoded by the author.
 
-Users install CLI tools through npm, Homebrew, direct download, or custom installers — each with its own update semantics. update-kit detects the install channel and picks the right update strategy automatically, so your app stays current without breaking package manager ownership.
+update-kit is a self-update toolkit that adapts to how your CLI was installed. It detects the install channel and picks the right update strategy automatically, so your app stays current without breaking package manager ownership.
+
+Unlike manually wiring up update checks, update-kit handles the full pipeline — detection, version checking, planning, and applying — with zero-config source inference. You get safe, channel-aware updates with a single method call.
 
 ## Features
 
 - **Channel Detection** — Identifies install method (npm, Homebrew, native binary, custom) via receipt files, path heuristics, and package manager queries
-- **Zero-config Sources** — Infers version sources from `package.json` and prioritizes them by detected channel. No manual setup needed.
+- **Zero-Config Sources** — Infers version sources from `package.json` and prioritizes them by detected channel
 - **Pluggable Sources** — GitHub Releases, npm, JSR, Homebrew API, or custom JSON manifest
-- **Non-blocking Checks** — Returns cached results instantly; refreshes in the background so startup stays fast
+- **Non-Blocking Checks** — Returns cached results instantly; refreshes in the background so startup stays fast
 - **Smart Planning** — Picks the safest strategy per channel: binary replacement, delegated package manager command, or manual instructions
-- **Safe by Default** — SHA-256 verification, atomic file replacement, HTTPS-only, automatic rollback
-- **Version Listing & Switching** — Paginated version list with cursor-based pagination. Upgrade or downgrade to any version.
+- **Safe by Default** — SHA-256 verification, atomic file replacement, HTTPS-only, no privilege escalation
+- **Version Listing & Switching** — Paginated version list with cursor-based pagination; upgrade or downgrade to any version
 - **Lifecycle Hooks** — `beforeCheck`, `beforeApply`, `afterApply`, `onError` for telemetry, logging, or custom logic
 - **CLI Included** — `detect`, `check`, `plan`, `apply`, `cache`, `doctor` subcommands with JSON output
 
-## Install
+## Getting Started
+
+### Requirements
+
+- Node.js 24 or later
+
+### Install
 
 ```bash
 npm install update-kit
@@ -28,16 +36,16 @@ npm install update-kit
 pnpm add update-kit
 ```
 
-> Requires Node.js 24+
+## Usage
 
-## Quick Start
+### One-liner: notify on startup
 
 ```typescript
 import { UpdateKit } from 'update-kit';
 
 const kit = await UpdateKit.create();
 
-// One-liner: show a banner if an update is available
+// Show a banner if an update is available
 const banner = await kit.checkAndNotify();
 if (banner) console.error(banner);
 ```
@@ -114,15 +122,23 @@ Detection → Check → Plan → Apply
 3. **Plan** — Choose the right update strategy based on the install channel
 4. **Apply** — Execute the plan: download and replace, delegate to a package manager, or show manual instructions
 
+## FAQ
+
+**What happens when a user has installed my CLI through both npm and Homebrew?**
+update-kit uses a confidence-scored detection system. It evaluates receipt files, path heuristics, and package manager queries to determine the primary install channel. If both channels are detected, the one with higher confidence wins. Low-confidence detections default to print-only behavior (showing manual instructions) to avoid breaking either package manager's ownership.
+
 ## Documentation
 
 - [API Reference](docs/API.md) — Configuration, types, version sources, hooks, standalone functions
-- [Contributing Guide](CONTRIBUTING.md) — Development setup, code style, testing
+
+## Contributing
+
+Contributions are welcome. Please read the [Contributing Guide](CONTRIBUTING.md) before submitting a pull request.
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE).
+This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
 
 ## Author
 
-**Yein Sung**
+**Yein Sung** — [GitHub](https://github.com/syi0808)
