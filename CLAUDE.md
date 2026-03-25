@@ -26,35 +26,27 @@ Use **pnpm** exclusively. Do not use npm or yarn.
 
 ## Architecture
 
+> See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation including diagrams, integration patterns, design decisions, and module organization.
+>
+> ARCHITECTURE.md is large (~1,700 lines). Do NOT read the entire file. Instead, use a **subagent(haiku)** to read and summarize only the relevant section. Example:
+> ```
+> Agent(model: "haiku", prompt: "Read ARCHITECTURE.md and summarize the Planner section. Focus on ...")
+> ```
+
 **update-kit** is a library + CLI for detecting how a CLI app was installed and managing self-updates. The core concept is a **channel-based policy engine**: the update strategy is determined by how the app was installed.
 
-### Pipeline
+**Pipeline**: `Detection → Check → Plan → Apply`
 
-```
-Detection → Check → Plan → Apply
-```
+| Stage | Location | Summary |
+|-------|----------|---------|
+| Detection | `src/detection/` | Determines install channel (`native`, `npm-global`, `brew-cask`, `unmanaged`) with confidence level |
+| Checker | `src/checker/` | Fetches latest version from pluggable sources; blocking/non-blocking modes with disk cache |
+| Planner | `src/planner/` | Pure function producing `native-in-place`, `delegate-command`, or `manual-install` plan |
+| Applier | `src/applier/` | Executes plan: download/verify/extract/replace or package manager delegation |
 
-1. **Detection** (`src/detection/`) — Determines install channel (`native`, `npm-global`, `brew-cask`, `unmanaged`) via receipt files, brew/npm queries, and path heuristics. Returns a confidence level.
-2. **Checker** (`src/checker/`) — Fetches latest version from pluggable sources (`src/checker/sources/`: GitHub, npm, JSR, Brew, custom manifest). When `sources` is omitted, they are auto-inferred from config and `package.json` fields (`src/checker/infer-sources.ts`), with check order determined by the detected install channel. Supports two modes: `blocking` (fetch now) and `non-blocking` (read cache + spawn background check for next run). Cache is disk-based (`src/checker/cache.ts`).
-3. **Planner** (`src/planner/`) — Given an `UpdateStatus` + `InstallDetection`, produces an `UpdatePlan` with one of three strategies: `native-in-place` (download & replace binary), `delegate-command` (run npm/brew), or `manual-install` (print instructions).
-4. **Applier** (`src/applier/`) — Executes the plan. `native.ts` handles download/verify/extract/replace. `delegate.ts` runs package manager commands. `verify.ts` does SHA-256 checksum verification.
+**Supporting**: UX (`src/ux/`), Platform (`src/platform/`), Utils (`src/utils/`), Errors (`src/errors.ts`), Doctor (`src/doctor.ts`), CLI (`src/cli.ts`)
 
-### Supporting Modules
-
-- **UX** (`src/ux/`) — Banner rendering, progress display, ANSI colors, hook execution.
-- **Platform** (`src/platform/`) — OS-specific cache paths and atomic file replacement (rename on Unix, backup+rollback on Windows).
-- **Utils** (`src/utils/`) — HTTP fetch with timeout/proxy, filesystem helpers, security validation.
-- **Errors** (`src/errors.ts`) — `UpdateKitError` class with structured error codes (e.g., `CHECKSUM_MISMATCH`, `INSECURE_URL`).
-
-### Public API
-
-The `UpdateKit` class (`src/index.ts`) orchestrates the full pipeline. `sources` is optional — when omitted, sources are auto-inferred from config fields (`appName`, `repository`, `brewCaskName`) and ordered by detected channel. Two convenience methods:
-- `checkAndNotify()` — One-liner for app startup; returns a banner string or null.
-- `autoUpdate()` — Full pipeline: detect → check → plan → apply.
-
-### CLI
-
-`src/cli.ts` provides subcommands: `detect`, `check`, `plan`, `apply`, `cache show/clear`, `doctor`. Supports `--json` output. The `doctor` command (`src/doctor.ts`) validates config, package.json, source resolution, detection, and source connectivity.
+**Public API**: `UpdateKit` class with `checkAndNotify()` (startup banner) and `autoUpdate()` (full pipeline). Sources auto-inferred when omitted.
 
 ### Plugin
 
