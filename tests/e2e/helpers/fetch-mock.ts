@@ -23,6 +23,13 @@ export function setupFetchMock(routes: FetchMockRoute[]) {
     const method = init?.method ?? (input instanceof Request ? input.method : "GET");
     const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
 
+    // Respect AbortSignal: throw if already aborted before routing
+    const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
+    if (signal?.aborted) {
+      const err = new DOMException("The operation was aborted.", "AbortError");
+      throw err;
+    }
+
     calls.push({ url, method, headers });
 
     const route = routes.find((r) => {

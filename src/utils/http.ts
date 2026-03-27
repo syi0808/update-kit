@@ -23,6 +23,11 @@ export async function fetchWithTimeout(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+  // If the external signal is already aborted, abort immediately
+  if (externalSignal?.aborted) {
+    controller.abort();
+  }
+
   // Forward external abort to our controller
   const onExternalAbort = () => controller.abort();
   externalSignal?.addEventListener("abort", onExternalAbort, { once: true });
