@@ -139,9 +139,14 @@ export async function createTestEnvironment(
     MOCK_STDERR: "",
   };
 
+  // Apply mock behavior: primary bin for this channel takes precedence,
+  // then fall back to the first explicitly provided bin override.
   const primaryBin = getPrimaryBin(channel);
-  if (primaryBin && mockBinBehavior[primaryBin]) {
-    const b = mockBinBehavior[primaryBin];
+  const activeBin = (primaryBin && mockBinBehavior[primaryBin])
+    ? primaryBin
+    : Object.keys(mockBinBehavior)[0];
+  if (activeBin && mockBinBehavior[activeBin]) {
+    const b = mockBinBehavior[activeBin];
     if (b.exitCode !== undefined) env.MOCK_EXIT_CODE = String(b.exitCode);
     if (b.stdout !== undefined) env.MOCK_STDOUT = b.stdout;
     if (b.stderr !== undefined) env.MOCK_STDERR = b.stderr;
@@ -162,11 +167,25 @@ export async function createTestEnvironment(
   const configPath = path.join(tmpDir, "update-kit.config.json");
   await fs.writeFile(configPath, JSON.stringify(config, null, 2));
 
-  // Set process.env.HOME so that in-process API tests pick up the
-  // receipt file (detectFromReceipt uses homedir()/.config/{appName}).
+  // Apply env vars to process.env so that in-process API tests pick up the
+  // receipt file and mock binaries (brew, npm, etc.) inherit the right config.
   // Safe because pool: 'forks' runs each test file in its own process.
-  const originalHome = process.env.HOME;
+  const APPLIED_KEYS = ["HOME", "PATH", "MOCK_CALL_LOG", "MOCK_EXIT_CODE", "MOCK_STDOUT", "MOCK_STDERR", "MOCK_DELAY_MS"] as const;
+  const originals: Partial<Record<string, string>> = {};
+  for (const key of APPLIED_KEYS) {
+    originals[key] = process.env[key];
+  }
   process.env.HOME = tmpDir;
+  process.env.PATH = env.PATH;
+  process.env.MOCK_CALL_LOG = env.MOCK_CALL_LOG;
+  process.env.MOCK_EXIT_CODE = env.MOCK_EXIT_CODE;
+  process.env.MOCK_STDOUT = env.MOCK_STDOUT;
+  process.env.MOCK_STDERR = env.MOCK_STDERR;
+  if (env.MOCK_DELAY_MS !== undefined) {
+    process.env.MOCK_DELAY_MS = env.MOCK_DELAY_MS;
+  } else {
+    delete process.env.MOCK_DELAY_MS;
+  }
 
   return {
     tmpDir,
@@ -178,7 +197,13 @@ export async function createTestEnvironment(
     callLogPath,
     env,
     async cleanup() {
-      process.env.HOME = originalHome;
+      for (const key of APPLIED_KEYS) {
+        if (originals[key] === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = originals[key];
+        }
+      }
       await fs.rm(tmpDir, { recursive: true, force: true });
     },
   };
