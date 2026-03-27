@@ -23,33 +23,33 @@ Integrate `update-kit` into a CLI project. update-kit detects how a CLI was inst
 Before generating code, gather context:
 
 **For Node.js / TypeScript projects:**
-1. Read `package.json` — `name`, `version`, `type` (module vs commonjs), `bin`, dependencies
+1. Read `package.json` (`name`, `version`, `type` (module vs commonjs), `bin`, dependencies)
 2. Find the CLI entry point (file referenced in `bin` or `main`)
 3. Check for TypeScript (`tsconfig.json`, `.ts` files)
 4. Determine module system: ESM (`"type": "module"`) or CJS
 5. Look for existing update-check mechanisms to avoid conflicts
 
 **For Rust projects:**
-1. Read `Cargo.toml` — `name`, `version`, `edition`, existing dependencies
+1. Read `Cargo.toml` (`name`, `version`, `edition`, existing dependencies)
 2. Find the CLI entry point (`src/main.rs` or binary target)
 3. Check for existing update/self-update mechanisms to avoid conflicts
-4. Verify async runtime — `tokio` with `"full"` features is required
+4. Verify async runtime: `tokio` with `"full"` features is required
 
 ### Step 2: Ask the user
 
 Use `AskUserQuestion` (skip what is already known):
 
-1. **Version source** — Where to check for new versions?
+1. **Version source**: Where to check for new versions?
    - GitHub Releases (compiled binaries)
    - npm registry (npm-published packages)
    - JSR (Deno/JSR packages)
    - Homebrew (cask-distributed apps)
    - Custom manifest URL
-2. **Update behavior** — What happens when an update is found?
-   - **Notify only** (`checkAndNotify` / `check_and_notify`) — print banner at startup
-   - **Auto-update** (`autoUpdate` / `auto_update`) — full detect/download/apply pipeline
-   - **Version listing & switching** (`listVersions` + `switchVersion` / `list_versions` + `switch_version`) — let users pick a version (supports downgrade)
-   - **Manual pipeline** — step-by-step control
+2. **Update behavior**: What happens when an update is found?
+   - **Notify only** (`checkAndNotify` / `check_and_notify`): print banner at startup
+   - **Auto-update** (`autoUpdate` / `auto_update`): full detect/download/apply pipeline
+   - **Version listing & switching** (`listVersions` + `switchVersion` / `list_versions` + `switch_version`): let users pick a version (supports downgrade)
+   - **Manual pipeline**: step-by-step control
 3. **Delegate mode** (if auto-update or switchVersion): Execute package-manager commands or print-only?
 
 ### Step 3: Install
@@ -71,7 +71,7 @@ cargo add tokio --features full    # if not already present
 
 Read `references/integration-patterns.md` to select the matching pattern. Read `references/api-reference.md` for full API details when needed.
 
-**Quick reference — Creating an instance:**
+**Quick reference, creating an instance:**
 
 ```typescript
 const kit = await UpdateKit.create({ sources: [...] });
@@ -79,7 +79,7 @@ const kit = await UpdateKit.create({ sources: [...] });
 
 Auto-detects `appName` and `currentVersion` from the caller's nearest `package.json` via call stack inspection. Also auto-fills `repository` from package.json for source inference.
 
-**Quick reference — Additional config options:**
+**Quick reference, additional config options:**
 
 | Option | Description |
 |--------|-------------|
@@ -87,7 +87,7 @@ Auto-detects `appName` and `currentVersion` from the caller's nearest `package.j
 | `customPlanResolver` | Custom plan resolver (overrides default plan for a channel) |
 | `repository` | GitHub repo URL/shorthand for auto-inferring GitHub source |
 
-**Quick reference — Version sources:**
+**Quick reference, version sources:**
 
 | Type | Required Fields |
 |------|----------------|
@@ -97,7 +97,7 @@ Auto-detects `appName` and `currentVersion` from the caller's nearest `package.j
 | `brew` | `caskName` |
 | `custom` | `url` |
 
-**Quick reference — Main methods:**
+**Quick reference, main methods:**
 
 | Method | Returns | Throws? |
 |--------|---------|---------|
@@ -116,7 +116,7 @@ Auto-detects `appName` and `currentVersion` from the caller's nearest `package.j
 
 Read `references/integration-patterns-rust.md` to select the matching pattern. Read `references/api-reference-rust.md` for full API details when needed.
 
-**Quick reference — Creating an instance:**
+**Quick reference, creating an instance:**
 
 ```rust
 let kit = UpdateKit::new(UpdateKitConfig::Explicit {
@@ -134,14 +134,14 @@ let kit = UpdateKit::new(UpdateKitConfig::Explicit {
 
 Requires explicit `app_name` and `current_version` (no call-stack auto-detection). Use `env!("CARGO_PKG_VERSION")` to read the version from `Cargo.toml` at compile time.
 
-**Quick reference — Config variants:**
+**Quick reference, config variants:**
 
 | Variant | Description |
 |---------|-------------|
 | `UpdateKitConfig::Explicit` | Requires `app_name` and `current_version` directly |
 | `UpdateKitConfig::Pkg` | Reads from a `PackageInfo` struct, with optional overrides |
 
-**Quick reference — Version sources:**
+**Quick reference, version sources:**
 
 | Variant | Required Fields |
 |---------|----------------|
@@ -151,7 +151,7 @@ Requires explicit `app_name` and `current_version` (no call-stack auto-detection
 | `VersionSourceConfig::Brew` | `cask_name` |
 | `VersionSourceConfig::Custom` | `url` |
 
-**Quick reference — Main methods:**
+**Quick reference, main methods:**
 
 | Method | Returns | Panics? |
 |--------|---------|---------|

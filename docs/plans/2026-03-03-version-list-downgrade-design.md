@@ -4,8 +4,8 @@
 
 Add two capabilities to update-kit's library API:
 
-1. **Version listing** — Fetch available versions with pagination from pluggable sources.
-2. **Downgrade/switch** — Install a specific target version (including older versions) through the existing pipeline.
+1. **Version listing**: Fetch available versions with pagination from pluggable sources.
+2. **Downgrade/switch**: Install a specific target version (including older versions) through the existing pipeline.
 
 No CLI commands are added. These features are exposed as library API for CLI apps that integrate update-kit.
 
@@ -37,10 +37,10 @@ type VersionListResult =
 
 ### Design decisions
 
-- **Optional method** — Sources that cannot list versions (e.g., Brew) simply omit it.
-- **Cursor-based pagination** — Each source encodes its own pagination state into an opaque string (e.g., `"page:2"` for GitHub, `"offset:20"` for npm).
-- **Reuses `VersionInfo`** — Same type as `fetchLatest` result: `version`, `releaseUrl`, `releaseNotes`, `assets`, `publishedAt`.
-- **Descending order** — Versions are returned newest-first.
+- **Optional method**: Sources that cannot list versions (e.g., Brew) simply omit it.
+- **Cursor-based pagination**: Each source encodes its own pagination state into an opaque string (e.g., `"page:2"` for GitHub, `"offset:20"` for npm).
+- **Reuses `VersionInfo`**: Same type as `fetchLatest` result: `version`, `releaseUrl`, `releaseNotes`, `assets`, `publishedAt`.
+- **Descending order**: Versions are returned newest-first.
 
 ---
 
@@ -66,7 +66,7 @@ type VersionListResult =
 
 ### Brew (`BrewSource`)
 
-- **Not implemented** — Homebrew API only provides the latest version
+- **Not implemented**: Homebrew API only provides the latest version
 - `fetchVersions` is not defined on this source
 
 ### Custom Manifest (`CustomManifestSource`)
@@ -97,7 +97,7 @@ planUpdate(
 ```
 
 - When `targetVersion` is set, plan generation uses that version instead of `status.latest`.
-- Allows `current > target` (downgrade) — the version comparison guard is relaxed.
+- Allows `current > target` (downgrade), so the version comparison guard is relaxed.
 - All existing channel-based strategy selection remains unchanged.
 
 ### Channel strategies for downgrade
@@ -151,10 +151,10 @@ class UpdateKit {
 
 #### `switchVersion` behavior
 
-1. `detectInstall()` — Determine channel.
+1. `detectInstall()`: Determine channel.
 2. Fetch version info for `targetVersion` from sources (to get assets, release URL, etc.).
 3. `planUpdate()` with `targetVersion` option.
-4. `applyUpdate()` — Execute the plan.
+4. `applyUpdate()`: Execute the plan.
 5. Returns `ApplyResult`.
 
 ### Standalone function
@@ -191,6 +191,6 @@ export type { FetchVersionsOptions, VersionListResult };
 
 ## Non-goals
 
-- **No CLI commands** — update-kit CLI is for library maintainer diagnostics only
-- **No version caching** — Version list is fetched fresh each time (blocking operation)
-- **No CLI restructuring** — Existing CLI cleanup is a separate concern
+- **No CLI commands**: update-kit CLI is for library maintainer diagnostics only
+- **No version caching**: Version list is fetched fresh each time (blocking operation)
+- **No CLI restructuring**: Existing CLI cleanup is a separate concern

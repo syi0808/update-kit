@@ -57,15 +57,15 @@ const kit = await UpdateKit.create({
 |------|----------------|-----------------|
 | `github` | `owner`, `repo` | `token`, `apiBaseUrl` (for GHE) |
 | `npm` | `packageName` | `registryUrl` (default: `https://registry.npmjs.org`) |
-| `jsr` | `scope` (no @), `name` | — |
-| `brew` | `caskName` | — |
+| `jsr` | `scope` (no @), `name` | (none) |
+| `brew` | `caskName` | (none) |
 | `custom` | `url` | `versionField` (default: `"version"`, supports dot-notation e.g. `"data.latest.version"`) |
 
 ## Methods
 
 ### checkAndNotify(): Promise<string | null>
 
-Non-blocking, cache-based check. Returns a styled banner string or null. **Never throws.** Uses `'non-blocking'` mode: reads from cache, spawns background refresh if stale.
+Non-blocking, cache-based check. Returns a styled banner string or null. **Never throws.** Uses `'non-blocking'` mode, reading from cache and spawning a background refresh if stale.
 
 ### autoUpdate(options?): Promise<ApplyResult>
 
@@ -79,8 +79,8 @@ Returns `{ channel, confidence, evidence[] }`.
 
 ### checkUpdate(mode?): Promise<UpdateStatus>
 
-- `'blocking'`: Fetches from source now
-- `'non-blocking'` (default): Reads cache, spawns background refresh if stale
+- `'blocking'`: fetches from source now
+- `'non-blocking'` (default): reads cache, spawns background refresh if stale
 
 ### planUpdate(status, detection): UpdatePlan | null
 

@@ -1,8 +1,8 @@
 # update-kit Architecture Documentation
 
-> **update-kit** — A channel-aware self-update toolkit for Node.js CLI applications. Detects how an app was installed and applies the appropriate update strategy automatically.
+> **update-kit**: A channel-aware self-update toolkit for Node.js CLI applications. Detects how an app was installed and applies the appropriate update strategy automatically.
 
-This document provides a comprehensive architectural overview of update-kit, including project structure, pipeline design, module organization, type system, and data flows.
+This document provides a detailed architectural overview of update-kit, including project structure, pipeline design, module organization, type system, and data flows.
 
 ---
 
@@ -27,7 +27,7 @@ This document provides a comprehensive architectural overview of update-kit, inc
 17. [UX Layer](#ux-layer)
 18. [UX Customization](#ux-customization)
 19. [CLI](#cli)
-20. [Doctor — Integration Diagnostics](#doctor--integration-diagnostics)
+20. [Doctor: Integration Diagnostics](#doctor--integration-diagnostics)
 21. [Public API Surface](#public-api-surface)
 22. [Tunable Constants](#tunable-constants)
 23. [Safety Policies](#safety-policies)
@@ -1429,7 +1429,7 @@ loadConfig(configPath?) → UpdateKitExplicitConfig
 
 ### CLI as Integration Debugging Tool
 
-The CLI is not only for end-users — it is the primary debugging tool for integrators:
+The CLI is not only for end-users, it is the primary debugging tool for integrators:
 
 ```
 Debugging workflow:
@@ -1449,7 +1449,7 @@ Debugging workflow:
 
 ---
 
-## Doctor — Integration Diagnostics
+## Doctor: Integration Diagnostics
 
 The `doctor` command (`src/doctor.ts`) is designed for integrators to validate their setup. It runs five sequential checks and produces a structured report.
 

@@ -2055,7 +2055,7 @@ git commit -m "feat(rust): add VersionSource trait and 5 source implementations"
 **Files:**
 - Create: `rust/crates/update-kit/src/checker/infer_sources.rs`
 - Create: `rust/crates/update-kit/src/checker/background.rs`
-- Modify: `rust/crates/update-kit/src/checker/mod.rs` — add `check_update`, `normalize_version`
+- Modify: `rust/crates/update-kit/src/checker/mod.rs` (add `check_update`, `normalize_version`)
 
 **Reference:** `src/checker/infer-sources.ts`, `src/checker/index.ts`, `src/checker/background.ts`
 
@@ -2218,10 +2218,10 @@ mod tests {
 **Step 2: Implement planner/mod.rs**
 
 Port the full planner logic from TypeScript including:
-- `plan_update()` — main entry point
-- `resolve_plan_kind()` — channel dispatch
+- `plan_update()`: main entry point
+- `resolve_plan_kind()`: channel dispatch
 - `resolve_native_channel()`, `resolve_unmanaged_channel()`, `resolve_npm_channel()`, `resolve_brew_channel()`
-- `resolve_native_in_place()` — asset selection
+- `resolve_native_in_place()`: asset selection
 - `resolve_post_action()`
 - `select_asset()`, `expand_asset_pattern()`, `auto_match_asset()`
 - `get_platform_aliases()`, `get_arch_aliases()`
@@ -2588,8 +2588,8 @@ mod tests {
 **Step 2: Implement UX modules**
 
 - `colors.rs`: ANSI escape code functions (bold, green, yellow, red, dim), `supports_color()`, `strip_ansi()`
-- `banner.rs`: `render_banner()` — generates update notification banner string
-- `progress.rs`: `render_progress()`, `render_result()` — human-readable progress/result strings
+- `banner.rs`: `render_banner()`, generates update notification banner string
+- `progress.rs`: `render_progress()`, `render_result()`, human-readable progress/result strings
 
 **Step 3: Run tests, commit**
 
@@ -2603,7 +2603,7 @@ git commit -m "feat(rust): add UX module (colors, banner, progress rendering)"
 ### Task 17: Main UpdateKit Struct (lib.rs)
 
 **Files:**
-- Modify: `rust/crates/update-kit/src/lib.rs` — add `UpdateKit` struct and public API
+- Modify: `rust/crates/update-kit/src/lib.rs` (add `UpdateKit` struct and public API)
 
 **Reference:** `src/index.ts`
 
@@ -2792,8 +2792,8 @@ git commit -m "test(rust): add integration tests for full update pipeline"
 ### Task 20: Final Cleanup and Documentation
 
 **Files:**
-- Modify: `rust/crates/update-kit/src/lib.rs` — ensure all public API is properly exported
-- Modify: `rust/crates/update-kit/Cargo.toml` — verify metadata
+- Modify: `rust/crates/update-kit/src/lib.rs` (ensure all public API is properly exported)
+- Modify: `rust/crates/update-kit/Cargo.toml` (verify metadata)
 
 **Step 1: Verify full test suite**
 
@@ -2816,7 +2816,7 @@ git commit -m "chore(rust): cleanup, clippy fixes, and documentation"
 
 | Task | Description | Dependencies |
 |------|-------------|--------------|
-| 1 | Scaffold Cargo workspace | — |
+| 1 | Scaffold Cargo workspace | (none) |
 | 2 | Core types (types.rs) | 1 |
 | 3 | Error types (errors.rs) | 1 |
 | 4 | Constants (constants.rs) | 1 |

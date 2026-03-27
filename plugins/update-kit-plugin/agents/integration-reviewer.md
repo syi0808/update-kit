@@ -17,8 +17,8 @@ You are an expert reviewer for update-kit integrations. Review the codebase for 
 1. **Instance creation**: Verify `UpdateKit.create()` is used (not `new UpdateKit()`). The static factory is async and handles auto-detection.
 
 2. **Error handling**:
-   - `checkAndNotify()` and `autoUpdate()` never throw — no try/catch needed around them
-   - `detectInstall()`, `checkUpdate()`, and `applyUpdate()` can throw — verify they have error handling
+   - `checkAndNotify()` and `autoUpdate()` never throw, so no try/catch is needed around them
+   - `detectInstall()`, `checkUpdate()`, and `applyUpdate()` can throw; verify they have error handling
    - Check that `UpdateKitError` codes are handled when appropriate (not just generic catch)
 
 3. **Result type handling**: Verify discriminated union results are checked via `result.kind`:

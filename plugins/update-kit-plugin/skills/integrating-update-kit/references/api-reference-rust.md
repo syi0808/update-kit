@@ -86,7 +86,7 @@ pub struct BaseConfig {
 }
 ```
 
-`BaseConfig` implements `Default` — all fields are `None`.
+`BaseConfig` implements `Default`; all fields are `None`.
 
 ## Version Sources
 
@@ -134,8 +134,8 @@ Returns `InstallDetection { channel, confidence, evidence }`.
 pub async fn check_update(&self, mode: CheckMode) -> Result<UpdateStatus, UpdateKitError>
 ```
 
-- `CheckMode::Blocking` — Fetches from source now
-- `CheckMode::NonBlocking` — Reads cache, spawns background refresh if stale
+- `CheckMode::Blocking`: fetches from source now
+- `CheckMode::NonBlocking`: reads cache, spawns background refresh if stale
 
 ### plan_update
 
@@ -235,7 +235,7 @@ pub enum Channel { Native, Unmanaged, NpmGlobal, BrewCask, Custom(String) }
 pub enum Confidence { None, Low, Medium, High }
 ```
 
-Implements `Ord` — can be compared with `<`, `>`, etc.
+Implements `Ord`, so it can be compared with `<`, `>`, etc.
 
 ### PostAction
 
@@ -323,7 +323,7 @@ use update_kit::UpdateKitError;
 | Platform | `UNSUPPORTED_PLATFORM`, `PERMISSION_DENIED`, `UNSUPPORTED_OPERATION` |
 | IO | `IO_ERROR`, `JSON_ERROR` |
 
-`check_and_notify()` silently returns `Ok(None)` on errors. `auto_update()` and `switch_version()` never panic — errors are returned as `ApplyResult::Failed`.
+`check_and_notify()` silently returns `Ok(None)` on errors. `auto_update()` and `switch_version()` never panic; errors are returned as `ApplyResult::Failed`.
 
 ## Additional Types
 

@@ -74,9 +74,9 @@ update-kit/
 ### 3. Skill: `integrating-update-kit`
 
 Migrated from `.claude/skills/integrating-update-kit/`. Contains:
-- `SKILL.md` — 5-step integration workflow
-- `references/api-reference.md` — Full API documentation
-- `references/integration-patterns.md` — 7 integration patterns (A-G)
+- `SKILL.md`: 5-step integration workflow
+- `references/api-reference.md`: Full API documentation
+- `references/integration-patterns.md`: 7 integration patterns (A-G)
 
 Invoked as `/update-kit:integrating-update-kit`.
 
@@ -109,6 +109,6 @@ Used as a subagent for code review or invoked via `/update-kit:integration-revie
 
 ## Migration Notes
 
-- Existing `.claude/skills/integrating-update-kit/` can be removed after plugin is set up (plugin version takes precedence)
+- Existing `.claude/skills/integrating-update-kit/` can be removed after plugin is set up (the plugin version takes precedence)
 - Plugin is hosted within this repo using relative path source in marketplace.json
 - Users install via: `/plugin marketplace add syi0808/update-kit` then `/plugin install update-kit@update-kit-marketplace`

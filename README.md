@@ -4,23 +4,23 @@
 [![CI](https://github.com/syi0808/update-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/syi0808/update-kit/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-> CLI tools get installed through npm, Homebrew, direct download, or custom installers — each with its own update semantics. The update strategy should be determined by how the app was installed, not hardcoded by the author.
+> CLI tools get installed through npm, Homebrew, direct download, or custom installers, each with its own update semantics. The update strategy should be determined by how the app was installed, not hardcoded by the author.
 
 update-kit is a self-update toolkit that adapts to how your CLI was installed. It detects the install channel and picks the right update strategy automatically, so your app stays current without breaking package manager ownership.
 
-Unlike manually wiring up update checks, update-kit handles the full pipeline — detection, version checking, planning, and applying — with zero-config source inference. You get safe, channel-aware updates with a single method call.
+Unlike manually wiring up update checks, update-kit handles the full pipeline (detection, version checking, planning, and applying) with zero-config source inference. You get safe, channel-aware updates with a single method call.
 
 ## Features
 
-- **Channel Detection** — Identifies install method (npm, Homebrew, native binary, custom) via receipt files, path heuristics, and package manager queries
-- **Zero-Config Sources** — Infers version sources from `package.json` and prioritizes them by detected channel
-- **Pluggable Sources** — GitHub Releases, npm, JSR, Homebrew API, or custom JSON manifest
-- **Non-Blocking Checks** — Returns cached results instantly; refreshes in the background so startup stays fast
-- **Smart Planning** — Picks the safest strategy per channel: binary replacement, delegated package manager command, or manual instructions
-- **Safe by Default** — SHA-256 verification, atomic file replacement, HTTPS-only, no privilege escalation
-- **Version Listing & Switching** — Paginated version list with cursor-based pagination; upgrade or downgrade to any version
-- **Lifecycle Hooks** — `beforeCheck`, `beforeApply`, `afterApply`, `onError` for telemetry, logging, or custom logic
-- **CLI Included** — `detect`, `check`, `plan`, `apply`, `cache`, `doctor` subcommands with JSON output
+- **Channel Detection**: Identifies install method (npm, Homebrew, native binary, custom) via receipt files, path heuristics, and package manager queries
+- **Zero-Config Sources**: Infers version sources from `package.json` and prioritizes them by detected channel
+- **Pluggable Sources**: GitHub Releases, npm, JSR, Homebrew API, or custom JSON manifest
+- **Non-Blocking Checks**: Returns cached results instantly; refreshes in the background so startup stays fast
+- **Smart Planning**: Picks the safest strategy per channel: binary replacement, delegated package manager command, or manual instructions
+- **Safe by Default**: SHA-256 verification, atomic file replacement, HTTPS-only, no privilege escalation
+- **Version Listing & Switching**: Paginated version list with cursor-based pagination; upgrade or downgrade to any version
+- **Lifecycle Hooks**: `beforeCheck`, `beforeApply`, `afterApply`, `onError` for telemetry, logging, or custom logic
+- **CLI Included**: `detect`, `check`, `plan`, `apply`, `cache`, `doctor` subcommands with JSON output
 
 ## Getting Started
 
@@ -50,11 +50,11 @@ const banner = await kit.checkAndNotify();
 if (banner) console.error(banner);
 ```
 
-Source check order adapts to the install channel — npm-installed apps check npm first, Homebrew apps check brew first. Pass explicit `sources` when you need full control.
+Source check order adapts to the install channel: npm-installed apps check npm first, Homebrew apps check brew first. Pass explicit `sources` when you need full control.
 
 ### Auto-update
 
-Run the full pipeline — detect, check, plan, apply — in one call:
+Run the full pipeline (detect, check, plan, apply) in one call:
 
 ```typescript
 const result = await kit.autoUpdate({
@@ -89,7 +89,7 @@ if (status.kind === 'available') {
 const versions = await kit.listVersions({ limit: 10 });
 if (versions.kind === 'success') {
   for (const v of versions.versions) {
-    console.log(`${v.version} — ${v.publishedAt ?? ''}`);
+    console.log(`${v.version}  ${v.publishedAt ?? ''}`);
   }
 }
 
@@ -117,10 +117,10 @@ npx update-kit detect --json     # All commands support --json
 Detection → Check → Plan → Apply
 ```
 
-1. **Detect** — Determine how the app was installed (npm, Homebrew, native binary, etc.)
-2. **Check** — Query the appropriate version source for the latest release
-3. **Plan** — Choose the right update strategy based on the install channel
-4. **Apply** — Execute the plan: download and replace, delegate to a package manager, or show manual instructions
+1. **Detect**: Determine how the app was installed (npm, Homebrew, native binary, etc.)
+2. **Check**: Query the appropriate version source for the latest release
+3. **Plan**: Choose the right update strategy based on the install channel
+4. **Apply**: Execute the plan: download and replace, delegate to a package manager, or show manual instructions
 
 ## FAQ
 
@@ -129,7 +129,7 @@ update-kit uses a confidence-scored detection system. It evaluates receipt files
 
 ## Documentation
 
-- [API Reference](docs/API.md) — Configuration, types, version sources, hooks, standalone functions
+- [API Reference](docs/API.md): Configuration, types, version sources, hooks, standalone functions
 
 ## Contributing
 
@@ -141,4 +141,4 @@ This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE
 
 ## Author
 
-**Yein Sung** — [GitHub](https://github.com/syi0808)
+**Yein Sung** - [GitHub](https://github.com/syi0808)

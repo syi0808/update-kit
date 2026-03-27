@@ -1,10 +1,10 @@
 # Contributing to update-kit
 
-Thank you for your interest in contributing to update-kit. This guide explains how to report issues, suggest improvements, and submit code changes.
+Thanks for considering a contribution to update-kit! This guide covers how to report issues, suggest improvements, and submit code changes.
 
 ## Code of Conduct
 
-Please be respectful and constructive in all interactions. We are committed to providing a welcoming and inclusive experience for everyone.
+Please be respectful and constructive in all interactions.
 
 ## How to Contribute
 

@@ -128,8 +128,8 @@ Lists available versions with pagination. Iterates configured sources in channel
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `options.limit` | `number` | `20` | Maximum number of versions to return |
-| `options.cursor` | `string` | — | Opaque pagination token from a previous result's `nextCursor` |
-| `options.signal` | `AbortSignal` | — | Cancellation signal |
+| `options.cursor` | `string` | - | Opaque pagination token from a previous result's `nextCursor` |
+| `options.signal` | `AbortSignal` | - | Cancellation signal |
 
 **Supported sources:** GitHub (page-based), npm (offset-based), JSR (offset-based). Brew does not support version listing.
 
@@ -148,9 +148,9 @@ Switches to a specific version (upgrade or downgrade). Runs the full pipeline: d
 |-----------|------|---------|-------------|
 | `targetVersion` | `string` | **required** | The version to switch to |
 | `options.execute` | `boolean` | `false` | Override `delegateMode` to `'execute'` |
-| `options.assets` | `AssetInfo[]` | — | Release assets for native-in-place updates |
-| `options.onProgress` | `(progress: ApplyProgress) => void` | — | Progress callback |
-| `options.signal` | `AbortSignal` | — | Cancellation signal |
+| `options.assets` | `AssetInfo[]` | - | Release assets for native-in-place updates |
+| `options.onProgress` | `(progress: ApplyProgress) => void` | - | Progress callback |
+| `options.signal` | `AbortSignal` | - | Cancellation signal |
 
 ---
 
@@ -182,11 +182,11 @@ interface UpdateKitConfig {
 | `checkInterval` | `number` | `72_000_000` (20h) | Cache validity interval in milliseconds |
 | `cacheDir` | `string` | OS-specific | Cache directory path. Defaults to `XDG_CACHE_HOME`, `~/Library/Caches`, or `APPDATA` |
 | `delegateMode` | `DelegateMode` | `'print-only'` | Whether delegate commands are printed or executed |
-| `npmPackageName` | `string` | — | npm package name for detection and updates |
-| `brewCaskName` | `string` | — | Homebrew cask name for detection and updates |
+| `npmPackageName` | `string` | - | npm package name for detection and updates |
+| `brewCaskName` | `string` | - | Homebrew cask name for detection and updates |
 | `allowReexec` | `boolean` | `false` | Whether to re-execute the new binary after update |
-| `assetPattern` | `string` | — | Asset filename pattern with placeholders: `{app}`, `{version}`, `{target}`, `{arch}`, `{ext}` |
-| `hooks` | `Hooks` | — | Lifecycle hooks |
+| `assetPattern` | `string` | - | Asset filename pattern with placeholders: `{app}`, `{version}`, `{target}`, `{arch}`, `{ext}` |
+| `hooks` | `Hooks` | - | Lifecycle hooks |
 
 ### Hooks
 
@@ -201,7 +201,7 @@ interface Hooks {
 
 | Hook | Parameters | Return | Description |
 |------|-----------|--------|-------------|
-| `beforeCheck` | — | `boolean` | Called before version check. Return `false` to skip. |
+| `beforeCheck` | - | `boolean` | Called before version check. Return `false` to skip. |
 | `beforeApply` | `plan: UpdatePlan` | `boolean` | Called before applying an update. Return `false` to skip. |
 | `afterApply` | `result: ApplyResult` | `void` | Called after applying, regardless of success or failure. |
 | `onError` | `error: UpdateKitError` | `void` | Called on error. Useful for telemetry or logging. |
@@ -261,8 +261,8 @@ interface InstallDetection {
 type CheckMode = 'blocking' | 'non-blocking';
 ```
 
-- `'blocking'` — Fetches from sources directly and updates the cache.
-- `'non-blocking'` — Returns cached result immediately; spawns a background refresh if stale.
+- `'blocking'`: Fetches from sources directly and updates the cache.
+- `'non-blocking'`: Returns cached result immediately; spawns a background refresh if stale.
 
 #### `UpdateStatus`
 
@@ -289,8 +289,8 @@ type UpdateStatus =
 type DelegateMode = 'print-only' | 'execute';
 ```
 
-- `'print-only'` — Shows the command to the user without executing it (default).
-- `'execute'` — Runs the command directly.
+- `'print-only'`: Shows the command to the user without executing it (default).
+- `'execute'`: Runs the command directly.
 
 #### `PostAction`
 
@@ -388,8 +388,8 @@ interface ApplyOptions {
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `onProgress` | `(progress: ApplyProgress) => void` | — | Callback fired at each phase transition and during download |
-| `signal` | `AbortSignal` | — | Cancellation signal |
+| `onProgress` | `(progress: ApplyProgress) => void` | - | Callback fired at each phase transition and during download |
+| `signal` | `AbortSignal` | - | Cancellation signal |
 | `skipChecksum` | `boolean` | `false` | Skip checksum verification (not recommended) |
 
 #### `DelegateApplyOptions`
@@ -496,7 +496,7 @@ interface VersionSource {
 }
 ```
 
-Plugin interface for fetching version information from an external registry. `fetchVersions` is optional — sources that cannot list versions (e.g., Brew) simply omit it.
+Plugin interface for fetching version information from an external registry. `fetchVersions` is optional; sources that cannot list versions (e.g., Brew) simply omit it.
 
 ### VersionSourceResult
 

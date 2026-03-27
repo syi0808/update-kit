@@ -8,7 +8,7 @@ The `integrating-update-kit` skill files are out of date relative to the current
 
 ## Approach
 
-Incremental patch — add new features in-place to each existing file, keeping structure and tone.
+Incremental patch: add new features in-place to each existing file, keeping structure and tone.
 
 ## Changes
 

@@ -8,8 +8,8 @@ Design: `docs/plans/2026-03-03-update-skill-design.md`
 
 File: `.claude/skills/integrating-update-kit/SKILL.md`
 
-1. In Quick reference — Main methods table, add rows for `listVersions()` and `switchVersion()`
-2. In Quick reference — Creating an instance (or nearby), add mention of `customDetectors`, `customPlanResolver`, `repository` config fields
+1. In Quick reference, Main methods table, add rows for `listVersions()` and `switchVersion()`
+2. In Quick reference, Creating an instance (or nearby), add mention of `customDetectors`, `customPlanResolver`, `repository` config fields
 3. In Step 2 (Ask the user), add version listing/switching as an update behavior option
 4. Update any Node.js version references to `>=24.0.0`
 

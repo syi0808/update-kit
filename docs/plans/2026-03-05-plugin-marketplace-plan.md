@@ -58,7 +58,7 @@ git commit -m "feat: add plugin manifest for update-kit plugin"
 
 **Step 1: Copy skill files to plugin directory**
 
-Copy the existing skill files into the plugin structure. The content stays identical — no modifications needed to the skill itself since it uses relative references to its own `references/` directory.
+Copy the existing skill files into the plugin structure. The content stays identical; no modifications needed to the skill itself since it uses relative references to its own `references/` directory.
 
 - Copy `.claude/skills/integrating-update-kit/SKILL.md` -> `plugins/update-kit-plugin/skills/integrating-update-kit/SKILL.md`
 - Copy `.claude/skills/integrating-update-kit/references/api-reference.md` -> `plugins/update-kit-plugin/skills/integrating-update-kit/references/api-reference.md`
@@ -198,8 +198,8 @@ You are an expert reviewer for update-kit integrations. Review the codebase for 
 1. **Instance creation**: Verify `UpdateKit.create()` is used (not `new UpdateKit()`). The static factory is async and handles auto-detection.
 
 2. **Error handling**:
-   - `checkAndNotify()` and `autoUpdate()` never throw — no try/catch needed around them
-   - `detectInstall()`, `checkUpdate()`, and `applyUpdate()` can throw — verify they have error handling
+   - `checkAndNotify()` and `autoUpdate()` never throw, so no try/catch is needed around them
+   - `detectInstall()`, `checkUpdate()`, and `applyUpdate()` can throw; verify they have error handling
    - Check that `UpdateKitError` codes are handled when appropriate (not just generic catch)
 
 3. **Result type handling**: Verify discriminated union results are checked via `result.kind`:
@@ -269,7 +269,7 @@ Create `.claude-plugin/marketplace.json`:
     "email": "syi0808@gmail.com"
   },
   "metadata": {
-    "description": "Plugin marketplace for update-kit — a channel-aware self-update toolkit for Node.js CLI applications",
+    "description": "Plugin marketplace for update-kit, a channel-aware self-update toolkit for Node.js CLI applications",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -350,9 +350,9 @@ Add a new section after the existing "### CLI" section:
 ### Plugin
 
 The project includes a Claude Code plugin at `plugins/update-kit-plugin/` and a marketplace catalog at `.claude-plugin/marketplace.json`. The plugin provides:
-- **Skill** (`/update-kit:integrating-update-kit`) — 5-step integration workflow with API reference and pattern docs
-- **Command** (`/update-kit:doctor`) — Diagnostic checks for existing integrations
-- **Agent** (`integration-reviewer`) — Code review agent for update-kit usage
+- **Skill** (`/update-kit:integrating-update-kit`): 5-step integration workflow with API reference and pattern docs
+- **Command** (`/update-kit:doctor`): Diagnostic checks for existing integrations
+- **Agent** (`integration-reviewer`): Code review agent for update-kit usage
 
 Users can install via:
 ```shell
