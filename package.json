@@ -51,6 +51,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:dist": "pnpm build && vitest run --config tests/vitest.config.ts",
+    "test:e2e": "pnpm build && vitest run --config tests/e2e/vitest.config.ts",
     "test:ci": "pnpm build && pnpm test && pnpm test:dist",
     "prepublishOnly": "pnpm build",
     "coverage": "vitest run --coverage",
