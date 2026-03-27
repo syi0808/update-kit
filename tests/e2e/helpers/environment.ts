@@ -170,12 +170,14 @@ export async function createTestEnvironment(
   // Apply env vars to process.env so that in-process API tests pick up the
   // receipt file and mock binaries (brew, npm, etc.) inherit the right config.
   // Safe because pool: 'forks' runs each test file in its own process.
-  const APPLIED_KEYS = ["HOME", "PATH", "MOCK_CALL_LOG", "MOCK_EXIT_CODE", "MOCK_STDOUT", "MOCK_STDERR", "MOCK_DELAY_MS"] as const;
+  const APPLIED_KEYS = ["HOME", "PATH", "XDG_CONFIG_HOME", "XDG_CACHE_HOME", "MOCK_CALL_LOG", "MOCK_EXIT_CODE", "MOCK_STDOUT", "MOCK_STDERR", "MOCK_DELAY_MS"] as const;
   const originals: Partial<Record<string, string>> = {};
   for (const key of APPLIED_KEYS) {
     originals[key] = process.env[key];
   }
   process.env.HOME = tmpDir;
+  process.env.XDG_CONFIG_HOME = env.XDG_CONFIG_HOME;
+  process.env.XDG_CACHE_HOME = env.XDG_CACHE_HOME;
   process.env.PATH = env.PATH;
   process.env.MOCK_CALL_LOG = env.MOCK_CALL_LOG;
   process.env.MOCK_EXIT_CODE = env.MOCK_EXIT_CODE;
