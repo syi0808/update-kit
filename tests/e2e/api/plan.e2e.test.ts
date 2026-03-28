@@ -1,21 +1,21 @@
 // tests/e2e/api/plan.e2e.test.ts
-import { describe, it, expect } from "vitest";
-import fs from "node:fs/promises";
-import path from "node:path";
+
 import os from "node:os";
+import { describe, expect, it } from "vitest";
+import { TAR_NAME, ZIP_NAME } from "../helpers/artifacts.js";
 
 const { UpdateKit } = await import("../../../dist/index.mjs");
 
 const testAssets = [
   {
-    name: "test-app-v2.0.0-darwin-arm64.tar.gz",
-    url: "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+    name: TAR_NAME,
+    url: `https://example.com/${TAR_NAME}`,
     size: 1024,
     checksumUrl: "https://example.com/SHA256SUMS",
   },
   {
-    name: "test-app-v2.0.0-linux-x64.zip",
-    url: "https://example.com/test-app-v2.0.0-linux-x64.zip",
+    name: ZIP_NAME,
+    url: `https://example.com/${ZIP_NAME}`,
     size: 1024,
   },
 ];
@@ -66,7 +66,11 @@ describe("E2E: Plan", () => {
 
   it("npm-global + high → delegate-command (npm)", () => {
     const kit = makeKit({ npmPackageName: "test-app" });
-    const detection = { channel: "npm-global", confidence: "high", evidence: [] };
+    const detection = {
+      channel: "npm-global",
+      confidence: "high",
+      evidence: [],
+    };
     const plan = kit.planUpdate(availableStatus, detection);
     expect(plan).not.toBeNull();
     expect(plan!.kind.type).toBe("delegate-command");
@@ -77,7 +81,11 @@ describe("E2E: Plan", () => {
 
   it("npm-global + low → manual-install", () => {
     const kit = makeKit({ npmPackageName: "test-app" });
-    const detection = { channel: "npm-global", confidence: "low", evidence: [] };
+    const detection = {
+      channel: "npm-global",
+      confidence: "low",
+      evidence: [],
+    };
     const plan = kit.planUpdate(availableStatus, detection);
     expect(plan).not.toBeNull();
     expect(plan!.kind.type).toBe("manual-install");
@@ -85,7 +93,11 @@ describe("E2E: Plan", () => {
 
   it("brew-cask + high → delegate-command (brew)", () => {
     const kit = makeKit({ brewCaskName: "test-app" });
-    const detection = { channel: "brew-cask", confidence: "high", evidence: [] };
+    const detection = {
+      channel: "brew-cask",
+      confidence: "high",
+      evidence: [],
+    };
     const plan = kit.planUpdate(availableStatus, detection);
     expect(plan).not.toBeNull();
     expect(plan!.kind.type).toBe("delegate-command");
@@ -107,7 +119,11 @@ describe("E2E: Plan", () => {
   it("unmanaged + none confidence + no assets → manual-install", () => {
     const kit = makeKit();
     const noAssetsStatus = { ...availableStatus, assets: [] };
-    const detection = { channel: "unmanaged", confidence: "none", evidence: [] };
+    const detection = {
+      channel: "unmanaged",
+      confidence: "none",
+      evidence: [],
+    };
     const plan = kit.planUpdate(noAssetsStatus, detection);
     expect(plan).not.toBeNull();
     expect(plan!.kind.type).toBe("manual-install");

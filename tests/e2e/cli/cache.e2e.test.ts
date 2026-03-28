@@ -1,11 +1,15 @@
 // tests/e2e/cli/cache.e2e.test.ts
-import { describe, it, expect, afterEach } from "vitest";
-import path from "node:path";
+
 import fs from "node:fs/promises";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { runCLI } from "../helpers/cli-runner.js";
+import { afterEach, describe, expect, it } from "vitest";
 import { writeFetchRoutes } from "../helpers/cli-routes.js";
+import { runCLI } from "../helpers/cli-runner.js";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -33,7 +37,10 @@ describe("CLI: cache", () => {
   });
 
   it("cache show --json with pre-seeded cache → cache contents returned", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     await seedCache(env.cachePath, "test-app");
 
     const routesDir = path.join(env.tmpDir, "routes");
@@ -52,7 +59,10 @@ describe("CLI: cache", () => {
   });
 
   it("cache show with no cache → 'no cache' message", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     // Do NOT seed cache — should report none found
 
     const routesDir = path.join(env.tmpDir, "routes");
@@ -69,7 +79,10 @@ describe("CLI: cache", () => {
   });
 
   it("cache clear → cache file deleted, cleared confirmation", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     await seedCache(env.cachePath, "test-app");
 
     const routesDir = path.join(env.tmpDir, "routes");
@@ -90,7 +103,10 @@ describe("CLI: cache", () => {
   });
 
   it("cache clear then show → 'no cache' message", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     await seedCache(env.cachePath, "test-app");
 
     const routesDir = path.join(env.tmpDir, "routes");

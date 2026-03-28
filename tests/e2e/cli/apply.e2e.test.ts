@@ -1,13 +1,17 @@
 // tests/e2e/cli/apply.e2e.test.ts
-import { describe, it, expect, afterEach, beforeAll, afterAll } from "vitest";
-import path from "node:path";
+
 import fs from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { runCLI } from "../helpers/cli-runner.js";
-import { writeFetchRoutes } from "../helpers/cli-routes.js";
-import { createTestArtifacts } from "../helpers/artifacts.js";
 import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { createTestArtifacts, TAR_NAME } from "../helpers/artifacts.js";
+import { writeFetchRoutes } from "../helpers/cli-routes.js";
+import { runCLI } from "../helpers/cli-runner.js";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(__dirname, "../fixtures/servers");
@@ -19,7 +23,9 @@ const githubLatest = JSON.parse(
 let sharedArtifactDir: string;
 
 beforeAll(async () => {
-  sharedArtifactDir = await fs.mkdtemp(path.join(os.tmpdir(), "e2e-cli-apply-art-"));
+  sharedArtifactDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), "e2e-cli-apply-art-"),
+  );
   await createTestArtifacts(sharedArtifactDir);
 });
 
@@ -39,13 +45,16 @@ describe("CLI: apply", () => {
     // from the SHA256SUMS asset in the release). So autoUpdate() returns kind="failed"
     // with CHECKSUM_MISSING. The CLI emits the JSON and exits 0 in --json mode.
     // This test verifies: CLI handles the failure gracefully (JSON output, exit 0).
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await fs.mkdir(routesDir, { recursive: true });
 
     // Copy artifacts into routes dir in case the pipeline reaches download
     await fs.copyFile(
-      path.join(sharedArtifactDir, "test-app-v2.0.0-darwin-arm64.tar.gz"),
+      path.join(sharedArtifactDir, TAR_NAME),
       path.join(routesDir, "artifact.tar.gz"),
     );
     await fs.copyFile(
@@ -79,12 +88,17 @@ describe("CLI: apply", () => {
     expect(result.exitCode).toBe(0);
     const json = JSON.parse(result.stdout);
     // Native apply either succeeds or fails gracefully with a structured result
-    expect(["success", "needs-restart", "failed", "up-to-date"]).toContain(json.kind);
+    expect(["success", "needs-restart", "failed", "up-to-date"]).toContain(
+      json.kind,
+    );
     expect(json.kind).toBeDefined();
   });
 
   it("apply --json npm-global delegate print-only → command string, exit 0", async () => {
-    env = await createTestEnvironment({ channel: "npm-global", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "npm-global",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {
@@ -142,7 +156,9 @@ describe("CLI: apply", () => {
     env = await createTestEnvironment({
       channel: "npm-global",
       currentVersion: "1.0.0",
-      mockBinBehavior: { npm: { exitCode: 1, stderr: "npm ERR! install failed" } },
+      mockBinBehavior: {
+        npm: { exitCode: 1, stderr: "npm ERR! install failed" },
+      },
     });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
@@ -175,7 +191,10 @@ describe("CLI: apply", () => {
   });
 
   it("apply --json up-to-date → skip message", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "2.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "2.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {
@@ -193,6 +212,8 @@ describe("CLI: apply", () => {
     expect(result.exitCode).toBe(0);
     const json = JSON.parse(result.stdout);
     // up-to-date: kind=up-to-date or message about no update
-    expect(json.kind === "up-to-date" || typeof json.message === "string").toBe(true);
+    expect(json.kind === "up-to-date" || typeof json.message === "string").toBe(
+      true,
+    );
   });
 });

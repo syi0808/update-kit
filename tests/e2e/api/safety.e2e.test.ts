@@ -1,17 +1,23 @@
 // tests/e2e/api/safety.e2e.test.ts
-import { describe, it, expect, afterEach } from "vitest";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { setupFetchMock } from "../helpers/fetch-mock.js";
-import { createTestArtifacts } from "../helpers/artifacts.js";
+
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { afterEach, describe, expect, it } from "vitest";
+import { createTestArtifacts, TAR_NAME } from "../helpers/artifacts.js";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
+import { setupFetchMock } from "../helpers/fetch-mock.js";
 
 const { UpdateKit } = await import("../../../dist/index.mjs");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(__dirname, "../fixtures/servers");
-const githubLatest = JSON.parse(await fs.readFile(path.join(fixturesDir, "github-latest.json"), "utf-8"));
+const githubLatest = JSON.parse(
+  await fs.readFile(path.join(fixturesDir, "github-latest.json"), "utf-8"),
+);
 
 describe("E2E: Safety Policies", () => {
   let env: TestEnvironment | undefined;
@@ -89,7 +95,10 @@ describe("E2E: Safety Policies", () => {
       mockBinBehavior: { npm: { stdout: "/some/other/path" } },
     });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -153,7 +162,10 @@ describe("E2E: Safety Policies", () => {
   it("autoUpdate never throws, returns kind: 'failed' on error", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
       // Download URL will fail
       {
         url: /example\.com\/.*\.tar\.gz/,
@@ -169,14 +181,16 @@ describe("E2E: Safety Policies", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
       customPlanResolver: () => ({
         type: "native-in-place",
-        downloadUrl: "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+        downloadUrl: `https://example.com/${TAR_NAME}`,
       }),
     });
 
     // autoUpdate should never throw — always returns an ApplyResult
     const result = await kit.autoUpdate({ skipChecksum: true });
     expect(result).toBeDefined();
-    expect(["failed", "up-to-date", "success", "needs-restart"]).toContain(result.kind);
+    expect(["failed", "up-to-date", "success", "needs-restart"]).toContain(
+      result.kind,
+    );
   });
 
   it("atomic replace: original binary is preserved on archive extraction failure", async () => {
@@ -189,7 +203,7 @@ describe("E2E: Safety Policies", () => {
     const corruptData = Buffer.from([0x1f, 0x8b, 0x08, 0x00, 0xff, 0xff]);
     fetchMock = setupFetchMock([
       {
-        url: "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+        url: `https://example.com/${TAR_NAME}`,
         response: { status: 200, body: corruptData },
       },
     ]);
@@ -205,7 +219,7 @@ describe("E2E: Safety Policies", () => {
     const plan = {
       kind: {
         type: "native-in-place" as const,
-        downloadUrl: "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+        downloadUrl: `https://example.com/${TAR_NAME}`,
       },
       fromVersion: "1.0.0",
       toVersion: "2.0.0",

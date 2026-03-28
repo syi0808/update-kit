@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export interface TestEnvironment {
@@ -15,7 +15,14 @@ export interface TestEnvironment {
   cleanup(): Promise<void>;
 }
 
-export type ChannelType = "native" | "npm-global" | "brew-cask" | "unmanaged" | "apt" | "choco" | "custom";
+export type ChannelType =
+  | "native"
+  | "npm-global"
+  | "brew-cask"
+  | "unmanaged"
+  | "apt"
+  | "choco"
+  | "custom";
 
 export interface MockBinBehavior {
   exitCode?: number;
@@ -60,7 +67,18 @@ export async function createTestEnvironment(
 
   // Set up mock binaries
   const mockSrc = await fs.readFile(MOCK_COMMAND_SRC, "utf-8");
-  const binNames = ["brew", "npm", "npx", "apt", "apt-get", "yum", "dnf", "choco", "winget", "scoop"];
+  const binNames = [
+    "brew",
+    "npm",
+    "npx",
+    "apt",
+    "apt-get",
+    "yum",
+    "dnf",
+    "choco",
+    "winget",
+    "scoop",
+  ];
   for (const bin of binNames) {
     const binPath = path.join(binDir, bin);
     await fs.writeFile(binPath, mockSrc, { mode: 0o755 });
@@ -142,9 +160,10 @@ export async function createTestEnvironment(
   // Apply mock behavior: primary bin for this channel takes precedence,
   // then fall back to the first explicitly provided bin override.
   const primaryBin = getPrimaryBin(channel);
-  const activeBin = (primaryBin && mockBinBehavior[primaryBin])
-    ? primaryBin
-    : Object.keys(mockBinBehavior)[0];
+  const activeBin =
+    primaryBin && mockBinBehavior[primaryBin]
+      ? primaryBin
+      : Object.keys(mockBinBehavior)[0];
   if (activeBin && mockBinBehavior[activeBin]) {
     const b = mockBinBehavior[activeBin];
     if (b.exitCode !== undefined) env.MOCK_EXIT_CODE = String(b.exitCode);
@@ -170,7 +189,17 @@ export async function createTestEnvironment(
   // Apply env vars to process.env so that in-process API tests pick up the
   // receipt file and mock binaries (brew, npm, etc.) inherit the right config.
   // Safe because pool: 'forks' runs each test file in its own process.
-  const APPLIED_KEYS = ["HOME", "PATH", "XDG_CONFIG_HOME", "XDG_CACHE_HOME", "MOCK_CALL_LOG", "MOCK_EXIT_CODE", "MOCK_STDOUT", "MOCK_STDERR", "MOCK_DELAY_MS"] as const;
+  const APPLIED_KEYS = [
+    "HOME",
+    "PATH",
+    "XDG_CONFIG_HOME",
+    "XDG_CACHE_HOME",
+    "MOCK_CALL_LOG",
+    "MOCK_EXIT_CODE",
+    "MOCK_STDOUT",
+    "MOCK_STDERR",
+    "MOCK_DELAY_MS",
+  ] as const;
   const originals: Partial<Record<string, string>> = {};
   for (const key of APPLIED_KEYS) {
     originals[key] = process.env[key];
@@ -213,10 +242,15 @@ export async function createTestEnvironment(
 
 function getPrimaryBin(channel: ChannelType): string | null {
   switch (channel) {
-    case "npm-global": return "npm";
-    case "brew-cask": return "brew";
-    case "apt": return "apt";
-    case "choco": return "choco";
-    default: return null;
+    case "npm-global":
+      return "npm";
+    case "brew-cask":
+      return "brew";
+    case "apt":
+      return "apt";
+    case "choco":
+      return "choco";
+    default:
+      return null;
   }
 }

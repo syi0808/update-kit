@@ -1,11 +1,15 @@
 // tests/e2e/cli/doctor.e2e.test.ts
-import { describe, it, expect, afterEach } from "vitest";
-import path from "node:path";
+
 import fs from "node:fs/promises";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { runCLI } from "../helpers/cli-runner.js";
+import { afterEach, describe, expect, it } from "vitest";
 import { writeFetchRoutes } from "../helpers/cli-routes.js";
+import { runCLI } from "../helpers/cli-runner.js";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(__dirname, "../fixtures/servers");
@@ -22,7 +26,10 @@ describe("CLI: doctor", () => {
   });
 
   it("doctor with valid config → all checks pass, exit 0", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {
@@ -43,7 +50,10 @@ describe("CLI: doctor", () => {
   });
 
   it("doctor with missing required config fields → problem identified", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
 
     // Write an invalid config missing appName
     const badConfigPath = path.join(env.tmpDir, "bad-config.json");
@@ -67,7 +77,10 @@ describe("CLI: doctor", () => {
   });
 
   it("doctor with source connectivity failure → failure shown", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     // Return 404 so source connectivity fails
     await writeFetchRoutes(routesDir, [
@@ -90,7 +103,10 @@ describe("CLI: doctor", () => {
   });
 
   it("doctor --json → structured JSON output with checks and summary", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {

@@ -1,18 +1,24 @@
 // tests/e2e/api/errors.e2e.test.ts
-import { describe, it, expect, afterEach } from "vitest";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { setupFetchMock } from "../helpers/fetch-mock.js";
-import { createTestArtifacts } from "../helpers/artifacts.js";
+
 import fs from "node:fs/promises";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { afterEach, describe, expect, it } from "vitest";
+import { createTestArtifacts, TAR_NAME } from "../helpers/artifacts.js";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
+import { setupFetchMock } from "../helpers/fetch-mock.js";
 
 const { UpdateKit } = await import("../../../dist/index.mjs");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(__dirname, "../fixtures/servers");
-const githubLatest = JSON.parse(await fs.readFile(path.join(fixturesDir, "github-latest.json"), "utf-8"));
+const githubLatest = JSON.parse(
+  await fs.readFile(path.join(fixturesDir, "github-latest.json"), "utf-8"),
+);
 
 function makeNativeInPlacePlan(downloadUrl: string, checksumUrl?: string) {
   return {
@@ -65,7 +71,7 @@ describe("E2E: Error Scenarios", () => {
     });
 
     try {
-      const plan = makeNativeInPlacePlan("https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz");
+      const plan = makeNativeInPlacePlan(`https://example.com/${TAR_NAME}`);
       const result = await kit.applyUpdate(plan);
       expect(result.kind).toBe("failed");
     } finally {
@@ -78,7 +84,9 @@ describe("E2E: Error Scenarios", () => {
 
     const origFetch = globalThis.fetch;
     globalThis.fetch = async () => {
-      throw new TypeError("fetch failed: getaddrinfo ENOTFOUND no-such-host.invalid");
+      throw new TypeError(
+        "fetch failed: getaddrinfo ENOTFOUND no-such-host.invalid",
+      );
     };
 
     const kit = new UpdateKit({
@@ -90,7 +98,9 @@ describe("E2E: Error Scenarios", () => {
     });
 
     try {
-      const plan = makeNativeInPlacePlan("https://no-such-host.invalid/test-app.tar.gz");
+      const plan = makeNativeInPlacePlan(
+        "https://no-such-host.invalid/test-app.tar.gz",
+      );
       const result = await kit.applyUpdate(plan);
       expect(result.kind).toBe("failed");
     } finally {
@@ -101,7 +111,10 @@ describe("E2E: Error Scenarios", () => {
   it("HTTP 500 on all sources → checkUpdate returns 'unknown'", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com/, response: { status: 500, body: "Internal Server Error" } },
+      {
+        url: /api\.github\.com/,
+        response: { status: 500, body: "Internal Server Error" },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -119,7 +132,10 @@ describe("E2E: Error Scenarios", () => {
   it("HTTP 403 on download → apply result kind is 'failed'", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /example\.com\/.*\.tar\.gz/, response: { status: 403, body: "Forbidden" } },
+      {
+        url: /example\.com\/.*\.tar\.gz/,
+        response: { status: 403, body: "Forbidden" },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -130,9 +146,7 @@ describe("E2E: Error Scenarios", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = makeNativeInPlacePlan(
-      "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
-    );
+    const plan = makeNativeInPlacePlan(`https://example.com/${TAR_NAME}`);
     const result = await kit.applyUpdate(plan, { skipChecksum: true });
     expect(result.kind).toBe("failed");
   });
@@ -158,9 +172,7 @@ describe("E2E: Error Scenarios", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = makeNativeInPlacePlan(
-      "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
-    );
+    const plan = makeNativeInPlacePlan(`https://example.com/${TAR_NAME}`);
     const result = await kit.applyUpdate(plan, { skipChecksum: true });
     expect(result.kind).toBe("failed");
   });
@@ -186,9 +198,7 @@ describe("E2E: Error Scenarios", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = makeNativeInPlacePlan(
-      "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
-    );
+    const plan = makeNativeInPlacePlan(`https://example.com/${TAR_NAME}`);
     const result = await kit.applyUpdate(plan, { skipChecksum: true });
     expect(result.kind).toBe("failed");
   });
@@ -202,15 +212,16 @@ describe("E2E: Error Scenarios", () => {
 
     const artifactsDir = path.join(env.tmpDir, "artifacts");
     await createTestArtifacts(artifactsDir);
-    const tarPath = path.join(artifactsDir, "test-app-v2.0.0-darwin-arm64.tar.gz");
+    const tarPath = path.join(artifactsDir, TAR_NAME);
     const tarContent = await fs.readFile(tarPath);
 
     // SHA256SUMS that doesn't include our target filename
-    const sha256sums = "aabbccdd" + "a".repeat(56) + "  some-other-file.tar.gz\n";
+    const sha256sums =
+      "aabbccdd" + "a".repeat(56) + "  some-other-file.tar.gz\n";
 
     fetchMock = setupFetchMock([
       {
-        url: "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+        url: `https://example.com/${TAR_NAME}`,
         response: { status: 200, body: tarContent },
       },
       {
@@ -228,7 +239,7 @@ describe("E2E: Error Scenarios", () => {
     });
 
     const plan = makeNativeInPlacePlan(
-      "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+      `https://example.com/${TAR_NAME}`,
       "https://example.com/SHA256SUMS",
     );
     const result = await kit.applyUpdate(plan);
@@ -240,12 +251,12 @@ describe("E2E: Error Scenarios", () => {
 
     const artifactsDir = path.join(env.tmpDir, "artifacts");
     await createTestArtifacts(artifactsDir);
-    const tarPath = path.join(artifactsDir, "test-app-v2.0.0-darwin-arm64.tar.gz");
+    const tarPath = path.join(artifactsDir, TAR_NAME);
     const tarContent = await fs.readFile(tarPath);
 
     fetchMock = setupFetchMock([
       {
-        url: "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+        url: `https://example.com/${TAR_NAME}`,
         response: { status: 200, body: tarContent },
       },
       {
@@ -263,7 +274,7 @@ describe("E2E: Error Scenarios", () => {
     });
 
     const plan = makeNativeInPlacePlan(
-      "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+      `https://example.com/${TAR_NAME}`,
       "https://example.com/SHA256SUMS",
     );
     const result = await kit.applyUpdate(plan);
@@ -275,16 +286,16 @@ describe("E2E: Error Scenarios", () => {
 
     const artifactsDir = path.join(env.tmpDir, "artifacts");
     await createTestArtifacts(artifactsDir);
-    const tarPath = path.join(artifactsDir, "test-app-v2.0.0-darwin-arm64.tar.gz");
+    const tarPath = path.join(artifactsDir, TAR_NAME);
     const tarContent = await fs.readFile(tarPath);
 
     // Provide wrong hash
     const wrongHash = "a".repeat(64);
-    const sha256sums = `${wrongHash}  test-app-v2.0.0-darwin-arm64.tar.gz\n`;
+    const sha256sums = `${wrongHash}  ${TAR_NAME}\n`;
 
     fetchMock = setupFetchMock([
       {
-        url: "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+        url: `https://example.com/${TAR_NAME}`,
         response: { status: 200, body: tarContent },
       },
       {
@@ -302,7 +313,7 @@ describe("E2E: Error Scenarios", () => {
     });
 
     const plan = makeNativeInPlacePlan(
-      "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+      `https://example.com/${TAR_NAME}`,
       "https://example.com/SHA256SUMS",
     );
     const result = await kit.applyUpdate(plan);
@@ -317,7 +328,7 @@ describe("E2E: Error Scenarios", () => {
 
     const artifactsDir = path.join(env.tmpDir, "artifacts");
     await createTestArtifacts(artifactsDir);
-    const tarPath = path.join(artifactsDir, "test-app-v2.0.0-darwin-arm64.tar.gz");
+    const tarPath = path.join(artifactsDir, TAR_NAME);
     const tarContent = await fs.readFile(tarPath);
 
     // Unparseable format (not a valid SHA256SUMS format)
@@ -325,7 +336,7 @@ describe("E2E: Error Scenarios", () => {
 
     fetchMock = setupFetchMock([
       {
-        url: "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+        url: `https://example.com/${TAR_NAME}`,
         response: { status: 200, body: tarContent },
       },
       {
@@ -343,7 +354,7 @@ describe("E2E: Error Scenarios", () => {
     });
 
     const plan = makeNativeInPlacePlan(
-      "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+      `https://example.com/${TAR_NAME}`,
       "https://example.com/SHA256SUMS",
     );
     const result = await kit.applyUpdate(plan);
@@ -356,11 +367,13 @@ describe("E2E: Error Scenarios", () => {
 
   it("corrupted tar.gz (invalid gzip bytes) → apply result kind is 'failed'", async () => {
     env = await createTestEnvironment({ channel: "native" });
-    const corruptData = Buffer.from([0x1f, 0x8b, 0x08, 0x00, 0xff, 0xff, 0x00, 0x00]);
+    const corruptData = Buffer.from([
+      0x1f, 0x8b, 0x08, 0x00, 0xff, 0xff, 0x00, 0x00,
+    ]);
 
     fetchMock = setupFetchMock([
       {
-        url: "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+        url: `https://example.com/${TAR_NAME}`,
         response: { status: 200, body: corruptData },
       },
     ]);
@@ -373,9 +386,7 @@ describe("E2E: Error Scenarios", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = makeNativeInPlacePlan(
-      "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
-    );
+    const plan = makeNativeInPlacePlan(`https://example.com/${TAR_NAME}`);
     const result = await kit.applyUpdate(plan, { skipChecksum: true });
     expect(result.kind).toBe("failed");
   });
@@ -383,7 +394,10 @@ describe("E2E: Error Scenarios", () => {
   it("read-only cache dir → checkUpdate still works (cache errors are non-fatal)", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     await fs.chmod(env.cachePath, 0o444);
@@ -411,12 +425,12 @@ describe("E2E: Error Scenarios", () => {
 
     const artifactsDir = path.join(env.tmpDir, "artifacts");
     await createTestArtifacts(artifactsDir);
-    const tarPath = path.join(artifactsDir, "test-app-v2.0.0-darwin-arm64.tar.gz");
+    const tarPath = path.join(artifactsDir, TAR_NAME);
     const tarContent = await fs.readFile(tarPath);
 
     fetchMock = setupFetchMock([
       {
-        url: "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+        url: `https://example.com/${TAR_NAME}`,
         response: { status: 200, body: tarContent },
       },
     ]);
@@ -433,9 +447,7 @@ describe("E2E: Error Scenarios", () => {
         sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
       });
 
-      const plan = makeNativeInPlacePlan(
-        "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
-      );
+      const plan = makeNativeInPlacePlan(`https://example.com/${TAR_NAME}`);
       const result = await kit.applyUpdate(plan, { skipChecksum: true });
       expect(result.kind).toBe("failed");
     } finally {
@@ -450,7 +462,10 @@ describe("E2E: Error Scenarios", () => {
   it("delegate command not found → apply result kind is 'failed'", async () => {
     env = await createTestEnvironment({ channel: "npm-global" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     // Remove npm from the mock bins so it can't be found
@@ -494,10 +509,18 @@ describe("E2E: Error Scenarios", () => {
   it("npm EACCES → apply result kind is 'failed'", async () => {
     env = await createTestEnvironment({
       channel: "npm-global",
-      mockBinBehavior: { npm: { exitCode: 1, stderr: "npm ERR! code EACCES\nnpm ERR! permission denied" } },
+      mockBinBehavior: {
+        npm: {
+          exitCode: 1,
+          stderr: "npm ERR! code EACCES\nnpm ERR! permission denied",
+        },
+      },
     });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -549,7 +572,10 @@ describe("E2E: Error Scenarios", () => {
     // applyDelegateUpdate rejects on timeout — wrap in try/catch
     let result: { kind: string } | undefined;
     try {
-      result = await applyDelegateUpdate(plan, { mode: "execute", timeoutMs: 100 });
+      result = await applyDelegateUpdate(plan, {
+        mode: "execute",
+        timeoutMs: 100,
+      });
     } catch (err) {
       // Timeout throws UpdateKitError — treat as failed
       result = { kind: "failed" };

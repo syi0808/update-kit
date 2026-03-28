@@ -1,16 +1,22 @@
 // tests/e2e/api/hooks.e2e.test.ts
-import { describe, it, expect, afterEach } from "vitest";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { setupFetchMock } from "../helpers/fetch-mock.js";
+
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
+import { setupFetchMock } from "../helpers/fetch-mock.js";
 
 const { UpdateKit } = await import("../../../dist/index.mjs");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(__dirname, "../fixtures/servers");
-const githubLatest = JSON.parse(await fs.readFile(path.join(fixturesDir, "github-latest.json"), "utf-8"));
+const githubLatest = JSON.parse(
+  await fs.readFile(path.join(fixturesDir, "github-latest.json"), "utf-8"),
+);
 
 describe("E2E: Hooks", () => {
   let env: TestEnvironment | undefined;
@@ -46,7 +52,10 @@ describe("E2E: Hooks", () => {
   it("beforeCheck returns true → check proceeds normally", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     let beforeCheckCalled = false;
@@ -72,7 +81,10 @@ describe("E2E: Hooks", () => {
   it("beforeApply returns false → apply is skipped", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -96,7 +108,10 @@ describe("E2E: Hooks", () => {
   it("beforeApply receives plan object with kind, fromVersion, toVersion", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     let receivedPlan: unknown;
@@ -130,7 +145,10 @@ describe("E2E: Hooks", () => {
   it("afterApply receives result object with kind", async () => {
     env = await createTestEnvironment({ channel: "npm-global" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     let receivedResult: unknown;
@@ -200,7 +218,10 @@ describe("E2E: Hooks", () => {
   it("async hooks (Promise-returning) work correctly", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     const callLog: string[] = [];

@@ -1,10 +1,14 @@
 // tests/e2e/cli/detect.e2e.test.ts
-import { describe, it, expect, afterEach } from "vitest";
+
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { runCLI } from "../helpers/cli-runner.js";
+import { afterEach, describe, expect, it } from "vitest";
 import { writeFetchRoutes } from "../helpers/cli-routes.js";
+import { runCLI } from "../helpers/cli-runner.js";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

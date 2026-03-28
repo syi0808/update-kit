@@ -1,7 +1,7 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { createTestEnvironment, type TestEnvironment } from "../environment.js";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
+import { createTestEnvironment, type TestEnvironment } from "../environment.js";
 
 describe("createTestEnvironment", () => {
   let env: TestEnvironment | undefined;
@@ -14,7 +14,12 @@ describe("createTestEnvironment", () => {
     env = await createTestEnvironment({ channel: "native" });
 
     // Check receipt exists
-    const receiptPath = path.join(env.tmpDir, ".config", "test-app", "install-receipt.json");
+    const receiptPath = path.join(
+      env.tmpDir,
+      ".config",
+      "test-app",
+      "install-receipt.json",
+    );
     const receipt = JSON.parse(await fs.readFile(receiptPath, "utf-8"));
     expect(receipt.appName).toBe("test-app");
     expect(receipt.channel).toBe("native");
@@ -55,7 +60,10 @@ describe("createTestEnvironment", () => {
   });
 
   it("respects currentVersion override", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "3.5.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "3.5.0",
+    });
 
     const config = JSON.parse(await fs.readFile(env.configPath, "utf-8"));
     expect(config.currentVersion).toBe("3.5.0");
@@ -64,7 +72,9 @@ describe("createTestEnvironment", () => {
   it("provides PATH with binDir first", async () => {
     env = await createTestEnvironment({ channel: "npm-global" });
 
-    expect(env.env.PATH).toMatch(new RegExp(`^${env.binDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+    expect(env.env.PATH).toMatch(
+      new RegExp(`^${env.binDir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`),
+    );
   });
 
   it("cleanup removes tmpDir", async () => {

@@ -25,7 +25,12 @@ if (mockDir) {
   }));
 
   globalThis.fetch = async (input, init) => {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : input.url;
 
     const route = compiledRoutes.find((r) => r.pattern.test(url));
     if (!route) {
@@ -41,12 +46,18 @@ if (mockDir) {
         bodyInit = readFileSync(filePath, "utf-8");
       }
     } else if (route.body !== null) {
-      bodyInit = typeof route.body === "string" ? route.body : JSON.stringify(route.body);
+      bodyInit =
+        typeof route.body === "string"
+          ? route.body
+          : JSON.stringify(route.body);
     }
 
     const headers = new Headers(route.headers);
     if (bodyInit && !headers.has("content-length")) {
-      const len = typeof bodyInit === "string" ? Buffer.byteLength(bodyInit) : bodyInit.length;
+      const len =
+        typeof bodyInit === "string"
+          ? Buffer.byteLength(bodyInit)
+          : bodyInit.length;
       headers.set("content-length", String(len));
     }
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupFetchMock } from "../fetch-mock.js";
 
 describe("setupFetchMock", () => {
@@ -10,7 +10,10 @@ describe("setupFetchMock", () => {
 
   it("intercepts fetch matching a string URL", async () => {
     mock = setupFetchMock([
-      { url: "https://api.example.com/data", response: { body: { version: "2.0.0" } } },
+      {
+        url: "https://api.example.com/data",
+        response: { body: { version: "2.0.0" } },
+      },
     ]);
     const res = await fetch("https://api.example.com/data");
     expect(res.ok).toBe(true);
@@ -20,9 +23,14 @@ describe("setupFetchMock", () => {
 
   it("intercepts fetch matching a RegExp URL", async () => {
     mock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: { tag_name: "v2.0.0" } } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: { tag_name: "v2.0.0" } },
+      },
     ]);
-    const res = await fetch("https://api.github.com/repos/owner/repo/releases/latest");
+    const res = await fetch(
+      "https://api.github.com/repos/owner/repo/releases/latest",
+    );
     const json = await res.json();
     expect(json.tag_name).toBe("v2.0.0");
   });
@@ -31,7 +39,11 @@ describe("setupFetchMock", () => {
     mock = setupFetchMock([
       {
         url: "https://example.com/notfound",
-        response: { status: 404, headers: { "x-custom": "val" }, body: "not found" },
+        response: {
+          status: 404,
+          headers: { "x-custom": "val" },
+          body: "not found",
+        },
       },
     ]);
     const res = await fetch("https://example.com/notfound");
@@ -42,13 +54,13 @@ describe("setupFetchMock", () => {
 
   it("throws on unmatched URLs", async () => {
     mock = setupFetchMock([]);
-    await expect(fetch("https://unknown.com/path")).rejects.toThrow(/No fetch mock route matched/);
+    await expect(fetch("https://unknown.com/path")).rejects.toThrow(
+      /No fetch mock route matched/,
+    );
   });
 
   it("records calls for assertion", async () => {
-    mock = setupFetchMock([
-      { url: /.*/, response: { body: "ok" } },
-    ]);
+    mock = setupFetchMock([{ url: /.*/, response: { body: "ok" } }]);
     await fetch("https://a.com/1");
     await fetch("https://b.com/2", { method: "POST" });
     const calls = mock.calls();
@@ -70,7 +82,13 @@ describe("setupFetchMock", () => {
   it("supports binary Buffer body", async () => {
     const data = Buffer.from([0x1f, 0x8b, 0x08]);
     mock = setupFetchMock([
-      { url: /\.tar\.gz$/, response: { body: data, headers: { "content-type": "application/gzip" } } },
+      {
+        url: /\.tar\.gz$/,
+        response: {
+          body: data,
+          headers: { "content-type": "application/gzip" },
+        },
+      },
     ]);
     const res = await fetch("https://example.com/app.tar.gz");
     const buf = Buffer.from(await res.arrayBuffer());
@@ -80,7 +98,10 @@ describe("setupFetchMock", () => {
 
   it("supports ETag/304 via response status", async () => {
     mock = setupFetchMock([
-      { url: "https://api.example.com/check", response: { status: 304, headers: { etag: '"abc"' } } },
+      {
+        url: "https://api.example.com/check",
+        response: { status: 304, headers: { etag: '"abc"' } },
+      },
     ]);
     const res = await fetch("https://api.example.com/check", {
       headers: { "if-none-match": '"abc"' },

@@ -1,5 +1,8 @@
-import { describe, it, expect, afterEach } from "vitest";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
 
 const { UpdateKit } = await import("../../../dist/index.mjs");
 
@@ -23,7 +26,9 @@ describe("E2E: Detection", () => {
     const detection = await kit.detectInstall();
     expect(detection.channel).toBe("native");
     expect(detection.confidence).toBe("high");
-    expect(detection.evidence.some((e: any) => e.source === "receipt_file")).toBe(true);
+    expect(
+      detection.evidence.some((e: any) => e.source === "receipt_file"),
+    ).toBe(true);
   });
 
   it("detects brew-cask with high confidence when brew list succeeds", async () => {
@@ -45,7 +50,9 @@ describe("E2E: Detection", () => {
   it("detects brew-cask with medium confidence when brew list fails", async () => {
     env = await createTestEnvironment({
       channel: "brew-cask",
-      mockBinBehavior: { brew: { exitCode: 1, stderr: "Error: Cask not found" } },
+      mockBinBehavior: {
+        brew: { exitCode: 1, stderr: "Error: Cask not found" },
+      },
     });
     const kit = new UpdateKit({
       appName: "test-app",

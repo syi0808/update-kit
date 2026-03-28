@@ -1,19 +1,49 @@
 // tests/e2e/api/pipeline.e2e.test.ts
-import { describe, it, expect, afterEach } from "vitest";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { setupFetchMock } from "../helpers/fetch-mock.js";
-import { createTestArtifacts } from "../helpers/artifacts.js";
+
 import fs from "node:fs/promises";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  createTestArtifacts,
+  PLATFORM_TAG,
+  TAR_NAME,
+} from "../helpers/artifacts.js";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
+import { setupFetchMock } from "../helpers/fetch-mock.js";
 
 const { UpdateKit } = await import("../../../dist/index.mjs");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(__dirname, "../fixtures/servers");
-const githubLatest = JSON.parse(await fs.readFile(path.join(fixturesDir, "github-latest.json"), "utf-8"));
-const npmRegistry = JSON.parse(await fs.readFile(path.join(fixturesDir, "npm-registry.json"), "utf-8"));
+const githubLatestRaw = JSON.parse(
+  await fs.readFile(path.join(fixturesDir, "github-latest.json"), "utf-8"),
+);
+const npmRegistry = JSON.parse(
+  await fs.readFile(path.join(fixturesDir, "npm-registry.json"), "utf-8"),
+);
+
+// Override assets to match current platform so asset selection works on any OS
+const githubLatest = {
+  ...githubLatestRaw,
+  assets: [
+    {
+      name: TAR_NAME,
+      browser_download_url: `https://github.com/test-org/test-app/releases/download/v2.0.0/${TAR_NAME}`,
+      size: 1024,
+    },
+    {
+      name: "SHA256SUMS",
+      browser_download_url:
+        "https://github.com/test-org/test-app/releases/download/v2.0.0/SHA256SUMS",
+      size: 256,
+    },
+  ],
+};
 
 describe("E2E: Pipeline", () => {
   let env: TestEnvironment | undefined;
@@ -59,7 +89,10 @@ describe("E2E: Pipeline", () => {
   });
 
   it("checkAndNotify returns null when cache has same version", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "2.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "2.0.0",
+    });
 
     const cacheEntryDir = path.join(env.cachePath, "test-app");
     await fs.mkdir(cacheEntryDir, { recursive: true });
@@ -110,13 +143,18 @@ describe("E2E: Pipeline", () => {
     env = await createTestEnvironment({ channel: "native" });
 
     // Create artifacts for download
-    const artDir = await fs.mkdtemp(path.join(os.tmpdir(), "e2e-pipeline-art-"));
+    const artDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "e2e-pipeline-art-"),
+    );
     await createTestArtifacts(artDir);
-    const tarGz = await fs.readFile(path.join(artDir, "test-app-v2.0.0-darwin-arm64.tar.gz"));
+    const tarGz = await fs.readFile(path.join(artDir, TAR_NAME));
     const sums = await fs.readFile(path.join(artDir, "SHA256SUMS"), "utf-8");
 
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
       { url: /\.tar\.gz$/, response: { body: tarGz } },
       { url: /SHA256SUMS$/, response: { body: sums } },
     ]);
@@ -150,7 +188,10 @@ describe("E2E: Pipeline", () => {
 
     // npm fetchLatest hits /{packageName}/latest — expects { version: "2.0.0" }
     fetchMock = setupFetchMock([
-      { url: /registry\.npmjs\.org\/.*\/latest/, response: { body: { version: "2.0.0" } } },
+      {
+        url: /registry\.npmjs\.org\/.*\/latest/,
+        response: { body: { version: "2.0.0" } },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -176,7 +217,9 @@ describe("E2E: Pipeline", () => {
       mockBinBehavior: { brew: { exitCode: 0, stdout: "upgraded" } },
     });
 
-    const brewCask = JSON.parse(await fs.readFile(path.join(fixturesDir, "brew-cask.json"), "utf-8"));
+    const brewCask = JSON.parse(
+      await fs.readFile(path.join(fixturesDir, "brew-cask.json"), "utf-8"),
+    );
     fetchMock = setupFetchMock([
       { url: /formulae\.brew\.sh\//, response: { body: brewCask } },
     ]);
@@ -202,7 +245,10 @@ describe("E2E: Pipeline", () => {
     env = await createTestEnvironment({ channel: "unmanaged" });
 
     const githubNoAssets = JSON.parse(
-      await fs.readFile(path.join(fixturesDir, "github-latest-no-assets.json"), "utf-8"),
+      await fs.readFile(
+        path.join(fixturesDir, "github-latest-no-assets.json"),
+        "utf-8",
+      ),
     );
     fetchMock = setupFetchMock([
       { url: /api\.github\.com/, response: { body: githubNoAssets } },
@@ -222,7 +268,10 @@ describe("E2E: Pipeline", () => {
   });
 
   it("autoUpdate: already latest → up-to-date", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "2.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "2.0.0",
+    });
 
     fetchMock = setupFetchMock([
       { url: /api\.github\.com/, response: { body: githubLatest } }, // v2.0.0
@@ -243,9 +292,11 @@ describe("E2E: Pipeline", () => {
   it("autoUpdate: beforeApply returning false aborts", async () => {
     env = await createTestEnvironment({ channel: "native" });
 
-    const artDir = await fs.mkdtemp(path.join(os.tmpdir(), "e2e-pipeline-abort-"));
+    const artDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), "e2e-pipeline-abort-"),
+    );
     await createTestArtifacts(artDir);
-    const tarGz = await fs.readFile(path.join(artDir, "test-app-v2.0.0-darwin-arm64.tar.gz"));
+    const tarGz = await fs.readFile(path.join(artDir, TAR_NAME));
 
     fetchMock = setupFetchMock([
       { url: /api\.github\.com/, response: { body: githubLatest } },
@@ -278,7 +329,10 @@ describe("E2E: Pipeline", () => {
 
     // npm fetchLatest hits /{packageName}/latest — expects { version: "2.0.0" }
     fetchMock = setupFetchMock([
-      { url: /registry\.npmjs\.org\/.*\/latest/, response: { body: { version: "2.0.0" } } },
+      {
+        url: /registry\.npmjs\.org\/.*\/latest/,
+        response: { body: { version: "2.0.0" } },
+      },
     ]);
 
     let hookResult: any = null;
@@ -359,7 +413,7 @@ describe("E2E: Pipeline", () => {
 
     const artDir = await fs.mkdtemp(path.join(os.tmpdir(), "e2e-switch-"));
     await createTestArtifacts(artDir);
-    const tarGz = await fs.readFile(path.join(artDir, "test-app-v2.0.0-darwin-arm64.tar.gz"));
+    const tarGz = await fs.readFile(path.join(artDir, TAR_NAME));
 
     fetchMock = setupFetchMock([
       { url: /\.tar\.gz$/, response: { body: tarGz } },
@@ -377,8 +431,8 @@ describe("E2E: Pipeline", () => {
       skipChecksum: true,
       assets: [
         {
-          name: "test-app-v2.0.0-darwin-arm64.tar.gz",
-          url: "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+          name: TAR_NAME,
+          url: `https://example.com/${TAR_NAME}`,
         },
       ],
     });
@@ -442,12 +496,21 @@ describe("E2E: Pipeline", () => {
 
     // GitHub releases API with Link header for pagination
     const githubVersions = JSON.parse(
-      await fs.readFile(path.join(fixturesDir, "github-versions.json"), "utf-8"),
+      await fs.readFile(
+        path.join(fixturesDir, "github-versions.json"),
+        "utf-8",
+      ),
     );
 
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\?/, response: { body: githubVersions } },
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\?/,
+        response: { body: githubVersions },
+      },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     const kit = new UpdateKit({

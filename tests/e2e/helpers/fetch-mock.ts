@@ -18,13 +18,25 @@ export function setupFetchMock(routes: FetchMockRoute[]) {
   const originalFetch = globalThis.fetch;
   const calls: FetchCall[] = [];
 
-  globalThis.fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
-    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-    const method = init?.method ?? (input instanceof Request ? input.method : "GET");
-    const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+  globalThis.fetch = async (
+    input: string | URL | Request,
+    init?: RequestInit,
+  ): Promise<Response> => {
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : input.url;
+    const method =
+      init?.method ?? (input instanceof Request ? input.method : "GET");
+    const headers = new Headers(
+      init?.headers ?? (input instanceof Request ? input.headers : undefined),
+    );
 
     // Respect AbortSignal: throw if already aborted before routing
-    const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
+    const signal =
+      init?.signal ?? (input instanceof Request ? input.signal : undefined);
     if (signal?.aborted) {
       const err = new DOMException("The operation was aborted.", "AbortError");
       throw err;
@@ -33,8 +45,10 @@ export function setupFetchMock(routes: FetchMockRoute[]) {
     calls.push({ url, method, headers });
 
     const route = routes.find((r) => {
-      const urlMatch = typeof r.url === "string" ? url === r.url : r.url.test(url);
-      const methodMatch = !r.method || r.method.toUpperCase() === method.toUpperCase();
+      const urlMatch =
+        typeof r.url === "string" ? url === r.url : r.url.test(url);
+      const methodMatch =
+        !r.method || r.method.toUpperCase() === method.toUpperCase();
       return urlMatch && methodMatch;
     });
 

@@ -1,16 +1,23 @@
 // tests/e2e/api/custom.e2e.test.ts
-import { describe, it, expect, afterEach } from "vitest";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { setupFetchMock } from "../helpers/fetch-mock.js";
+
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { afterEach, describe, expect, it } from "vitest";
+import { TAR_NAME } from "../helpers/artifacts.js";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
+import { setupFetchMock } from "../helpers/fetch-mock.js";
 
 const { UpdateKit } = await import("../../../dist/index.mjs");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(__dirname, "../fixtures/servers");
-const githubLatest = JSON.parse(await fs.readFile(path.join(fixturesDir, "github-latest.json"), "utf-8"));
+const githubLatest = JSON.parse(
+  await fs.readFile(path.join(fixturesDir, "github-latest.json"), "utf-8"),
+);
 
 describe("E2E: Custom Detectors and Plan Resolvers", () => {
   let env: TestEnvironment | undefined;
@@ -36,7 +43,9 @@ describe("E2E: Custom Detectors and Plan Resolvers", () => {
           detect: () => ({
             channel: "docker",
             confidence: "high",
-            evidence: [{ source: "custom", detail: "Running in Docker container" }],
+            evidence: [
+              { source: "custom", detail: "Running in Docker container" },
+            ],
           }),
         },
       ],
@@ -83,7 +92,10 @@ describe("E2E: Custom Detectors and Plan Resolvers", () => {
   it("customPlanResolver returning native-in-place → plan has native-in-place type", async () => {
     env = await createTestEnvironment({ channel: "npm-global" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -95,7 +107,7 @@ describe("E2E: Custom Detectors and Plan Resolvers", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
       customPlanResolver: () => ({
         type: "native-in-place",
-        downloadUrl: "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+        downloadUrl: `https://example.com/${TAR_NAME}`,
         checksumUrl: "https://example.com/SHA256SUMS",
       }),
     });
@@ -108,14 +120,17 @@ describe("E2E: Custom Detectors and Plan Resolvers", () => {
     expect(plan).not.toBeNull();
     expect(plan!.kind.type).toBe("native-in-place");
     if (plan!.kind.type === "native-in-place") {
-      expect(plan!.kind.downloadUrl).toBe("https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz");
+      expect(plan!.kind.downloadUrl).toBe(`https://example.com/${TAR_NAME}`);
     }
   });
 
   it("customPlanResolver returning delegate-command → plan has delegate-command type", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -148,7 +163,10 @@ describe("E2E: Custom Detectors and Plan Resolvers", () => {
   it("customPlanResolver returning manual-install → plan has manual-install type", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     const kit = new UpdateKit({

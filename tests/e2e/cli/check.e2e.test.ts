@@ -1,11 +1,15 @@
 // tests/e2e/cli/check.e2e.test.ts
-import { describe, it, expect, afterEach } from "vitest";
-import path from "node:path";
+
 import fs from "node:fs/promises";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { runCLI } from "../helpers/cli-runner.js";
+import { afterEach, describe, expect, it } from "vitest";
 import { writeFetchRoutes } from "../helpers/cli-routes.js";
+import { runCLI } from "../helpers/cli-runner.js";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(__dirname, "../fixtures/servers");
@@ -22,7 +26,10 @@ describe("CLI: check", () => {
   });
 
   it("--blocking --json returns available when update exists (GitHub)", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {
@@ -45,7 +52,10 @@ describe("CLI: check", () => {
   });
 
   it("--blocking --json returns up-to-date when current matches latest", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "2.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "2.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {
@@ -66,7 +76,10 @@ describe("CLI: check", () => {
   });
 
   it("non-blocking --json with no cache returns unknown", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     // No routes — non-blocking without cache should return unknown immediately
     await writeFetchRoutes(routesDir, []);
@@ -83,7 +96,10 @@ describe("CLI: check", () => {
   });
 
   it("--json with pre-seeded cache returns cached available result", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     // No network routes needed — cache will be returned immediately
     await writeFetchRoutes(routesDir, []);
@@ -114,7 +130,10 @@ describe("CLI: check", () => {
   });
 
   it("--background exits 0 and prints confirmation", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {
@@ -134,7 +153,10 @@ describe("CLI: check", () => {
   });
 
   it("--blocking --json returns unknown when all sources fail", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {

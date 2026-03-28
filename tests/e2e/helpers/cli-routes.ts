@@ -25,12 +25,26 @@ export async function writeFetchRoutes(
     if (r.body && !r.file) {
       const filename = `inline-${Date.now()}-${Math.random().toString(36).slice(2)}.json`;
       await fs.writeFile(path.join(dir, filename), JSON.stringify(r.body));
-      routeEntries.push({ url: r.url, file: filename, status: r.status ?? 200, headers: r.headers });
+      routeEntries.push({
+        url: r.url,
+        file: filename,
+        status: r.status ?? 200,
+        headers: r.headers,
+      });
     } else {
-      routeEntries.push({ url: r.url, file: r.file, status: r.status ?? 200, binary: r.binary, headers: r.headers });
+      routeEntries.push({
+        url: r.url,
+        file: r.file,
+        status: r.status ?? 200,
+        binary: r.binary,
+        headers: r.headers,
+      });
     }
   }
 
-  await fs.writeFile(path.join(dir, "routes.json"), JSON.stringify(routeEntries));
+  await fs.writeFile(
+    path.join(dir, "routes.json"),
+    JSON.stringify(routeEntries),
+  );
   return dir;
 }

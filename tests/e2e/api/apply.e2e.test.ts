@@ -1,11 +1,20 @@
 // tests/e2e/api/apply.e2e.test.ts
-import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { setupFetchMock } from "../helpers/fetch-mock.js";
-import { createTestArtifacts } from "../helpers/artifacts.js";
+
 import fs from "node:fs/promises";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+  BARE_NAME,
+  createTestArtifacts,
+  TAR_NAME,
+  ZIP_NAME,
+} from "../helpers/artifacts.js";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
+import { setupFetchMock } from "../helpers/fetch-mock.js";
 
 const { UpdateKit } = await import("../../../dist/index.mjs");
 
@@ -16,11 +25,16 @@ let bareBuffer: Buffer;
 let sha256sums: string;
 
 beforeAll(async () => {
-  artifactDir = await fs.mkdtemp(path.join(os.tmpdir(), "e2e-apply-artifacts-"));
+  artifactDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), "e2e-apply-artifacts-"),
+  );
   await createTestArtifacts(artifactDir);
-  tarGzBuffer = await fs.readFile(path.join(artifactDir, "test-app-v2.0.0-darwin-arm64.tar.gz"));
-  zipBuffer = await fs.readFile(path.join(artifactDir, "test-app-v2.0.0-linux-x64.zip"));
-  bareBuffer = await fs.readFile(path.join(artifactDir, "test-app-v2.0.0-bare"));
+  tarGzBuffer = await fs.readFile(path.join(artifactDir, TAR_NAME));
+  zipBuffer =
+    process.platform !== "win32"
+      ? await fs.readFile(path.join(artifactDir, ZIP_NAME))
+      : tarGzBuffer; // zip not generated on Windows; reuse tar.gz
+  bareBuffer = await fs.readFile(path.join(artifactDir, BARE_NAME));
   sha256sums = await fs.readFile(path.join(artifactDir, "SHA256SUMS"), "utf-8");
 });
 
@@ -67,7 +81,13 @@ describe("E2E: Apply", () => {
   it("native: full download → verify → extract → replace pipeline", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /\.tar\.gz$/, response: { body: tarGzBuffer, headers: { "content-type": "application/gzip" } } },
+      {
+        url: /\.tar\.gz$/,
+        response: {
+          body: tarGzBuffer,
+          headers: { "content-type": "application/gzip" },
+        },
+      },
       { url: /SHA256SUMS$/, response: { body: sha256sums } },
     ]);
 
@@ -80,7 +100,7 @@ describe("E2E: Apply", () => {
     });
 
     const plan = nativePlan(
-      "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+      `https://example.com/${TAR_NAME}`,
       "https://example.com/SHA256SUMS",
     );
     const result = await kit.applyUpdate(plan);
@@ -105,7 +125,7 @@ describe("E2E: Apply", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = nativePlan("https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz");
+    const plan = nativePlan(`https://example.com/${TAR_NAME}`);
     const result = await kit.applyUpdate(plan, { skipChecksum: true });
     expect(result.kind).toBe("success");
   });
@@ -124,7 +144,7 @@ describe("E2E: Apply", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = nativePlan("https://example.com/test-app-v2.0.0-linux-x64.zip");
+    const plan = nativePlan(`https://example.com/${ZIP_NAME}`);
     const result = await kit.applyUpdate(plan, { skipChecksum: true });
     expect(result.kind).toBe("success");
   });
@@ -164,7 +184,7 @@ describe("E2E: Apply", () => {
     });
 
     const plan = nativePlan(
-      "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+      `https://example.com/${TAR_NAME}`,
       "https://example.com/SHA256SUMS",
     );
     const result = await kit.applyUpdate(plan);
@@ -175,7 +195,12 @@ describe("E2E: Apply", () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
       { url: /\.tar\.gz$/, response: { body: tarGzBuffer } },
-      { url: /SHA256SUMS$/, response: { body: "0000000000000000000000000000000000000000000000000000000000000000  test-app-v2.0.0-darwin-arm64.tar.gz\n" } },
+      {
+        url: /SHA256SUMS$/,
+        response: {
+          body: `0000000000000000000000000000000000000000000000000000000000000000  ${TAR_NAME}\n`,
+        },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -187,13 +212,15 @@ describe("E2E: Apply", () => {
     });
 
     const plan = nativePlan(
-      "https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz",
+      `https://example.com/${TAR_NAME}`,
       "https://example.com/SHA256SUMS",
     );
     const result = await kit.applyUpdate(plan);
     expect(result.kind).toBe("failed");
     if (result.kind === "failed") {
-      expect(result.error.code || result.error.message).toMatch(/CHECKSUM_MISMATCH|checksum/i);
+      expect(result.error.code || result.error.message).toMatch(
+        /CHECKSUM_MISMATCH|checksum/i,
+      );
     }
   });
 
@@ -211,7 +238,7 @@ describe("E2E: Apply", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = nativePlan("https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz");
+    const plan = nativePlan(`https://example.com/${TAR_NAME}`);
     const result = await kit.applyUpdate(plan, { skipChecksum: true });
     expect(result.kind).toBe("failed");
   });
@@ -219,7 +246,13 @@ describe("E2E: Apply", () => {
   it("native: onProgress callback receives all phases in order", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /\.tar\.gz$/, response: { body: tarGzBuffer, headers: { "content-length": String(tarGzBuffer.length) } } },
+      {
+        url: /\.tar\.gz$/,
+        response: {
+          body: tarGzBuffer,
+          headers: { "content-length": String(tarGzBuffer.length) },
+        },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -231,7 +264,7 @@ describe("E2E: Apply", () => {
     });
 
     const phases: string[] = [];
-    const plan = nativePlan("https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz");
+    const plan = nativePlan(`https://example.com/${TAR_NAME}`);
     await kit.applyUpdate(plan, {
       skipChecksum: true,
       onProgress: (p: { phase: string }) => {
@@ -244,8 +277,12 @@ describe("E2E: Apply", () => {
     expect(phases).toContain("replacing");
     expect(phases).toContain("done");
     // Verify order
-    expect(phases.indexOf("downloading")).toBeLessThan(phases.indexOf("extracting"));
-    expect(phases.indexOf("extracting")).toBeLessThan(phases.indexOf("replacing"));
+    expect(phases.indexOf("downloading")).toBeLessThan(
+      phases.indexOf("extracting"),
+    );
+    expect(phases.indexOf("extracting")).toBeLessThan(
+      phases.indexOf("replacing"),
+    );
     expect(phases.indexOf("replacing")).toBeLessThan(phases.indexOf("done"));
   });
 
@@ -269,7 +306,7 @@ describe("E2E: Apply", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = nativePlan("https://example.com/test-app-v2.0.0-darwin-arm64.tar.gz");
+    const plan = nativePlan(`https://example.com/${TAR_NAME}`);
     controller.abort();
     const result = await kit.applyUpdate(plan, {
       skipChecksum: true,
@@ -291,7 +328,10 @@ describe("E2E: Apply", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = delegatePlan(["npm", "install", "-g", "test-app@2.0.0"], "print-only");
+    const plan = delegatePlan(
+      ["npm", "install", "-g", "test-app@2.0.0"],
+      "print-only",
+    );
     const result = await kit.applyUpdate(plan);
     expect(result.kind).toBe("success");
   });
@@ -299,7 +339,9 @@ describe("E2E: Apply", () => {
   it("delegate: execute mode success", async () => {
     env = await createTestEnvironment({
       channel: "npm-global",
-      mockBinBehavior: { npm: { exitCode: 0, stdout: "updated test-app@2.0.0" } },
+      mockBinBehavior: {
+        npm: { exitCode: 0, stdout: "updated test-app@2.0.0" },
+      },
     });
 
     const kit = new UpdateKit({
@@ -312,7 +354,10 @@ describe("E2E: Apply", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = delegatePlan(["npm", "install", "-g", "test-app@2.0.0"], "execute");
+    const plan = delegatePlan(
+      ["npm", "install", "-g", "test-app@2.0.0"],
+      "execute",
+    );
     const result = await kit.applyUpdate(plan);
     expect(result.kind).toBe("success");
   });
@@ -320,7 +365,9 @@ describe("E2E: Apply", () => {
   it("delegate: execute mode failure → COMMAND_FAILED", async () => {
     env = await createTestEnvironment({
       channel: "npm-global",
-      mockBinBehavior: { npm: { exitCode: 1, stderr: "ERR! something went wrong" } },
+      mockBinBehavior: {
+        npm: { exitCode: 1, stderr: "ERR! something went wrong" },
+      },
     });
 
     const kit = new UpdateKit({
@@ -333,7 +380,10 @@ describe("E2E: Apply", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = delegatePlan(["npm", "install", "-g", "test-app@2.0.0"], "execute");
+    const plan = delegatePlan(
+      ["npm", "install", "-g", "test-app@2.0.0"],
+      "execute",
+    );
     const result = await kit.applyUpdate(plan);
     expect(result.kind).toBe("failed");
   });
@@ -341,7 +391,9 @@ describe("E2E: Apply", () => {
   it("delegate: permission error → PERMISSION_DENIED", async () => {
     env = await createTestEnvironment({
       channel: "npm-global",
-      mockBinBehavior: { npm: { exitCode: 1, stderr: "ERR! EACCES: permission denied" } },
+      mockBinBehavior: {
+        npm: { exitCode: 1, stderr: "ERR! EACCES: permission denied" },
+      },
     });
 
     const kit = new UpdateKit({
@@ -354,11 +406,16 @@ describe("E2E: Apply", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = delegatePlan(["npm", "install", "-g", "test-app@2.0.0"], "execute");
+    const plan = delegatePlan(
+      ["npm", "install", "-g", "test-app@2.0.0"],
+      "execute",
+    );
     const result = await kit.applyUpdate(plan);
     expect(result.kind).toBe("failed");
     if (result.kind === "failed") {
-      expect(result.error.code || result.error.message).toMatch(/PERMISSION_DENIED|permission/i);
+      expect(result.error.code || result.error.message).toMatch(
+        /PERMISSION_DENIED|permission/i,
+      );
     }
   });
 
@@ -378,7 +435,10 @@ describe("E2E: Apply", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = delegatePlan(["npm", "install", "-g", "test-app@2.0.0"], "execute");
+    const plan = delegatePlan(
+      ["npm", "install", "-g", "test-app@2.0.0"],
+      "execute",
+    );
     // Very short timeout to trigger quickly
     const result = await kit.applyUpdate(plan, { timeoutMs: 500 } as any);
     expect(result.kind).toBe("failed");
@@ -402,7 +462,10 @@ describe("E2E: Apply", () => {
       sources: [{ type: "github", owner: "test-org", repo: "test-app" }],
     });
 
-    const plan = delegatePlan(["npm", "install", "-g", "test-app@2.0.0"], "execute");
+    const plan = delegatePlan(
+      ["npm", "install", "-g", "test-app@2.0.0"],
+      "execute",
+    );
     setTimeout(() => controller.abort(), 200);
     const result = await kit.applyUpdate(plan, { signal: controller.signal });
     expect(result.kind).toBe("failed");

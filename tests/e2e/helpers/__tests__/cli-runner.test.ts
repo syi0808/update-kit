@@ -1,8 +1,8 @@
-import { describe, it, expect, afterEach } from "vitest";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 import { runCLI } from "../cli-runner.js";
 import { createTestEnvironment, type TestEnvironment } from "../environment.js";
-import path from "node:path";
-import fs from "node:fs/promises";
 
 describe("runCLI", () => {
   let env: TestEnvironment | undefined;

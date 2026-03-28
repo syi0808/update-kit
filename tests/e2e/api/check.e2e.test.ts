@@ -1,21 +1,35 @@
 // tests/e2e/api/check.e2e.test.ts
-import { describe, it, expect, afterEach } from "vitest";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { setupFetchMock } from "../helpers/fetch-mock.js";
+
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
+import { setupFetchMock } from "../helpers/fetch-mock.js";
 
 const { UpdateKit } = await import("../../../dist/index.mjs");
 
 // Load fixture responses
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(__dirname, "../fixtures/servers");
-const githubLatest = JSON.parse(await fs.readFile(path.join(fixturesDir, "github-latest.json"), "utf-8"));
-const npmRegistry = JSON.parse(await fs.readFile(path.join(fixturesDir, "npm-registry.json"), "utf-8"));
-const jsrPackage = JSON.parse(await fs.readFile(path.join(fixturesDir, "jsr-package.json"), "utf-8"));
-const brewCask = JSON.parse(await fs.readFile(path.join(fixturesDir, "brew-cask.json"), "utf-8"));
-const customManifest = JSON.parse(await fs.readFile(path.join(fixturesDir, "custom-manifest.json"), "utf-8"));
+const githubLatest = JSON.parse(
+  await fs.readFile(path.join(fixturesDir, "github-latest.json"), "utf-8"),
+);
+const npmRegistry = JSON.parse(
+  await fs.readFile(path.join(fixturesDir, "npm-registry.json"), "utf-8"),
+);
+const jsrPackage = JSON.parse(
+  await fs.readFile(path.join(fixturesDir, "jsr-package.json"), "utf-8"),
+);
+const brewCask = JSON.parse(
+  await fs.readFile(path.join(fixturesDir, "brew-cask.json"), "utf-8"),
+);
+const customManifest = JSON.parse(
+  await fs.readFile(path.join(fixturesDir, "custom-manifest.json"), "utf-8"),
+);
 
 describe("E2E: Check", () => {
   let env: TestEnvironment | undefined;
@@ -29,7 +43,10 @@ describe("E2E: Check", () => {
   it("blocking check via GitHub source returns available", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com\/repos\/.*\/releases\/latest/, response: { body: githubLatest } },
+      {
+        url: /api\.github\.com\/repos\/.*\/releases\/latest/,
+        response: { body: githubLatest },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -49,10 +66,16 @@ describe("E2E: Check", () => {
   });
 
   it("blocking check via npm source returns up-to-date", async () => {
-    env = await createTestEnvironment({ channel: "npm-global", currentVersion: "2.0.0" });
+    env = await createTestEnvironment({
+      channel: "npm-global",
+      currentVersion: "2.0.0",
+    });
     // npm fetchLatest hits /{packageName}/latest which returns a single version object
     fetchMock = setupFetchMock([
-      { url: /registry\.npmjs\.org\/.*\/latest/, response: { body: { version: "2.0.0" } } },
+      {
+        url: /registry\.npmjs\.org\/.*\/latest/,
+        response: { body: { version: "2.0.0" } },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -107,7 +130,10 @@ describe("E2E: Check", () => {
   it("blocking check via custom manifest returns available", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: "https://test-app.example.com/manifest.json", response: { body: customManifest } },
+      {
+        url: "https://test-app.example.com/manifest.json",
+        response: { body: customManifest },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -115,7 +141,9 @@ describe("E2E: Check", () => {
       currentVersion: "1.0.0",
       executablePath: env.executablePath,
       cacheDir: env.cachePath,
-      sources: [{ type: "custom", url: "https://test-app.example.com/manifest.json" }],
+      sources: [
+        { type: "custom", url: "https://test-app.example.com/manifest.json" },
+      ],
     });
 
     const status = await kit.checkUpdate("blocking");
@@ -205,7 +233,10 @@ describe("E2E: Check", () => {
   it("blocking check with all sources failing returns unknown", async () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com/, response: { status: 500, body: "Internal Server Error" } },
+      {
+        url: /api\.github\.com/,
+        response: { status: 500, body: "Internal Server Error" },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -238,7 +269,10 @@ describe("E2E: Check", () => {
     );
 
     fetchMock = setupFetchMock([
-      { url: /api\.github\.com/, response: { status: 304, headers: { etag: '"abc123"' } } },
+      {
+        url: /api\.github\.com/,
+        response: { status: 304, headers: { etag: '"abc123"' } },
+      },
     ]);
 
     const kit = new UpdateKit({
@@ -260,7 +294,10 @@ describe("E2E: Check", () => {
     env = await createTestEnvironment({ channel: "native" });
     fetchMock = setupFetchMock([
       { url: /api\.github\.com/, response: { status: 500, body: "error" } },
-      { url: /registry\.npmjs\.org\/.*\/latest/, response: { body: { version: "2.0.0" } } },
+      {
+        url: /registry\.npmjs\.org\/.*\/latest/,
+        response: { body: { version: "2.0.0" } },
+      },
     ]);
 
     const kit = new UpdateKit({

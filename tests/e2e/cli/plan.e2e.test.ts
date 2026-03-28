@@ -1,11 +1,15 @@
 // tests/e2e/cli/plan.e2e.test.ts
-import { describe, it, expect, afterEach } from "vitest";
-import path from "node:path";
+
 import fs from "node:fs/promises";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createTestEnvironment, type TestEnvironment } from "../helpers/environment.js";
-import { runCLI } from "../helpers/cli-runner.js";
+import { afterEach, describe, expect, it } from "vitest";
 import { writeFetchRoutes } from "../helpers/cli-routes.js";
+import { runCLI } from "../helpers/cli-runner.js";
+import {
+  createTestEnvironment,
+  type TestEnvironment,
+} from "../helpers/environment.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(__dirname, "../fixtures/servers");
@@ -15,7 +19,10 @@ const githubLatest = JSON.parse(
 );
 
 const githubLatestNoAssets = JSON.parse(
-  await fs.readFile(path.join(fixturesDir, "github-latest-no-assets.json"), "utf-8"),
+  await fs.readFile(
+    path.join(fixturesDir, "github-latest-no-assets.json"),
+    "utf-8",
+  ),
 );
 
 const npmRegistry = JSON.parse(
@@ -34,7 +41,10 @@ describe("CLI: plan", () => {
   });
 
   it("--json native → type=native-in-place or manual-install when update available", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {
@@ -58,7 +68,10 @@ describe("CLI: plan", () => {
   });
 
   it("--json npm-global → type=delegate-command", async () => {
-    env = await createTestEnvironment({ channel: "npm-global", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "npm-global",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {
@@ -84,7 +97,10 @@ describe("CLI: plan", () => {
   });
 
   it("--json brew-cask → type=delegate-command", async () => {
-    env = await createTestEnvironment({ channel: "brew-cask", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "brew-cask",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {
@@ -137,7 +153,10 @@ describe("CLI: plan", () => {
   });
 
   it("--json up-to-date → message indicating no update", async () => {
-    env = await createTestEnvironment({ channel: "native", currentVersion: "2.0.0" });
+    env = await createTestEnvironment({
+      channel: "native",
+      currentVersion: "2.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {
@@ -158,7 +177,10 @@ describe("CLI: plan", () => {
   });
 
   it("text output (no --json) → human-readable plan description", async () => {
-    env = await createTestEnvironment({ channel: "npm-global", currentVersion: "1.0.0" });
+    env = await createTestEnvironment({
+      channel: "npm-global",
+      currentVersion: "1.0.0",
+    });
     const routesDir = path.join(env.tmpDir, "routes");
     await writeFetchRoutes(routesDir, [
       {
