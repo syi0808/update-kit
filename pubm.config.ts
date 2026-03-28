@@ -1,18 +1,21 @@
-import { defineConfig } from 'pubm'
-import { externalVersionSync } from '@pubm/plugin-external-version-sync'
+import { externalVersionSync } from "@pubm/plugin-external-version-sync";
+import { defineConfig } from "pubm";
 
 export default defineConfig({
-  versioning: 'fixed',
+  versioning: "fixed",
   packages: [
-    { path: '.', registries: ['npm', 'jsr'] },
-    { path: 'rust/crates/update-kit', registries: ['crates'] },
-    { path: 'rust/crates/update-kit-cli', registries: ['crates'] },
+    { path: ".", registries: ["npm", "jsr"] },
+    { path: "rust/crates/update-kit", registries: ["crates"] },
+    { path: "rust/crates/update-kit-cli", registries: ["crates"] },
   ],
   plugins: [
     externalVersionSync({
       targets: [
-        { file: 'plugins/update-kit-plugin/.claude-plugin/plugin.json', jsonPath: 'version' },
+        {
+          file: "plugins/update-kit-plugin/.claude-plugin/plugin.json",
+          jsonPath: "version",
+        },
       ],
     }),
   ],
-})
+});
