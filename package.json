@@ -55,8 +55,8 @@
     "test:ci": "pnpm build && pnpm test && pnpm test:dist",
     "prepublishOnly": "pnpm build",
     "coverage": "vitest run --coverage",
-    "release": "pubm --preflight",
-    "ci:release": "pubm --publish-only"
+    "release": "pubm --mode ci --phase prepare",
+    "release:ci": "pubm --mode ci --phase publish"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -66,11 +66,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.4",
+    "@pubm/plugin-external-version-sync": "^0.4.12",
     "@types/node": "^25.2.2",
     "@types/semver": "^7.7.1",
     "@vitest/coverage-v8": "4.0.18",
     "jsr": "^0.14.3",
-    "pubm": "^0.2.12",
+    "pubm": "^0.4.12",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"

@@ -77,3 +77,31 @@ These are design constraints of the library, not coding guidelines:
 - Never elevates privileges (no sudo).
 - `delegate-command` defaults to `print-only` mode (shows command without executing).
 - Low-confidence detections result in print-only behavior.
+
+## Changesets Workflow
+
+This project uses pubm changesets to track changes and automate versioning.
+
+### Rules
+- Every PR that changes runtime code must include a changeset file
+- Add a changeset: `pubm changesets add`
+- Changeset identifiers use package path (e.g., `packages/core`), not registry name. Package names are also accepted and auto-resolved to paths.
+- Changeset summaries should be written from the user's perspective
+- PRs with `no-changeset` label skip the changeset check (use for docs, CI config, etc.)
+
+### Workflow
+1. Make changes on a feature branch
+2. Run `pubm changesets add` to select packages, bump type, and summary
+3. Commit the generated `.pubm/changesets/<id>.md` file with your PR
+4. On merge, changesets accumulate on main
+5. When releasing, `pubm` consumes pending changesets to determine versions and generate CHANGELOG
+
+### Bump Type Guide
+- **patch**: Bug fixes, internal refactors with no API changes
+- **minor**: New features, backward-compatible additions
+- **major**: Breaking changes, removed/renamed public APIs
+
+### Review Checklist
+- [ ] Changeset file included (or `no-changeset` label applied)
+- [ ] Bump type matches the scope of changes
+- [ ] Summary is clear and user-facing
